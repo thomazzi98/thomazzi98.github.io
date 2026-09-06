@@ -35,7 +35,11 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={new URL('/og.png', Astro.site)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={identity.positioning} />
+    <meta name="twitter:card" content="summary_large_image" />
     <Font cssVariable="--font-plex-sans" preload />
     <Font cssVariable="--font-plex-mono" preload />
     <slot name="head" />
