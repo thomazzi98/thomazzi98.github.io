@@ -1,0 +1,23 @@
+---
+import type { projectStatuses } from '../content/schemas';
+
+type ProjectStatus = (typeof projectStatuses)[number];
+
+interface Props {
+  status: ProjectStatus;
+}
+
+const labels: Record<ProjectStatus, string> = {
+  'in-production': 'In production',
+  'paused-by-client': 'Paused by client',
+  'never-launched': 'Never launched',
+  internal: 'Internal',
+  personal: 'Personal',
+};
+
+const { status } = Astro.props;
+---
+
+<span class="border border-rule px-1.5 py-0.5 font-mono text-2xs tracking-label uppercase">
+  {labels[status]}
+</span>

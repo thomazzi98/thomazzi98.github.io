@@ -82,3 +82,56 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+@layer components {
+  .prose {
+    max-width: var(--measure);
+  }
+
+  .prose > * + * {
+    margin-top: 1.25em;
+  }
+
+  .prose h2 {
+    margin-top: 2.5em;
+    font-family: var(--font-plex-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .prose h2 + * {
+    margin-top: 0.75em;
+  }
+
+  .prose ul {
+    padding-left: 1.25em;
+    list-style: disc;
+  }
+
+  .prose li + li {
+    margin-top: 0.5em;
+  }
+
+  .prose code {
+    font-size: 0.9em;
+    padding: 0.1em 0.35em;
+    border: 1px solid var(--rule);
+    border-radius: 0.2em;
+  }
+
+  .prose pre {
+    overflow-x: auto;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--rule);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+  }
+
+  .prose pre code {
+    padding: 0;
+    border: 0;
+    font-size: inherit;
+  }
+}

@@ -9,6 +9,8 @@ interface Props {
 
 const { title, description } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const navigation = [{ href: '/work/', label: 'Work' }];
+const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
 ---
 
 <!doctype html>
@@ -31,11 +33,22 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
     </a>
     <header class="border-b border-rule">
       <div
-        class="mx-auto flex max-w-(--container) items-baseline justify-between px-(--gutter) py-4"
+        class="mx-auto flex max-w-(--container) items-baseline justify-between px-(--gutter) py-4 font-mono text-xs tracking-label uppercase"
       >
-        <a href="/" class="font-mono text-sm tracking-label uppercase no-underline"
-          >Rafael Thomazzi</a
-        >
+        <a href="/" class="text-sm no-underline">Rafael Thomazzi</a>
+        <nav aria-label="Primary" class="flex gap-5">
+          {
+            navigation.map(({ href, label }) => (
+              <a
+                href={href}
+                aria-current={isCurrent(href) ? 'page' : undefined}
+                class="text-ink-muted no-underline hover:text-ink aria-[current=page]:text-ink"
+              >
+                {label}
+              </a>
+            ))
+          }
+        </nav>
       </div>
     </header>
     <main id="main" tabindex="-1" class="mx-auto w-full max-w-(--container) flex-1 px-(--gutter)">

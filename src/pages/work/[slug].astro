@@ -1,0 +1,88 @@
+---
+import type { InferGetStaticPropsType } from 'astro';
+import { render } from 'astro:content';
+import StatusLabel from '../../components/StatusLabel.astro';
+import Base from '../../layouts/Base.astro';
+import { loadContent } from '../../lib/content';
+import { formatPeriod } from '../../lib/period';
+import { createTechnologyNameLookup } from '../../lib/technologies';
+
+export const getStaticPaths = async () => {
+  const { projects } = await loadContent();
+  return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
+};
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { project } = Astro.props;
+const { roles, technologies } = await loadContent();
+const technologyName = createTechnologyNameLookup(technologies);
+const role = roles.find((candidate) => candidate.id === project.data.role?.id);
+const { Content } = await render(project);
+const { title, tagline, status, period, stack, confidentiality, evidence } = project.data;
+---
+
+<Base title={`${title} · Rafael Thomazzi`} description={tagline}>
+  <article class="py-12 md:py-16">
+    <p class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-ink-muted">
+      {role && <span>{role.data.company}</span>}
+      <span>{formatPeriod(period)}</span>
+      <StatusLabel status={status} />
+    </p>
+    <h1 class="mt-4 max-w-(--measure) text-fluid-xl leading-tight font-semibold tracking-tight">
+      {title}
+    </h1>
+    <p class="mt-4 max-w-(--measure) text-fluid-lg text-ink-muted">{tagline}</p>
+
+    <div class="mt-12 grid gap-12 lg:grid-cols-[minmax(0,var(--measure))_16rem] lg:gap-16">
+      <div class="prose">
+        <Content />
+      </div>
+      <aside class="font-mono text-xs text-ink-muted lg:sticky lg:top-8 lg:self-start">
+        {
+          role && (
+            <section>
+              <h2 class="tracking-label uppercase">Role</h2>
+              <p class="mt-2 text-ink">{role.data.title}</p>
+              <p>
+                {role.data.company} · {role.data.companyGloss}
+              </p>
+            </section>
+          )
+        }
+        <section class="mt-6">
+          <h2 class="tracking-label uppercase">Stack</h2>
+          <ul class="mt-2">
+            {stack.map((technology) => <li class="text-ink">{technologyName(technology)}</li>)}
+          </ul>
+        </section>
+        {
+          evidence.length > 0 && (
+            <section class="mt-6">
+              <h2 class="tracking-label uppercase">Evidence</h2>
+              <ul class="mt-2">
+                {evidence.map((item) => (
+                  <li class="text-ink">
+                    {item.url ? (
+                      <a href={item.url}>{item.label ?? item.url}</a>
+                    ) : (
+                      (item.label ?? 'None public')
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+        {
+          confidentiality && (
+            <section class="mt-6">
+              <h2 class="tracking-label uppercase">Confidentiality</h2>
+              <p class="mt-2">{confidentiality}</p>
+            </section>
+          )
+        }
+      </aside>
+    </div>
+  </article>
+</Base>

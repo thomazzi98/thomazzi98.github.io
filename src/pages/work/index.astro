@@ -1,0 +1,62 @@
+---
+import ProjectCard from '../../components/ProjectCard.astro';
+import Base from '../../layouts/Base.astro';
+import { loadContent } from '../../lib/content';
+import { selectAlsoBuilt, selectCaseStudies } from '../../lib/projects';
+import { createTechnologyNameLookup } from '../../lib/technologies';
+
+const { projects, roles, technologies } = await loadContent();
+const technologyName = createTechnologyNameLookup(technologies);
+const companyByRoleId = new Map(roles.map((role) => [role.id, role.data.company]));
+const companyOf = (project: (typeof projects)[number]) =>
+  project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
+const caseStudies = selectCaseStudies(projects);
+const alsoBuilt = selectAlsoBuilt(projects);
+---
+
+<Base
+  title="Work · Rafael Thomazzi"
+  description="Case studies written as decision records: the constraints, the alternative that was on the table, the decision, what it cost, and what happened."
+>
+  <section class="py-12 md:py-16">
+    <h1 class="text-fluid-xl font-semibold tracking-tight">Work</h1>
+    <p class="mt-4 max-w-(--measure) text-ink-muted">
+      Each case study is a decision record: the constraints, the alternative that was on the table,
+      what I chose, what it cost, and what happened. Work that never launched says so.
+    </p>
+  </section>
+
+  <section aria-labelledby="case-studies">
+    <h2 id="case-studies" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      Case studies
+    </h2>
+    <div class="mt-4">
+      {
+        caseStudies.map((project) => (
+          <ProjectCard
+            project={project}
+            company={companyOf(project)}
+            technologyName={technologyName}
+          />
+        ))
+      }
+    </div>
+  </section>
+
+  <section aria-labelledby="also-built" class="mt-16 pb-16">
+    <h2 id="also-built" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      Also built
+    </h2>
+    <div class="mt-4">
+      {
+        alsoBuilt.map((project) => (
+          <ProjectCard
+            project={project}
+            company={companyOf(project)}
+            technologyName={technologyName}
+          />
+        ))
+      }
+    </div>
+  </section>
+</Base>

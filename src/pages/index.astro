@@ -1,10 +1,18 @@
 ---
+import ProjectCard from '../components/ProjectCard.astro';
 import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
+import { selectFeatured } from '../lib/projects';
+import { createTechnologyNameLookup } from '../lib/technologies';
 
-const { roles } = await loadContent();
+const { roles, projects, technologies } = await loadContent();
+const technologyName = createTechnologyNameLookup(technologies);
+const companyByRoleId = new Map(roles.map((role) => [role.id, role.data.company]));
+const companyOf = (project: (typeof projects)[number]) =>
+  project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
 const latestRole = [...roles].sort(compareByStartDescending)[0];
+const featured = selectFeatured(projects);
 ---
 
 <Base
@@ -31,5 +39,25 @@ const latestRole = [...roles].sort(compareByStartDescending)[0];
         </p>
       )
     }
+  </section>
+
+  <section aria-labelledby="selected-work" class="pb-16 md:pb-24">
+    <div class="flex items-baseline justify-between">
+      <h2 id="selected-work" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+        Selected work
+      </h2>
+      <a href="/work/" class="font-mono text-xs text-ink-muted hover:text-ink">All work →</a>
+    </div>
+    <div class="mt-4">
+      {
+        featured.map((project) => (
+          <ProjectCard
+            project={project}
+            company={companyOf(project)}
+            technologyName={technologyName}
+          />
+        ))
+      }
+    </div>
   </section>
 </Base>
