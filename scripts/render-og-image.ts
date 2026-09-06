@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
+import { identity } from '../src/lib/identity.ts';
 
 const fontUrl = (file: string) => pathToFileURL(resolve('src/assets/fonts', file)).href;
 
@@ -51,12 +52,12 @@ const page = `<!doctype html>
     </style>
   </head>
   <body>
-    <p class="label">Rafael Thomazzi · Senior Software Engineer · Backend</p>
+    <p class="label">${identity.name} · ${identity.headline}</p>
     <div>
       <div class="rule"></div>
-      <h1>I build the backend between enterprise systems, payment providers, and blockchains.</h1>
+      <h1>${identity.positioning}</h1>
     </div>
-    <p class="label">thomazzi98.github.io · Sorocaba, Brazil · UTC−3 · available now, remote</p>
+    <p class="label">thomazzi98.github.io · ${identity.city}, Brazil · ${identity.timezone} · ${identity.availability}</p>
   </body>
 </html>`;
 

@@ -1,6 +1,6 @@
 import { technologyGroups } from '../content/schemas';
 
-type TechnologyGroup = (typeof technologyGroups)[number];
+export type TechnologyGroup = (typeof technologyGroups)[number];
 
 interface TechnologyLike {
   data: { name: string; group: TechnologyGroup; firstUsed: number };
@@ -12,13 +12,21 @@ export const technologyGroupLabels: Record<TechnologyGroup, string> = {
   familiar: 'Familiar',
 };
 
+export const compareByFirstUsedThenName = (first: TechnologyLike, second: TechnologyLike): number =>
+  first.data.firstUsed - second.data.firstUsed || first.data.name.localeCompare(second.data.name);
+
+export const selectGroup = <T extends TechnologyLike>(
+  technologies: T[],
+  group: TechnologyGroup,
+): T[] =>
+  technologies
+    .filter((technology) => technology.data.group === group)
+    .sort(compareByFirstUsedThenName);
+
 export const groupTechnologyNames = (
   technologies: TechnologyLike[],
 ): { label: string; names: string[] }[] =>
   technologyGroups.map((group) => ({
     label: technologyGroupLabels[group],
-    names: technologies
-      .filter((technology) => technology.data.group === group)
-      .sort((first, second) => first.data.firstUsed - second.data.firstUsed)
-      .map((technology) => technology.data.name),
+    names: selectGroup(technologies, group).map((technology) => technology.data.name),
   }));

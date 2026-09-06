@@ -7,23 +7,20 @@ import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { selectFeatured } from '../lib/projects';
 import { createTechnologyNameLookup } from '../lib/technologies';
 
-const { roles, projects, technologies } = await loadContent();
+const { roles, projects, technologies, companyOf } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
-const companyByRoleId = new Map(roles.map((role) => [role.id, role.data.company]));
-const companyOf = (project: (typeof projects)[number]) =>
-  project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
 const latestRole = [...roles].sort(compareByStartDescending)[0];
 const featured = selectFeatured(projects);
 const person = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: identity.name,
-  jobTitle: 'Senior Software Engineer',
+  jobTitle: identity.headline,
   description: identity.summary,
   email: `mailto:${identity.email}`,
   url: Astro.site?.href,
   sameAs: [identity.links.github, identity.links.linkedin],
-  address: { '@type': 'PostalAddress', addressLocality: 'Sorocaba', addressCountry: 'BR' },
+  address: { '@type': 'PostalAddress', addressLocality: identity.city, addressCountry: 'BR' },
 };
 ---
 

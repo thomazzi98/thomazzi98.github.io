@@ -18,6 +18,8 @@ test('primary navigation is reachable by keyboard and marks the current page', a
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Rafael Thomazzi' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Work' })).toBeFocused();
 });
 
 test('resume.txt and llms.txt are served as plain text', async ({ request }) => {

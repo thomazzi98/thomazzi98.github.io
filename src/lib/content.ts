@@ -1,6 +1,10 @@
 import { getCollection } from 'astro:content';
 import { assertContentIntegrity } from './integrity';
 
+interface HasRole {
+  data: { role?: { id: string } | undefined };
+}
+
 export const loadContent = async () => {
   const [roles, projects, technologies, education] = await Promise.all([
     getCollection('roles'),
@@ -9,7 +13,10 @@ export const loadContent = async () => {
     getCollection('education'),
   ]);
   assertContentIntegrity({ roles, projects, technologies });
-  return { roles, projects, technologies, education };
+  const companyByRoleId = new Map(roles.map((role) => [role.id, role.data.company]));
+  const companyOf = (project: HasRole): string | undefined =>
+    project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
+  return { roles, projects, technologies, education, companyOf };
 };
 
 export type SiteContent = Awaited<ReturnType<typeof loadContent>>;

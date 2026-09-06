@@ -20,7 +20,13 @@
     "firstUsed": 2021,
     "group": "shipped-with"
   },
-  { "id": "php", "name": "PHP", "category": "language", "firstUsed": 2019, "group": "familiar" },
+  {
+    "id": "php",
+    "name": "PHP",
+    "category": "language",
+    "firstUsed": 2019,
+    "group": "familiar"
+  },
   {
     "id": "nodejs",
     "name": "Node.js",
@@ -89,7 +95,7 @@
     "name": "DynamoDB",
     "category": "database",
     "firstUsed": 2022,
-    "group": "owned-in-production"
+    "group": "shipped-with"
   },
   {
     "id": "redis",
@@ -124,7 +130,7 @@
     "name": "AWS S3",
     "category": "cloud",
     "firstUsed": 2022,
-    "group": "owned-in-production"
+    "group": "shipped-with"
   },
   {
     "id": "aws-sns",
@@ -161,7 +167,13 @@
     "firstUsed": 2020,
     "group": "owned-in-production"
   },
-  { "id": "mocha", "name": "Mocha", "category": "testing", "firstUsed": 2022, "group": "familiar" },
+  {
+    "id": "mocha",
+    "name": "Mocha",
+    "category": "testing",
+    "firstUsed": 2022,
+    "group": "familiar"
+  },
   {
     "id": "vitest",
     "name": "Vitest",

@@ -5,6 +5,7 @@ export const identity = {
     'I build the backend between enterprise systems, payment providers, and blockchains.',
   summary:
     'Backend engineer with six years in Node.js and TypeScript: integration platforms, payment providers, and smart-contract backends, from first design through production support.',
+  city: 'Sorocaba',
   location: 'Sorocaba, São Paulo, Brazil',
   timezone: 'UTC−3',
   availability: 'Available now, remote from Brazil',

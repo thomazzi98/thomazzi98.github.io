@@ -5,11 +5,8 @@ import { loadContent } from '../../lib/content';
 import { selectAlsoBuilt, selectCaseStudies } from '../../lib/projects';
 import { createTechnologyNameLookup } from '../../lib/technologies';
 
-const { projects, roles, technologies } = await loadContent();
+const { projects, technologies, companyOf } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
-const companyByRoleId = new Map(roles.map((role) => [role.id, role.data.company]));
-const companyOf = (project: (typeof projects)[number]) =>
-  project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
 const caseStudies = selectCaseStudies(projects);
 const alsoBuilt = selectAlsoBuilt(projects);
 ---

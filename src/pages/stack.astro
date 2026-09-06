@@ -3,41 +3,24 @@ import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { indexEvidence } from '../lib/evidence';
 import { technologyGroups } from '../content/schemas';
-
-type TechnologyGroup = (typeof technologyGroups)[number];
+import { selectGroup, technologyGroupLabels, type TechnologyGroup } from '../lib/technology-groups';
 
 const { roles, projects, technologies } = await loadContent();
 const evidence = indexEvidence(roles, projects);
 
-const groupDefinitions: Record<TechnologyGroup, { heading: string; definition: string }> = {
-  'owned-in-production': {
-    heading: 'Owned in production',
-    definition:
-      'I designed or owned a production service built on it and supported it after release.',
-  },
-  'shipped-with': {
-    heading: 'Shipped with',
-    definition: 'Used in production code I contributed to, without owning that layer’s design.',
-  },
-  familiar: {
-    heading: 'Familiar',
-    definition:
-      'A personal project, a proof of concept or an early role. I would need ramp-up before claiming ownership.',
-  },
+const definitions: Record<TechnologyGroup, string> = {
+  'owned-in-production':
+    'I designed or owned a production service built on it and supported it after release.',
+  'shipped-with': 'Used in production code I contributed to, without owning that layer’s design.',
+  familiar:
+    'A personal project, a proof of concept or an early role. I would need ramp-up before claiming ownership.',
 };
-
-const byFirstUsedThenName = (
-  first: (typeof technologies)[number],
-  second: (typeof technologies)[number],
-) =>
-  first.data.firstUsed - second.data.firstUsed || first.data.name.localeCompare(second.data.name);
 
 const groups = technologyGroups.map((group) => ({
   group,
-  ...groupDefinitions[group],
-  entries: technologies
-    .filter((technology) => technology.data.group === group)
-    .sort(byFirstUsedThenName),
+  heading: technologyGroupLabels[group],
+  definition: definitions[group],
+  entries: selectGroup(technologies, group),
 }));
 ---
 

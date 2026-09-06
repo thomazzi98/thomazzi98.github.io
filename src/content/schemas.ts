@@ -32,15 +32,12 @@ export const technologySchema = z.object({
   group: z.enum(technologyGroups),
 });
 
-export const engagementKinds = ['employee', 'contract'] as const;
-
 export const roleSchema = z.object({
   title: z.string().min(1),
   company: z.string().min(1),
   companyGloss: z.string().min(1),
   location: z.string().min(1),
   period: periodSchema,
-  engagement: z.enum(engagementKinds).default('employee'),
   concurrentWith: reference('roles').optional(),
   stack: z.array(reference('technologies')).min(1),
 });
@@ -84,7 +81,6 @@ export const decisionSchema = z.object({
   title: z.string().min(1),
   status: z.enum(decisionStatuses),
   date: z.coerce.date(),
-  supersededBy: z.string().optional(),
 });
 
 export const educationSchema = z.object({

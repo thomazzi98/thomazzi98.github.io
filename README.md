@@ -32,6 +32,9 @@ the package pins dependencies with known advisories and does not belong in the t
 Security software that injects scripts into web pages (some antivirus products do) will fail the
 zero-script budget on a developer machine. The gate that matters runs in CI.
 
+`git config core.hooksPath .githooks` installs a pre-commit hook that runs the lint, format and
+draft checks, so a commit cannot get ahead of the CI gate.
+
 After changing dependencies, run `npm run lock`. An incremental install on one platform prunes
 the other platforms' optional packages from the lockfile, and `npm ci` on the Linux runner
 rejects the result; the script regenerates the lockfile from scratch.
