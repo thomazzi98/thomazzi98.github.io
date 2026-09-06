@@ -24,9 +24,9 @@ const parseYearMonth = (value: string): { year: number; month: number } => {
   return { year: Number(yearPart), month: Number(monthPart) };
 };
 
-export const monthsBetween = (from: string, to: string): number => {
-  const start = parseYearMonth(from);
-  const end = parseYearMonth(to);
+export const monthsBetween = (earlier: string, later: string): number => {
+  const start = parseYearMonth(earlier);
+  const end = parseYearMonth(later);
   return (end.year - start.year) * 12 + (end.month - start.month);
 };
 
