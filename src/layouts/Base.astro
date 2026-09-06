@@ -12,6 +12,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const navigation = [
   { href: '/work/', label: 'Work' },
   { href: '/about/', label: 'About' },
+  { href: '/stack/', label: 'Stack' },
 ];
 const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
 ---

@@ -1,0 +1,110 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadContent } from '../lib/content';
+import { indexEvidence } from '../lib/evidence';
+import { technologyGroups } from '../content/schemas';
+
+type TechnologyGroup = (typeof technologyGroups)[number];
+
+const { roles, projects, technologies } = await loadContent();
+const evidence = indexEvidence(roles, projects);
+
+const groupDefinitions: Record<TechnologyGroup, { heading: string; definition: string }> = {
+  'owned-in-production': {
+    heading: 'Owned in production',
+    definition:
+      'I designed or owned a production service built on it and supported it after release.',
+  },
+  'shipped-with': {
+    heading: 'Shipped with',
+    definition: 'Used in production code I contributed to, without owning that layer’s design.',
+  },
+  familiar: {
+    heading: 'Familiar',
+    definition:
+      'A personal project, a proof of concept or an early role. I would need ramp-up before claiming ownership.',
+  },
+};
+
+const byFirstUsedThenName = (
+  first: (typeof technologies)[number],
+  second: (typeof technologies)[number],
+) =>
+  first.data.firstUsed - second.data.firstUsed || first.data.name.localeCompare(second.data.name);
+
+const groups = technologyGroups.map((group) => ({
+  group,
+  ...groupDefinitions[group],
+  entries: technologies
+    .filter((technology) => technology.data.group === group)
+    .sort(byFirstUsedThenName),
+}));
+---
+
+<Base
+  title="Stack · Rafael Thomazzi"
+  description="Technologies grouped by the claim I can back: owned in production, shipped with, or familiar. Every entry lists the roles and case studies that evidence it."
+>
+  <section class="py-12 md:py-16">
+    <h1 class="text-fluid-xl font-semibold tracking-tight">Stack</h1>
+    <p class="mt-4 max-w-(--measure) text-ink-muted">
+      Grouped by the claim I can back, not by logo. Each entry lists the roles and case studies that
+      evidence it. A technology that nothing here references does not appear, because the build
+      rejects it.
+    </p>
+  </section>
+
+  {
+    groups.map(({ group, heading, definition, entries }) => (
+      <section aria-labelledby={group} class="border-t border-rule py-10">
+        <h2 id={group} class="font-mono text-xs tracking-label text-ink-muted uppercase">
+          {heading}
+        </h2>
+        <p class="mt-2 max-w-(--measure) text-sm text-ink-muted">{definition}</p>
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full border-collapse font-mono text-xs">
+            <thead class="text-left tracking-label text-ink-muted uppercase">
+              <tr class="border-b border-rule">
+                <th scope="col" class="py-2 pr-4 font-normal">
+                  Technology
+                </th>
+                <th scope="col" class="py-2 pr-4 font-normal">
+                  Category
+                </th>
+                <th scope="col" class="py-2 pr-4 font-normal">
+                  Since
+                </th>
+                <th scope="col" class="py-2 font-normal">
+                  Evidence
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((technology) => (
+                <tr class="border-b border-rule align-top">
+                  <th scope="row" class="py-3 pr-4 text-left font-medium whitespace-nowrap">
+                    {technology.data.name}
+                  </th>
+                  <td class="py-3 pr-4 text-ink-muted">{technology.data.category}</td>
+                  <td class="py-3 pr-4 text-ink-muted">{technology.data.firstUsed}</td>
+                  <td class="py-3 text-ink-muted">
+                    {evidence
+                      .rolesFor(technology.id)
+                      .map((role) => role.data.company)
+                      .join(' · ')}
+                    {evidence.projectsFor(technology.id).map((project) => (
+                      <span>
+                        {' '}
+                        · <a href={`/work/${project.id}/`}>{project.data.title}</a>
+                      </span>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    ))
+  }
+</Base>
