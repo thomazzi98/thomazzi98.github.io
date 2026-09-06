@@ -24,8 +24,8 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      - run: npm run verify
       - run: npx playwright install --with-deps chromium
+      - run: npm run verify
       - run: npm run test:e2e
       - uses: treosh/lighthouse-ci-action@v12
         with:

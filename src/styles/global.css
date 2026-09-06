@@ -135,3 +135,21 @@
     font-size: inherit;
   }
 }
+
+@layer components {
+  .prose svg.flowchart,
+  .prose svg[aria-roledescription] {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    /* Mermaid's neutral theme is grayscale, so inverting it yields the dark variant. */
+    .prose svg.flowchart,
+    .prose svg[aria-roledescription] {
+      filter: invert(0.92) hue-rotate(180deg);
+    }
+  }
+}

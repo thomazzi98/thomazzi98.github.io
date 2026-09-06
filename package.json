@@ -19,10 +19,12 @@
     "test:e2e": "playwright test",
     "check:links": "node scripts/check-links.ts",
     "lighthouse": "npx --yes @lhci/cli@0.15 collect && npx --yes @lhci/cli@0.15 assert",
-    "og:image": "node scripts/render-og-image.ts"
+    "og:image": "node scripts/render-og-image.ts",
+    "lock": "node scripts/regenerate-lockfile.ts"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@astrojs/markdown-remark": "^7.3.0",
     "@astrojs/sitemap": "^3.7.4",
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
@@ -35,6 +37,7 @@
     "eslint-plugin-astro": "^3.1.0",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
+    "rehype-mermaid": "^3.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.69.0",

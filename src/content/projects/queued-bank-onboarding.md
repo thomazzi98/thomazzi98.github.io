@@ -53,6 +53,20 @@ faults: a 4xx is recorded as processed and surfaced to support. Two admin routes
 registration or every pending or failed one. A re-queue of a row already marked processed is
 refused. A queue dashboard is mounted under the admin routes.
 
+```mermaid
+flowchart LR
+  user[User] -->|sign-up| api[API]
+  api -->|1. persist registration row| db[MySQL]
+  api -->|2. enqueue id| queue[BullMQ on Redis]
+  api -->|3. respond: account being created| user
+  queue --> worker[Worker]
+  worker -->|create account| provider[Banking provider]
+  provider -->|2xx or 4xx: store response, mark processed| worker
+  provider -.->|5xx: throw, retry with backoff| worker
+  worker --> db
+  support[Support] -->|re-queue pending or failed| queue
+```
+
 ## What it cost
 
 - A second process to deploy and monitor: the worker.
