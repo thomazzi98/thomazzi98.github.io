@@ -1,0 +1,160 @@
+---
+import { render } from 'astro:content';
+import CareerTrace from '../components/CareerTrace.astro';
+import Base from '../layouts/Base.astro';
+import { buildYearMonth } from '../lib/build-time';
+import { loadContent } from '../lib/content';
+import { compareByStartDescending, formatPeriod } from '../lib/period';
+import { createTechnologyNameLookup } from '../lib/technologies';
+
+const { roles, education, technologies } = await loadContent();
+const technologyName = createTechnologyNameLookup(technologies);
+const rolesByRecency = [...roles].sort(compareByStartDescending);
+const renderedRoles = await Promise.all(
+  rolesByRecency.map(async (role) => ({ role, Content: (await render(role)).Content })),
+);
+const educationByRecency = [...education].sort(
+  (first, second) => second.data.year - first.data.year,
+);
+
+const practices = [
+  {
+    claim: 'Slow or unreliable third-party calls do not run inside a request.',
+    example:
+      'At Eight Assets, bank-account creation moved from the sign-up request to a BullMQ worker with a persisted job row. Sign-up returned at once, and the provider’s bad days stopped being the user’s problem.',
+    href: '/work/queued-bank-onboarding/',
+  },
+  {
+    claim: 'Retry server faults. Record client faults.',
+    example:
+      'The same worker throws only on a 5xx, so the queue retries outages and never replays a 4xx that a retry cannot fix. Support re-queues by hand, and a job already marked processed is refused.',
+    href: '/work/queued-bank-onboarding/',
+  },
+  {
+    claim: 'Application code stays off the chain.',
+    example:
+      'At Gold Rush every contract call went through a backend that held the ABIs, addresses and operator key, so the pre-sale panel deployed with no secrets. At CI&T, the one key that could mint lived in a Lambda whose only job was to sign.',
+    href: '/work/contract-backend-boundary/',
+  },
+  {
+    claim: 'Reporting reads a read model, not the hot collection.',
+    example:
+      'On Integra.Sky, counts, indicators and billing read a slim execution-reference collection rather than the execution store the workers write to.',
+    href: '/work/ipaas-admin-indicators/',
+  },
+  {
+    claim: 'Counters are incremented, not read-modify-written.',
+    example:
+      'In the contest API, vote totals became an atomic update expression after the first version lost updates under concurrent voting.',
+    href: '/work/design-contest-backend/',
+  },
+  {
+    claim: 'Local runs the real dependencies.',
+    example:
+      'The contest backend developed against local S3 and DynamoDB emulation. The mutual-TLS harness for the platform worker generates its own certificate authority in Docker Compose so the failure reproduces on a laptop.',
+    href: '/work/mtls-poc/',
+  },
+  {
+    claim: 'Reproduce before fixing.',
+    example:
+      'When a legacy consumer mis-handled accented characters, I wrote a mock endpoint that proved the charset behavior before touching the integration.',
+    href: '/work/mock-endpoint/',
+  },
+];
+---
+
+<Base
+  title="About · Rafael Thomazzi"
+  description="How I work, stated as practices with the project that backs each one, the career trace, and education glossed for readers outside Brazil."
+>
+  <section class="py-12 md:py-16">
+    <h1 class="text-fluid-xl font-semibold tracking-tight">About</h1>
+    <div class="prose mt-6 text-fluid-lg">
+      <p>
+        I started in 2019 maintaining a school-management system in PHP, which taught me that most
+        software work is reading someone else’s decisions. From 2020 I built the API of a fintech
+        platform in Node.js and TypeScript: accounts, fees, cashback, identity checks, and the
+        integrations with the banks behind them. That led into a token and NFT product in 2021,
+        where I wrote the layer between the product and the contracts, and then a consultancy year
+        at CI&T doing blockchain-adjacent backends for client campaigns.
+      </p>
+      <p>
+        From late 2022 to early 2026 I was on the backend of an integration platform at Sky.One,
+        which is the work I had been circling the whole time: the code between systems, owned from
+        design through the production issue. In 2026 I joined a payments group to work on a payment
+        gateway. [CONFIRM: one sentence on the Brainrocket work.] I am from São Paulo state and I am
+        looking for my next role, remote from Brazil.
+      </p>
+    </div>
+  </section>
+
+  <section aria-labelledby="how-i-work" class="border-t border-rule py-12">
+    <h2 id="how-i-work" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      How I work
+    </h2>
+    <ol class="mt-6 grid gap-8 md:grid-cols-2">
+      {
+        practices.map(({ claim, example, href }) => (
+          <li class="max-w-(--measure)">
+            <p class="font-semibold">{claim}</p>
+            <p class="mt-2 text-ink-muted">{example}</p>
+            <p class="mt-2 font-mono text-xs">
+              <a href={href}>Case study →</a>
+            </p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section aria-labelledby="career" class="border-t border-rule py-12">
+    <h2 id="career" class="font-mono text-xs tracking-label text-ink-muted uppercase">Career</h2>
+    <div class="mt-6">
+      <CareerTrace roles={roles} now={buildYearMonth} />
+    </div>
+    <div class="mt-12 grid gap-12">
+      {
+        renderedRoles.map(({ role, Content }) => (
+          <article class="grid gap-6 lg:grid-cols-[16rem_minmax(0,var(--measure))]">
+            <header class="font-mono text-xs text-ink-muted">
+              <p class="text-ink">{role.data.company}</p>
+              <p>{role.data.companyGloss}</p>
+              <p class="mt-2 text-ink">{role.data.title}</p>
+              <p>
+                {formatPeriod(role.data.period)} · {role.data.location}
+              </p>
+              <p class="mt-2">{role.data.stack.map(technologyName).join(' · ')}</p>
+            </header>
+            <div class="prose">
+              <Content />
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section aria-labelledby="education" class="border-t border-rule py-12">
+    <h2 id="education" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      Education
+    </h2>
+    <ul class="mt-6 grid gap-4 font-mono text-sm">
+      {
+        educationByRecency.map(({ data }) => (
+          <li>
+            <span class="text-ink">
+              {data.credential}, {data.field}
+            </span>
+            <span class="text-ink-muted">
+              {' '}
+              · {data.institution} · {data.year}
+            </span>
+            <p class="text-xs text-ink-muted">
+              {data.credentialGloss} · {data.institutionGloss}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>
