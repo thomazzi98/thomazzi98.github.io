@@ -8,7 +8,10 @@ const source: ResumeSource = {
   timezone: 'UTC−3',
   availability: 'Available now, remote from Brazil',
   email: 'rafathomazzi98@gmail.com',
-  links: ['https://github.com/thomazzi98'],
+  links: [
+    'https://github.com/thomazzi98',
+    'https://www.linkedin.com/in/rafael-thomazzi-3524b1179/',
+  ],
   summary: 'Backend engineer with six years in Node.js and TypeScript.',
   roles: [
     {

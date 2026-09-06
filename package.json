@@ -15,12 +15,18 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build"
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build && npm run check:links",
+    "test:e2e": "playwright test",
+    "check:links": "node scripts/check-links.ts",
+    "lighthouse": "lhci autorun"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@astrojs/sitemap": "^3.7.4",
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.0.0",
     "astro": "^7.3.1",
