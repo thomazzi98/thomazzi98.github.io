@@ -1,5 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import { loadContent } from '../lib/content';
+import { compareByStartDescending, formatPeriod } from '../lib/period';
+
+const { roles } = await loadContent();
+const latestRole = [...roles].sort(compareByStartDescending)[0];
 ---
 
 <Base
@@ -18,5 +23,13 @@ import Base from '../layouts/Base.astro';
       Most recently payment-gateway integrations at Brainrocket and the backend of an integration
       platform at Sky.One.
     </p>
+    {
+      latestRole && (
+        <p class="mt-10 font-mono text-sm text-ink-muted">
+          <span class="tracking-label uppercase">Last role</span> · {latestRole.data.title},{' '}
+          {latestRole.data.company} · {formatPeriod(latestRole.data.period)}
+        </p>
+      )
+    }
   </section>
 </Base>

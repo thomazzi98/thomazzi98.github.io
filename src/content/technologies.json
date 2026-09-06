@@ -1,0 +1,214 @@
+[
+  {
+    "id": "typescript",
+    "name": "TypeScript",
+    "category": "language",
+    "firstUsed": 2020,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "javascript",
+    "name": "JavaScript",
+    "category": "language",
+    "firstUsed": 2019,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "solidity",
+    "name": "Solidity",
+    "category": "language",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  { "id": "php", "name": "PHP", "category": "language", "firstUsed": 2019, "group": "familiar" },
+  {
+    "id": "nodejs",
+    "name": "Node.js",
+    "category": "runtime",
+    "firstUsed": 2020,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "express",
+    "name": "Express",
+    "category": "framework",
+    "firstUsed": 2020,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "sequelize",
+    "name": "Sequelize",
+    "category": "framework",
+    "firstUsed": 2020,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "astro",
+    "name": "Astro",
+    "category": "framework",
+    "firstUsed": 2026,
+    "group": "familiar"
+  },
+  {
+    "id": "react",
+    "name": "React",
+    "category": "frontend",
+    "firstUsed": 2020,
+    "group": "shipped-with"
+  },
+  {
+    "id": "nextjs",
+    "name": "Next.js",
+    "category": "frontend",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  {
+    "id": "react-native",
+    "name": "React Native",
+    "category": "frontend",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  {
+    "id": "mongodb",
+    "name": "MongoDB",
+    "category": "database",
+    "firstUsed": 2022,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "mysql",
+    "name": "MySQL",
+    "category": "database",
+    "firstUsed": 2019,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "dynamodb",
+    "name": "DynamoDB",
+    "category": "database",
+    "firstUsed": 2022,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "redis",
+    "name": "Redis",
+    "category": "database",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  {
+    "id": "bullmq",
+    "name": "BullMQ",
+    "category": "messaging",
+    "firstUsed": 2021,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "rabbitmq",
+    "name": "RabbitMQ",
+    "category": "messaging",
+    "firstUsed": 2022,
+    "group": "shipped-with"
+  },
+  {
+    "id": "aws-lambda",
+    "name": "AWS Lambda",
+    "category": "cloud",
+    "firstUsed": 2022,
+    "group": "shipped-with"
+  },
+  {
+    "id": "aws-s3",
+    "name": "AWS S3",
+    "category": "cloud",
+    "firstUsed": 2022,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "aws-sns",
+    "name": "AWS SNS",
+    "category": "cloud",
+    "firstUsed": 2022,
+    "group": "shipped-with"
+  },
+  {
+    "id": "aws-ses",
+    "name": "AWS SES",
+    "category": "cloud",
+    "firstUsed": 2022,
+    "group": "shipped-with"
+  },
+  {
+    "id": "docker",
+    "name": "Docker",
+    "category": "tooling",
+    "firstUsed": 2021,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "openapi",
+    "name": "OpenAPI",
+    "category": "tooling",
+    "firstUsed": 2022,
+    "group": "owned-in-production"
+  },
+  {
+    "id": "jest",
+    "name": "Jest",
+    "category": "testing",
+    "firstUsed": 2020,
+    "group": "owned-in-production"
+  },
+  { "id": "mocha", "name": "Mocha", "category": "testing", "firstUsed": 2022, "group": "familiar" },
+  {
+    "id": "vitest",
+    "name": "Vitest",
+    "category": "testing",
+    "firstUsed": 2026,
+    "group": "familiar"
+  },
+  {
+    "id": "ethereum",
+    "name": "Ethereum",
+    "category": "blockchain",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  {
+    "id": "bnb-chain",
+    "name": "BNB Chain",
+    "category": "blockchain",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  {
+    "id": "polygon",
+    "name": "Polygon",
+    "category": "blockchain",
+    "firstUsed": 2022,
+    "group": "shipped-with"
+  },
+  {
+    "id": "web3js",
+    "name": "Web3.js",
+    "category": "blockchain",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  {
+    "id": "ethersjs",
+    "name": "Ethers.js",
+    "category": "blockchain",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  },
+  {
+    "id": "hardhat",
+    "name": "Hardhat",
+    "category": "blockchain",
+    "firstUsed": 2021,
+    "group": "shipped-with"
+  }
+]
