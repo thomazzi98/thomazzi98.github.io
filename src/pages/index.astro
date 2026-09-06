@@ -2,6 +2,7 @@
 import ProjectCard from '../components/ProjectCard.astro';
 import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
+import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { selectFeatured } from '../lib/projects';
 import { createTechnologyNameLookup } from '../lib/technologies';
@@ -13,18 +14,27 @@ const companyOf = (project: (typeof projects)[number]) =>
   project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
 const latestRole = [...roles].sort(compareByStartDescending)[0];
 const featured = selectFeatured(projects);
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: identity.name,
+  jobTitle: 'Senior Software Engineer',
+  description: identity.summary,
+  email: `mailto:${identity.email}`,
+  url: Astro.site?.href,
+  sameAs: [identity.links.github, identity.links.linkedin],
+  address: { '@type': 'PostalAddress', addressLocality: 'Sorocaba', addressCountry: 'BR' },
+};
 ---
 
-<Base
-  title="Rafael Thomazzi · Senior Software Engineer, backend"
-  description="Backend engineer with six years in Node.js and TypeScript: integration platforms, payment providers, and smart-contract backends, from first design through production support."
->
+<Base title="Rafael Thomazzi · Senior Software Engineer, backend" description={identity.summary}>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(person)} slot="head" />
   <section class="py-16 md:py-24">
     <p class="font-mono text-xs tracking-label text-ink-muted uppercase">
-      Senior Software Engineer · Backend · Available now, remote from Brazil
+      {identity.headline} · {identity.availability}
     </p>
     <h1 class="mt-6 max-w-(--measure) text-fluid-2xl leading-[1.05] font-semibold tracking-tight">
-      I build the backend between enterprise systems, payment providers, and blockchains.
+      {identity.positioning}
     </h1>
     <p class="mt-8 max-w-(--measure) text-fluid-lg text-ink-muted">
       Six years in Node.js and TypeScript, usually from first design through production support.

@@ -1,5 +1,6 @@
 ---
 import { Font } from 'astro:assets';
+import { identity } from '../lib/identity';
 import '../styles/global.css';
 
 interface Props {
@@ -24,9 +25,20 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="author" content={identity.name} />
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9f6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111213" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={identity.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta name="twitter:card" content="summary" />
     <Font cssVariable="--font-plex-sans" preload />
     <Font cssVariable="--font-plex-mono" preload />
+    <slot name="head" />
   </head>
   <body class="flex min-h-dvh flex-col">
     <a
@@ -39,7 +51,7 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
       <div
         class="mx-auto flex max-w-(--container) items-baseline justify-between px-(--gutter) py-4 font-mono text-xs tracking-label uppercase"
       >
-        <a href="/" class="text-sm no-underline">Rafael Thomazzi</a>
+        <a href="/" class="text-sm no-underline">{identity.name}</a>
         <nav aria-label="Primary" class="flex gap-5">
           {
             navigation.map(({ href, label }) => (
@@ -62,11 +74,12 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
       <div
         class="mx-auto flex max-w-(--container) flex-wrap justify-between gap-x-6 gap-y-2 px-(--gutter) py-6 font-mono text-xs text-ink-muted"
       >
-        <span>Sorocaba, Brazil · UTC−3</span>
+        <span>{identity.location} · {identity.timezone}</span>
         <span>
-          <a href="mailto:rafathomazzi98@gmail.com">rafathomazzi98@gmail.com</a>
-          · <a href="https://github.com/thomazzi98">GitHub</a>
-          · <a href="https://www.linkedin.com/in/rafael-thomazzi-3524b1179/">LinkedIn</a>
+          <a href={`mailto:${identity.email}`}>{identity.email}</a>
+          · <a href={identity.links.github}>GitHub</a>
+          · <a href={identity.links.linkedin}>LinkedIn</a>
+          · <a href="/resume.txt">resume.txt</a>
         </span>
       </div>
     </footer>
