@@ -7,7 +7,8 @@
         "http://localhost/work/index.html",
         "http://localhost/work/queued-bank-onboarding/index.html",
         "http://localhost/about/index.html",
-        "http://localhost/stack/index.html"
+        "http://localhost/stack/index.html",
+        "http://localhost/colophon/index.html"
       ],
       "numberOfRuns": 3,
       "settings": {
@@ -24,9 +25,6 @@
         "resource-summary:document:size": ["error", { "maxNumericValue": 60000 }],
         "resource-summary:font:count": ["error", { "maxNumericValue": 3 }]
       }
-    },
-    "upload": {
-      "target": "temporary-public-storage"
     }
   }
 }

@@ -26,7 +26,8 @@ npm run dev
 unit tests, build, and an internal link check over `dist/`. `npm run test:e2e` runs Playwright
 with axe-core against every route in the sitemap, once with JavaScript disabled;
 `npx playwright install chromium` first. `npm run lighthouse` asserts the budgets in
-`lighthouserc.json` against `dist/`.
+`lighthouserc.json` against `dist/`; it fetches Lighthouse CI through `npx` on demand, because
+the package pins dependencies with known advisories and does not belong in the tree.
 
 Security software that injects scripts into web pages (some antivirus products do) will fail the
 zero-script budget on a developer machine. The gate that matters runs in CI.

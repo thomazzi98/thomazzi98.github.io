@@ -27,7 +27,11 @@ jobs:
       - run: npm run verify
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      - run: npm run lighthouse
+      - uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
