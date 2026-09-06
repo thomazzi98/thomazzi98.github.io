@@ -60,6 +60,15 @@ holds ABIs and addresses per network, signs operator transactions, and exposes R
 the product calls. MySQL holds users, referrals, sale phases and off-chain game state.
 User-signed actions go through the wallet in the browser. Operator actions never do.
 
+```mermaid
+flowchart TB
+  panel[Pre-sale panel, no secrets] -->|REST| backend[Backend: ABIs, addresses, operator key]
+  wallet[Wallet in the browser] -->|user-signed| chain[Contracts on BNB Chain]
+  backend -->|operator-signed| chain
+  backend -->|users, referrals, phases| db[MySQL]
+  panel -.->|never| chain
+```
+
 ## What it cost
 
 - The backend is a trusted intermediary. If it lies, the UI lies. Accepted, because the operator

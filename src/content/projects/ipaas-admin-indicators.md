@@ -59,6 +59,16 @@ pagination and sorting.
 [CONFIRM: did you design the reference collection and its writer, or did the collection exist
 and you moved the read path onto it?]
 
+```mermaid
+flowchart TB
+  worker[Worker instances] -->|payload, logs, trail| executions[Execution store]
+  worker -->|status, bytes, duration| reference[Execution reference]
+  reference -->|counts, indicators, usage| admin[Admin service]
+  executions -.->|never read by admin| admin
+  admin --> operators[Operators]
+  admin --> billing[Billing]
+```
+
 ## What it cost
 
 - Two writes per execution instead of one. The reference can lag the execution.

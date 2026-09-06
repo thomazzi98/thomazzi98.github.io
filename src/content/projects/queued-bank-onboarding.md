@@ -54,16 +54,16 @@ registration or every pending or failed one. A re-queue of a row already marked 
 refused. A queue dashboard is mounted under the admin routes.
 
 ```mermaid
-flowchart LR
+flowchart TB
   user[User] -->|sign-up| api[API]
-  api -->|1. persist registration row| db[MySQL]
-  api -->|2. enqueue id| queue[BullMQ on Redis]
-  api -->|3. respond: account being created| user
+  api -->|persist row| db[MySQL]
+  api -->|enqueue id| queue[BullMQ on Redis]
+  api -->|202, account being created| user
   queue --> worker[Worker]
   worker -->|create account| provider[Banking provider]
-  provider -->|2xx or 4xx: store response, mark processed| worker
+  provider -->|2xx or 4xx: record, mark processed| worker
   provider -.->|5xx: throw, retry with backoff| worker
-  worker --> db
+  worker -->|response, status| db
   support[Support] -->|re-queue pending or failed| queue
 ```
 
