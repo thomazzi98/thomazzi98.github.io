@@ -1,18 +1,22 @@
 ---
-import '../styles/global.css';
+import Base from '../layouts/Base.astro';
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rafael Thomazzi</title>
-  </head>
-  <body>
-    <main>
-      <h1>Rafael Thomazzi</h1>
-      <p>I build the backend between enterprise systems, payment providers, and blockchains.</p>
-    </main>
-  </body>
-</html>
+<Base
+  title="Rafael Thomazzi · Senior Software Engineer, backend"
+  description="Backend engineer with six years in Node.js and TypeScript: integration platforms, payment providers, and smart-contract backends, from first design through production support."
+>
+  <section class="py-16 md:py-24">
+    <p class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      Senior Software Engineer · Backend · Available now, remote from Brazil
+    </p>
+    <h1 class="mt-6 max-w-(--measure) text-fluid-2xl leading-[1.05] font-semibold tracking-tight">
+      I build the backend between enterprise systems, payment providers, and blockchains.
+    </h1>
+    <p class="mt-8 max-w-(--measure) text-fluid-lg text-ink-muted">
+      Six years in Node.js and TypeScript, usually from first design through production support.
+      Most recently payment-gateway integrations at Brainrocket and the backend of an integration
+      platform at Sky.One.
+    </p>
+  </section>
+</Base>

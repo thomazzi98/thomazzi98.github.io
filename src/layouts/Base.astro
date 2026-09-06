@@ -1,0 +1,57 @@
+---
+import { Font } from 'astro:assets';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <Font cssVariable="--font-plex-sans" preload />
+    <Font cssVariable="--font-plex-mono" preload />
+  </head>
+  <body class="flex min-h-dvh flex-col">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-10 focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-ink focus:no-underline"
+    >
+      Skip to content
+    </a>
+    <header class="border-b border-rule">
+      <div
+        class="mx-auto flex max-w-(--container) items-baseline justify-between px-(--gutter) py-4"
+      >
+        <a href="/" class="font-mono text-sm tracking-label uppercase no-underline"
+          >Rafael Thomazzi</a
+        >
+      </div>
+    </header>
+    <main id="main" tabindex="-1" class="mx-auto w-full max-w-(--container) flex-1 px-(--gutter)">
+      <slot />
+    </main>
+    <footer class="border-t border-rule">
+      <div
+        class="mx-auto flex max-w-(--container) flex-wrap justify-between gap-x-6 gap-y-2 px-(--gutter) py-6 font-mono text-xs text-ink-muted"
+      >
+        <span>Sorocaba, Brazil · UTC−3</span>
+        <span>
+          <a href="mailto:rafathomazzi98@gmail.com">rafathomazzi98@gmail.com</a>
+          · <a href="https://github.com/thomazzi98">GitHub</a>
+          · <a href="https://www.linkedin.com/in/rafael-thomazzi-3524b1179/">LinkedIn</a>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

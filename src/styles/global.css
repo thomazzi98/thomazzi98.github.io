@@ -1,1 +1,84 @@
+@import './tokens.css';
 @import 'tailwindcss';
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-ground-raised: var(--ground-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+@theme {
+  --text-2xs: 0.6875rem;
+  --text-fluid-lg: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  --text-fluid-xl: clamp(1.5rem, 1.2rem + 1.2vw, 2.125rem);
+  --text-fluid-2xl: clamp(2rem, 1.3rem + 2.8vw, 3.5rem);
+  --tracking-label: 0.08em;
+}
+
+@layer base {
+  html {
+    background-color: var(--ground);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100dvh;
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+    text-decoration-color: var(--rule);
+    transition: text-decoration-color var(--duration) var(--easing);
+  }
+
+  a:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-plex-mono);
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

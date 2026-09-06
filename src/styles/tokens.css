@@ -1,0 +1,19 @@
+:root {
+  color-scheme: light dark;
+
+  --ground: light-dark(#faf9f6, #111213);
+  --ground-raised: light-dark(#ffffff, #18191b);
+  --ink: light-dark(#161616, #e6e4df);
+  --ink-muted: light-dark(#5b5955, #9d9a92);
+  --rule: light-dark(#dcd9d1, #2b2c2f);
+  --rule-strong: light-dark(#161616, #e6e4df);
+  --accent: light-dark(#0b6b52, #46c39c);
+  --accent-ink: light-dark(#ffffff, #0d1512);
+
+  --measure: 66ch;
+  --container: 72rem;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+
+  --duration: 180ms;
+  --easing: cubic-bezier(0.2, 0, 0, 1);
+}
