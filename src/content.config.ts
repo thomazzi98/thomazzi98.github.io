@@ -1,6 +1,12 @@
 import { defineCollection } from 'astro:content';
 import { file, glob } from 'astro/loaders';
-import { educationSchema, projectSchema, roleSchema, technologySchema } from './content/schemas';
+import {
+  decisionSchema,
+  educationSchema,
+  projectSchema,
+  roleSchema,
+  technologySchema,
+} from './content/schemas';
 
 const roles = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/roles' }),
@@ -22,4 +28,9 @@ const technologies = defineCollection({
   schema: technologySchema,
 });
 
-export const collections = { roles, projects, education, technologies };
+const decisions = defineCollection({
+  loader: glob({ pattern: '*.md', base: './docs/decisions' }),
+  schema: decisionSchema,
+});
+
+export const collections = { roles, projects, education, technologies, decisions };

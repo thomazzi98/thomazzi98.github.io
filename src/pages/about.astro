@@ -2,7 +2,7 @@
 import { render } from 'astro:content';
 import CareerTrace from '../components/CareerTrace.astro';
 import Base from '../layouts/Base.astro';
-import { buildYearMonth } from '../lib/build-time';
+import { buildInfo } from '../lib/build-info';
 import { loadContent } from '../lib/content';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { createTechnologyNameLookup } from '../lib/technologies';
@@ -110,7 +110,7 @@ const practices = [
   <section aria-labelledby="career" class="border-t border-rule py-12">
     <h2 id="career" class="font-mono text-xs tracking-label text-ink-muted uppercase">Career</h2>
     <div class="mt-6">
-      <CareerTrace roles={roles} now={buildYearMonth} />
+      <CareerTrace roles={roles} now={buildInfo.yearMonth} />
     </div>
     <div class="mt-12 grid gap-12">
       {

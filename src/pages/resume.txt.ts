@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { buildDateLabel } from '../lib/build-time';
+import { buildInfo } from '../lib/build-info';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending } from '../lib/period';
@@ -47,7 +47,7 @@ export const GET: APIRoute = async ({ site }) => {
       })),
     technologyGroups: groupTechnologyNames(technologies),
     siteUrl,
-    generatedOn: buildDateLabel,
+    generatedOn: buildInfo.date,
   });
 
   return new Response(text, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });

@@ -1,0 +1,128 @@
+---
+import { getCollection, render } from 'astro:content';
+import lighthouseConfig from '../../lighthouserc.json';
+import packageJson from '../../package.json';
+import Base from '../layouts/Base.astro';
+import { readBudgets } from '../lib/budgets';
+import { buildInfo } from '../lib/build-info';
+
+const decisions = [...(await getCollection('decisions'))].sort((first, second) =>
+  first.id.localeCompare(second.id),
+);
+const renderedDecisions = await Promise.all(
+  decisions.map(async (decision) => ({ decision, Content: (await render(decision)).Content })),
+);
+const dependencies = Object.keys(packageJson.devDependencies).sort();
+const assertions = readBudgets(lighthouseConfig);
+const workflowUrl = `${buildInfo.repositoryUrl}/blob/main/.github/workflows/ci.yml`;
+---
+
+<Base
+  title="Colophon · Rafael Thomazzi"
+  description="How this site is built and what its build refuses to ship: the stack, the budgets enforced in CI, the build stamp, and the decision records."
+>
+  <section class="py-12 md:py-16">
+    <h1 class="text-fluid-xl font-semibold tracking-tight">Colophon</h1>
+    <p class="mt-4 max-w-(--measure) text-ink-muted">
+      A static site with no client-side JavaScript. Every page is HTML and CSS rendered at build
+      time from typed content collections. Three font files are the only assets larger than the
+      stylesheet.
+    </p>
+  </section>
+
+  <section aria-labelledby="build" class="border-t border-rule py-10">
+    <h2 id="build" class="font-mono text-xs tracking-label text-ink-muted uppercase">This build</h2>
+    <dl class="mt-4 grid max-w-(--measure) gap-2 font-mono text-sm sm:grid-cols-[10rem_1fr]">
+      <dt class="text-ink-muted">Commit</dt>
+      <dd>
+        <a href={`${buildInfo.repositoryUrl}/commit/${buildInfo.commit}`}>{buildInfo.commit}</a>
+      </dd>
+      <dt class="text-ink-muted">Built on</dt>
+      <dd>{buildInfo.date}</dd>
+      <dt class="text-ink-muted">Pipeline</dt>
+      <dd>
+        <a href={workflowUrl}>ci.yml</a>
+        {
+          buildInfo.runUrl && (
+            <span>
+              {' '}
+              · <a href={buildInfo.runUrl}>this run</a>
+            </span>
+          )
+        }
+      </dd>
+      <dt class="text-ink-muted">Source</dt>
+      <dd>
+        <a href={buildInfo.repositoryUrl}>{buildInfo.repositoryUrl.replace('https://', '')}</a>
+      </dd>
+    </dl>
+  </section>
+
+  <section aria-labelledby="gates" class="border-t border-rule py-10">
+    <h2 id="gates" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      What the build refuses to ship
+    </h2>
+    <p class="mt-4 max-w-(--measure) text-ink-muted">
+      The pipeline type-checks, lints, formats, runs the unit tests, builds, checks every internal
+      link in the output, runs Playwright with axe-core against every route in the sitemap (once
+      with JavaScript disabled), and asserts these Lighthouse budgets. A failure blocks the deploy.
+    </p>
+    <div class="mt-6 overflow-x-auto">
+      <table class="w-full max-w-(--measure) border-collapse font-mono text-xs">
+        <thead class="text-left tracking-label text-ink-muted uppercase">
+          <tr class="border-b border-rule">
+            <th scope="col" class="py-2 pr-4 font-normal">Lighthouse assertion</th>
+            <th scope="col" class="py-2 font-normal">Threshold</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            assertions.map(({ audit, threshold }) => (
+              <tr class="border-b border-rule">
+                <td class="py-2 pr-4">{audit}</td>
+                <td class="py-2">{threshold}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="stack" class="border-t border-rule py-10">
+    <h2 id="stack" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      Build-time dependencies
+    </h2>
+    <p class="mt-4 max-w-(--measure) text-ink-muted">
+      {dependencies.length} development dependencies and no runtime ones. No UI kit, icon set, animation,
+      date or analytics library.
+    </p>
+    <p class="mt-4 max-w-(--measure) font-mono text-xs text-ink-muted">
+      {dependencies.join(' · ')}
+    </p>
+  </section>
+
+  <section aria-labelledby="decisions" class="border-t border-rule py-10">
+    <h2 id="decisions" class="font-mono text-xs tracking-label text-ink-muted uppercase">
+      Decision records
+    </h2>
+    <div class="mt-6 grid gap-12">
+      {
+        renderedDecisions.map(({ decision, Content }) => (
+          <article id={decision.id} class="max-w-(--measure)">
+            <p class="font-mono text-xs text-ink-muted">
+              {decision.id.slice(0, 4)} · {decision.data.status} ·{' '}
+              {decision.data.date.toISOString().slice(0, 10)}
+            </p>
+            <h3 class="mt-2 text-fluid-lg leading-snug font-semibold tracking-tight">
+              {decision.data.title}
+            </h3>
+            <div class="prose mt-4">
+              <Content />
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</Base>

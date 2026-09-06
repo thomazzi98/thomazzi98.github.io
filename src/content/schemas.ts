@@ -78,6 +78,15 @@ export const projectSchema = z.object({
     .default([]),
 });
 
+export const decisionStatuses = ['proposed', 'accepted', 'superseded', 'rejected'] as const;
+
+export const decisionSchema = z.object({
+  title: z.string().min(1),
+  status: z.enum(decisionStatuses),
+  date: z.coerce.date(),
+  supersededBy: z.string().optional(),
+});
+
 export const educationSchema = z.object({
   institution: z.string().min(1),
   institutionGloss: z.string().min(1),
