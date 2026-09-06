@@ -18,6 +18,12 @@ const navigation = [
   { href: '/colophon/', label: 'Colophon' },
 ];
 const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
+const contacts = [
+  { href: `mailto:${identity.email}`, label: identity.email },
+  { href: identity.links.github, label: 'GitHub' },
+  { href: identity.links.linkedin, label: 'LinkedIn' },
+  { href: '/resume.txt', label: 'resume.txt' },
+];
 ---
 
 <!doctype html>
@@ -43,7 +49,7 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
     <meta property="og:image:alt" content={identity.positioning} />
     <meta name="twitter:card" content="summary_large_image" />
     <Font cssVariable="--font-plex-sans" preload />
-    <Font cssVariable="--font-plex-mono" preload />
+    <Font cssVariable="--font-plex-mono" preload={[{ weight: 400 }]} />
     <slot name="head" />
   </head>
   <body class="flex min-h-dvh flex-col">
@@ -55,16 +61,16 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
     </a>
     <header class="border-b border-rule">
       <div
-        class="mx-auto flex max-w-(--container) items-baseline justify-between px-(--gutter) py-4 font-mono text-xs tracking-label uppercase"
+        class="mx-auto flex max-w-(--container) flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-(--gutter) py-4 font-mono text-xs tracking-label uppercase"
       >
-        <a href="/" class="text-sm no-underline">{identity.name}</a>
-        <nav aria-label="Primary" class="flex gap-5">
+        <a href="/" class="shrink-0 text-sm no-underline">{identity.name}</a>
+        <nav aria-label="Primary" class="flex flex-wrap gap-x-5 gap-y-1">
           {
             navigation.map(({ href, label }) => (
               <a
                 href={href}
                 aria-current={isCurrent(href) ? 'page' : undefined}
-                class="text-ink-muted no-underline hover:text-ink aria-[current=page]:text-ink"
+                class="text-ink-muted no-underline underline-offset-4 hover:text-ink aria-[current=page]:text-ink aria-[current=page]:underline"
               >
                 {label}
               </a>
@@ -85,10 +91,14 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
           <a href="/colophon/">build {buildInfo.commit} · {buildInfo.date}</a>
         </span>
         <span>
-          <a href={`mailto:${identity.email}`}>{identity.email}</a>
-          · <a href={identity.links.github}>GitHub</a>
-          · <a href={identity.links.linkedin}>LinkedIn</a>
-          · <a href="/resume.txt">resume.txt</a>
+          {
+            contacts.map(({ href, label }, index) => (
+              <>
+                {index > 0 && <span aria-hidden="true"> · </span>}
+                <a href={href}>{label}</a>
+              </>
+            ))
+          }
         </span>
       </div>
     </footer>

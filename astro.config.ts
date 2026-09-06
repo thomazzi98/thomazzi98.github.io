@@ -3,8 +3,14 @@ import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, fontProviders, passthroughImageService } from 'astro/config';
 import rehypeMermaid from 'rehype-mermaid';
+import { rehypeDropNestedHeadingIds, rehypeWrapDiagrams } from './src/lib/rehype';
 
-const diagramFont = 'ui-sans-serif, system-ui, sans-serif';
+const mermaidConfig = {
+  theme: 'neutral',
+  look: 'classic',
+  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+  flowchart: { htmlLabels: false, curve: 'linear' },
+};
 
 export default defineConfig({
   site: 'https://thomazzi98.github.io',
@@ -16,26 +22,9 @@ export default defineConfig({
     syntaxHighlight: { type: 'shiki', excludeLangs: ['mermaid'] },
     shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
     rehypePlugins: [
-      [
-        rehypeMermaid,
-        {
-          strategy: 'inline-svg',
-          mermaidConfig: {
-            theme: 'neutral',
-            look: 'classic',
-            fontFamily: diagramFont,
-            flowchart: { htmlLabels: false, curve: 'linear' },
-            sequence: { useMaxWidth: true },
-          },
-          dark: {
-            theme: 'dark',
-            look: 'classic',
-            fontFamily: diagramFont,
-            flowchart: { htmlLabels: false, curve: 'linear' },
-            sequence: { useMaxWidth: true },
-          },
-        },
-      ],
+      [rehypeMermaid, { strategy: 'inline-svg', mermaidConfig }],
+      rehypeWrapDiagrams,
+      rehypeDropNestedHeadingIds,
     ],
   },
   fonts: [
@@ -61,6 +50,7 @@ export default defineConfig({
       cssVariable: '--font-plex-mono',
       weights: [400, 500],
       styles: ['normal'],
+      fallbacks: ['ui-monospace', 'Courier New', 'monospace'],
       options: {
         variants: [
           { src: ['./src/assets/fonts/ibm-plex-mono-400.woff2'], weight: 400, style: 'normal' },

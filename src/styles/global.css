@@ -49,7 +49,7 @@
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.18em;
-    text-decoration-color: var(--rule);
+    text-decoration-color: currentColor;
     transition: text-decoration-color var(--duration) var(--easing);
   }
 
@@ -137,19 +137,44 @@
 }
 
 @layer components {
-  .prose svg.flowchart,
-  .prose svg[aria-roledescription] {
+  .diagram {
+    margin-inline: calc(-1 * var(--gutter));
+    overflow-x: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .diagram svg {
     display: block;
+    min-width: 26rem;
     max-width: 100%;
     height: auto;
-    margin-inline: auto;
   }
 
   @media (prefers-color-scheme: dark) {
     /* Mermaid's neutral theme is grayscale, so inverting it yields the dark variant. */
-    .prose svg.flowchart,
-    .prose svg[aria-roledescription] {
+    .diagram svg {
       filter: invert(0.92) hue-rotate(180deg);
     }
+  }
+}
+
+@media print {
+  .trace-bar {
+    print-color-adjust: exact;
+  }
+
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+  }
+
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  .diagram,
+  article {
+    break-inside: avoid;
   }
 }
