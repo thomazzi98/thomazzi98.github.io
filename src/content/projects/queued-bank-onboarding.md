@@ -55,6 +55,8 @@ refused. A queue dashboard is mounted under the admin routes.
 
 ```mermaid
 flowchart TB
+  accTitle: Sign-up with a queued bank-account job
+  accDescr: The API persists a registration row in MySQL, enqueues its id on BullMQ over Redis and responds to the user that the account is being created. A worker takes the job and calls the banking provider. A 2xx or 4xx is recorded and marked processed; a 5xx makes the worker throw so the job retries with backoff. Support can re-queue pending or failed jobs.
   user[User] -->|sign-up| api[API]
   api -->|persist row| db[MySQL]
   api -->|enqueue id| queue[BullMQ on Redis]
@@ -74,10 +76,12 @@ flowchart TB
   and the product copy had to change.
 - The "already processed" guard is per row, not a provider-side idempotency key. A duplicate row
   created upstream would still be processed once each.
+- The retry rule keys on the status code. A call that never got an answer was handled by the
+  HTTP client's timeout, not by this rule.
 
 ## Outcome
 
 In production from 2021-05. The retry defaults were tuned in 2021-10 after watching the
 provider's behavior. Sign-up stopped waiting on the provider, and failed onboardings became
-visible and replayable by support instead of silent. [CONFIRM: any counts, such as registrations
-processed or failures before and after. If none, this paragraph ends here.]
+visible and replayable by support instead of silent. I did not keep counts of registrations
+processed or failures before and after.

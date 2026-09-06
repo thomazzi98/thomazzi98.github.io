@@ -6,7 +6,7 @@ status: internal
 period: { start: '2026-01', end: '2026-01' }
 role: sky-one
 stack: [nodejs, express]
-confidentiality: Support tooling for a customer integration. [CONFIRM whether it can be published.]
+confidentiality: Support tooling for a customer integration. Not published.
 evidence:
   - kind: none
 ---

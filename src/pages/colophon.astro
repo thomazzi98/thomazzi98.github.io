@@ -25,8 +25,8 @@ const workflowUrl = `${buildInfo.repositoryUrl}/blob/main/.github/workflows/ci.y
     <h1 class="text-fluid-xl font-semibold tracking-tight">Colophon</h1>
     <p class="mt-4 max-w-(--measure) text-ink-muted">
       A static site with no client-side JavaScript. Every page is HTML and CSS rendered at build
-      time from typed content collections. Three font files are the only assets larger than the
-      stylesheet.
+      time from typed content collections. Three font files and the Open Graph image are the only
+      assets larger than the stylesheet.
     </p>
   </section>
 
@@ -63,9 +63,10 @@ const workflowUrl = `${buildInfo.repositoryUrl}/blob/main/.github/workflows/ci.y
       What the build refuses to ship
     </h2>
     <p class="mt-4 max-w-(--measure) text-ink-muted">
-      The pipeline type-checks, lints, formats, runs the unit tests, builds, checks every internal
-      link in the output, runs Playwright with axe-core against every route in the sitemap (once
-      with JavaScript disabled), and asserts these Lighthouse budgets. A failure blocks the deploy.
+      The pipeline type-checks, lints, checks formatting, rejects draft markers, runs the unit
+      tests, builds, and checks every internal link in the output. It then runs Playwright with
+      axe-core against every route in the sitemap, once with JavaScript disabled, and asserts these
+      Lighthouse budgets. A failure blocks the deploy.
     </p>
     <div class="mt-6 overflow-x-auto">
       <table class="w-full max-w-(--measure) border-collapse font-mono text-xs">

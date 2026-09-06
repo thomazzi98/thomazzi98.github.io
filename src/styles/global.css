@@ -92,7 +92,7 @@
     margin-top: 1.25em;
   }
 
-  .prose h2 {
+  .prose :is(h2, h3, h4) {
     margin-top: 2.5em;
     font-family: var(--font-plex-mono);
     font-size: var(--text-xs);
@@ -101,7 +101,7 @@
     color: var(--ink-muted);
   }
 
-  .prose h2 + * {
+  .prose :is(h2, h3, h4) + * {
     margin-top: 0.75em;
   }
 

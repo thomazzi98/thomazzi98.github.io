@@ -26,21 +26,21 @@ stack:
   ]
 ---
 
-A consultancy engagement on blockchain-adjacent backends for a consumer brand. The first
-assignment was a library exposing common token reads across several networks; the client
-paused it during the Terra/Luna collapse. [CONFIRM] The second was a design-contest backend
-with public voting and on-chain minting of the winning entries, delivered to a fixed campaign
-date with one other backend engineer.
+Seven months of consultancy on blockchain-adjacent backends for two clients. The first assignment
+was a library exposing common token reads across several networks; the client paused it during
+the Terra/Luna collapse. The second was a design-contest backend with public voting and on-chain
+minting of the winning entries, delivered to a fixed campaign date with one other backend
+engineer.
 
-## Responsibilities
+#### Responsibilities
 
 - Build backend services generic enough to add networks and contracts without core changes.
 - Wire monitoring and notification flows on AWS Lambda, SNS, SES, S3 and DynamoDB.
 - Write Jest and Mocha tests around blockchain integrations; document APIs with OpenAPI.
 - Co-own a contest API with a second backend engineer and deliver it on the campaign date.
 
-## Outcomes
+#### Outcomes
 
 - Contest backend delivered with integration and end-to-end tests against LocalStack.
 - An ERC-721 contract and a single-purpose signing Lambda that holds the only minting key.
-- Multi-network library paused by the client. [CONFIRM: what ran before the pause]
+- Multi-network library paused by the client after a few weeks.

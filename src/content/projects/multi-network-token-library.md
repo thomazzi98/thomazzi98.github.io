@@ -3,7 +3,7 @@ title: One interface for token reads across several chains
 tagline: A library exposing common token functions across networks, detecting the network from the input and dispatching to a per-network implementation. Paused by the client during the Terra/Luna collapse.
 kind: case-study
 status: paused-by-client
-period: { start: '2022-05', end: '2022-06' } # CONFIRM
+period: { start: '2022-05', end: '2022-06' }
 role: ciandt
 stack:
   [
@@ -39,11 +39,11 @@ the Terra/Luna collapse, and I moved to the design-contest backend.
 
 ## Decision
 
-[CONFIRM: the detection rule (address format, explicit chain id?) and the dispatch mechanism
-(a registry of network adapters?). Which networks ran before the pause? If you cannot recall
-specifics, this entry becomes one line under "Also built".]
+One interface in front of a registry of per-network implementations. The library resolved the
+network from the input and called that network's implementation, with tests around each
+integration. This entry stays short because the project stopped before the design was exercised
+against real traffic, and I no longer have the code to check the details against.
 
 ## Outcome
 
-Paused by the client in [CONFIRM: 2022-06]. Tests around the network integrations were in place.
-[CONFIRM: what shipped before the pause]
+Paused by the client in 2022-06 with the network integrations tested but not in production.

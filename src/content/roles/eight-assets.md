@@ -9,10 +9,10 @@ stack:
 ---
 
 A fintech and loyalty platform: digital accounts, payment fees, cashback, marketplace orders and
-identity checks. I worked mostly on the Node.js and TypeScript API over MySQL with Sequelize. I
+identity checks. I built features in the Node.js and TypeScript API over MySQL with Sequelize. I
 also shipped the React admin panel and contributed to the React Native app libraries.
 
-## Responsibilities
+#### Responsibilities
 
 - Build REST endpoints, Sequelize migrations and seeders for accounts, fees, cashback, identity
   checks and marketplace features.
@@ -21,7 +21,8 @@ also shipped the React admin panel and contributed to the React Native app libra
 - Write Jest tests and support releases after they ship.
 - Build the React admin panel and a Next.js dashboard.
 
-## Outcomes
+#### Outcomes
 
 - Queued bank-account onboarding in production from 2021-05.
-- Top-four contributor to the API over two years; top contributor to the admin panel.
+- Fourth of about fifteen contributors to the API by commit count between 2020-06 and 2022-05;
+  first on the admin panel.

@@ -11,6 +11,6 @@ evidence:
     url: https://github.com/thomazzi98/thomazzi98.github.io
 ---
 
-Every claim on this site comes from a typed content collection. A technology that no role or
+Roles, projects and education come from typed content collections. A technology that no role or
 project references fails the build, and so does a reference to a technology that is not in the
 registry. The colophon describes the rest.

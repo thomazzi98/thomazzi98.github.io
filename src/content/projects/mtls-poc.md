@@ -6,7 +6,7 @@ status: internal
 period: { start: '2025-12', end: '2025-12' }
 role: sky-one
 stack: [nodejs, typescript, express, docker]
-confidentiality: Built to validate the platform worker's outbound flow. [CONFIRM whether it can be published.]
+confidentiality: Built for a customer integration on the platform worker. Not published.
 evidence:
   - kind: none
 ---

@@ -25,37 +25,37 @@ const practices = [
     href: '/work/queued-bank-onboarding/',
   },
   {
-    claim: 'Retry server faults. Record client faults.',
+    claim: 'I retry server faults and record client faults.',
     example:
-      'The same worker throws only on a 5xx, so the queue retries outages and never replays a 4xx that a retry cannot fix. Support re-queues by hand, and a job already marked processed is refused.',
+      'The same worker throws only on a 5xx, so the queue retries server faults and never replays a 4xx that a retry cannot fix. Support re-queues by hand, and a job already marked processed is refused.',
     href: '/work/queued-bank-onboarding/',
   },
   {
     claim: 'Application code stays off the chain.',
     example:
-      'At Gold Rush every contract call went through a backend that held the ABIs, addresses and operator key, so the pre-sale panel deployed with no secrets. At CI&T, the one key that could mint lived in a Lambda whose only job was to sign.',
+      'At Gold Rush every operator-side contract call went through a backend that held the ABIs, addresses and operator key, so the pre-sale panel deployed with no secrets. At CI&T, the one key that could mint lived in a Lambda whose only job was to sign.',
     href: '/work/contract-backend-boundary/',
   },
   {
-    claim: 'Reporting reads a read model, not the hot collection.',
+    claim: 'Reports read a read model, not the collection the workers write.',
     example:
-      'On Integra.Sky, counts, indicators and billing read a slim execution-reference collection rather than the execution store the workers write to.',
+      'On Integra.Sky, counts, indicators and billing read a slim execution-reference collection rather than the execution store every worker writes on every run.',
     href: '/work/ipaas-admin-indicators/',
   },
   {
-    claim: 'Counters are incremented, not read-modify-written.',
+    claim: 'I increment counters with an atomic update instead of read-modify-write.',
     example:
       'In the contest API, vote totals became an atomic update expression after the first version lost updates under concurrent voting.',
     href: '/work/design-contest-backend/',
   },
   {
-    claim: 'Local runs the real dependencies.',
+    claim: 'Local development runs the real dependencies.',
     example:
       'The contest backend developed against local S3 and DynamoDB emulation. The mutual-TLS harness for the platform worker generates its own certificate authority in Docker Compose so the failure reproduces on a laptop.',
     href: '/work/mtls-poc/',
   },
   {
-    claim: 'Reproduce before fixing.',
+    claim: 'I reproduce a failure before fixing it.',
     example:
       'When a legacy consumer mis-handled accented characters, I wrote a mock endpoint that proved the charset behavior before touching the integration.',
     href: '/work/mock-endpoint/',
@@ -72,18 +72,18 @@ const practices = [
     <div class="prose mt-6 text-fluid-lg">
       <p>
         I started in 2019 maintaining a school-management system in PHP, which taught me that most
-        software work is reading someone else’s decisions. From 2020 I built the API of a fintech
-        platform in Node.js and TypeScript: accounts, fees, cashback, identity checks, and the
-        integrations with the banks behind them. That led into a token and NFT product in 2021,
-        where I wrote the layer between the product and the contracts, and then a consultancy year
-        at CI&T doing blockchain-adjacent backends for client campaigns.
+        software work is reading someone else’s decisions. From 2020 I built features in a fintech
+        platform’s API in Node.js and TypeScript: accounts, fees, cashback, identity checks, and the
+        bank integrations behind them. In 2021 I wrote the layer between a token and NFT product and
+        its contracts. Then I spent seven months at CI&T on blockchain-adjacent backends for two
+        clients.
       </p>
       <p>
-        From late 2022 to early 2026 I was on the backend of an integration platform at Sky.One,
-        which is the work I had been circling the whole time: the code between systems, owned from
-        design through the production issue. In 2026 I joined a payments group to work on a payment
-        gateway. [CONFIRM: one sentence on the Brainrocket work.] I am from São Paulo state and I am
-        looking for my next role, remote from Brazil.
+        From late 2022 to early 2026 I built and ran backend services of an integration platform at
+        Sky.One, which is the work I had been circling the whole time: the code between systems,
+        owned from design through the production issue. In 2026 I joined a payments group to work on
+        a payment gateway. That role ended in 2026-09. I am from São Paulo state and I am looking
+        for my next role, remote from Brazil.
       </p>
     </div>
   </section>
@@ -99,7 +99,10 @@ const practices = [
             <p class="font-semibold">{claim}</p>
             <p class="mt-2 text-ink-muted">{example}</p>
             <p class="mt-2 font-mono text-xs">
-              <a href={href}>Case study →</a>
+              <a href={href}>
+                Case study<span class="sr-only">: {claim}</span>
+                <span aria-hidden="true"> →</span>
+              </a>
             </p>
           </li>
         ))
@@ -117,7 +120,7 @@ const practices = [
         renderedRoles.map(({ role, Content }) => (
           <article class="grid gap-6 lg:grid-cols-[16rem_minmax(0,var(--measure))]">
             <header class="font-mono text-xs text-ink-muted">
-              <p class="text-ink">{role.data.company}</p>
+              <h3 class="text-sm font-medium text-ink">{role.data.company}</h3>
               <p>{role.data.companyGloss}</p>
               <p class="mt-2 text-ink">{role.data.title}</p>
               <p>

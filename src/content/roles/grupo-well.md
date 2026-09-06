@@ -11,12 +11,8 @@ A school-management system used by client schools. Maintenance, debugging and fe
 PHP and JavaScript over MySQL, plus migrating client data from legacy systems into the platform
 database.
 
-## Responsibilities
+#### Responsibilities
 
 - Maintain and extend the school-management system.
 - Debug production issues reported by schools.
 - Migrate client data from legacy systems into the platform database.
-
-## Outcomes
-
-- [CONFIRM: number of schools or migrations, if known; otherwise this section is removed]

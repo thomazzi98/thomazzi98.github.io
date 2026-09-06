@@ -15,12 +15,13 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build && npm run check:links",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run check:drafts && npm run test && npm run build && npm run check:links",
     "test:e2e": "playwright test",
     "check:links": "node scripts/check-links.ts",
     "lighthouse": "npx --yes @lhci/cli@0.15 collect && npx --yes @lhci/cli@0.15 assert",
     "og:image": "node scripts/render-og-image.ts",
-    "lock": "node scripts/regenerate-lockfile.ts"
+    "lock": "node scripts/regenerate-lockfile.ts",
+    "check:drafts": "node scripts/check-drafts.ts"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

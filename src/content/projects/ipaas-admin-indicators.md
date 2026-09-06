@@ -1,9 +1,9 @@
 ---
 title: Reporting on an integration platform without reading the execution store
-tagline: Billing, usage and live execution indicators served from a slim reference collection instead of the hottest write path in the platform.
+tagline: Billing, usage and live execution indicators served from a slim reference collection instead of the collection every worker writes on every run.
 kind: case-study
 status: in-production
-period: { start: '2023-09', end: '2024-01' } # CONFIRM later work on the service
+period: { start: '2023-09', end: '2024-01' }
 role: sky-one
 featured: 1
 stack: [nodejs, typescript, express, mongodb, redis, jest, openapi, docker]
@@ -16,9 +16,9 @@ evidence:
 The admin service of Integra.Sky had to answer operator and billing questions across every
 customer space: how many executions are running now, how many succeeded or failed per space this
 month, how much billable data each space moved, which plan applies. It answered them against the
-execution store, the hottest write path in the platform. I moved every one of those reads onto a
-slim `execution-reference` collection. The service serves billing plans, usage and running-execution
-indicators from it today.
+execution store, the collection every worker writes on every run. I moved every one of those reads
+onto a slim `execution-reference` collection, and the service served billing plans, usage and
+running-execution indicators from it when I left in 2026-01.
 
 ## Context
 
@@ -30,8 +30,8 @@ replica set the workers write to.
 
 ## Constraints
 
-- The execution collection is the hottest write path in the platform. Admin queries must not
-  compete with it.
+- Every worker writes to the execution collection on every run. Admin queries must not compete
+  with those writes.
 - Counts must be groupable by space and filterable by status, integration and flow, with
   pagination and sorting.
 - Billing needs bytes moved and duration per execution, not the payload.
@@ -56,11 +56,10 @@ timestamps, billable bytes, duration and the last component. Admin use cases rea
 collection through a repository interface, with one shared query handler for filtering,
 pagination and sorting.
 
-[CONFIRM: did you design the reference collection and its writer, or did the collection exist
-and you moved the read path onto it?]
-
 ```mermaid
 flowchart TB
+  accTitle: Admin reads served from an execution reference collection
+  accDescr: Worker instances write payload, logs and trail to the execution store and write status, bytes and duration to a slim execution reference collection. The admin service reads counts, indicators and usage only from the reference collection and never from the execution store, and serves operators and billing.
   worker[Worker instances] -->|payload, logs, trail| executions[Execution store]
   worker -->|status, bytes, duration| reference[Execution reference]
   reference -->|counts, indicators, usage| admin[Admin service]
@@ -71,15 +70,13 @@ flowchart TB
 
 ## What it cost
 
-- Two writes per execution instead of one. The reference can lag the execution.
-  [CONFIRM: how the writer works: same operation, event, scheduler?]
+- Two writes per execution instead of one, and the reference can lag the execution.
 - Denormalized names go stale if a flow or space is renamed. Accepted, because reports are
   historical and renames are rare.
-- Another collection to index and retain. [CONFIRM: retention policy]
+- Another collection to index and retain.
 
 ## Outcome
 
-In production since [CONFIRM: month]. Billing plans, per-space usage, instance data and
-running-execution indicators are served by this service. [CONFIRM: any measured effect, such as
-admin query latency or load removed from the execution replica set. If there is no measurement,
-this paragraph ends here.]
+Billing plans, per-space usage, instance data and running-execution indicators were served by
+this service from the reference collection until I left in 2026-01. I did not keep a
+before-and-after measurement of the load taken off the execution replica set.

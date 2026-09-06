@@ -1,6 +1,6 @@
 ---
 title: Keeping product code off the chain
-tagline: A backend layer between an NFT game and its BNB Chain contracts, so no product code held a key, an ABI or a node URL. The product never launched.
+tagline: A backend layer between an NFT game and its BNB Chain contracts, so no product code held a private key or a node URL. The product never launched.
 kind: case-study
 status: never-launched
 period: { start: '2021-12', end: '2022-05' }
@@ -27,24 +27,23 @@ evidence:
 Gold Rush was an NFT game built to promote a gold-backed token issued by the same group. Players
 bought a miner character with one token, mined a second token to level up and equip, traded
 miners, and had a small chance of receiving the gold-backed token. Contracts targeted BNB Chain
-through Hardhat with upgradeable proxies. I wrote the backend that owned every contract call, the
-MySQL schema for off-chain state, and the pre-sale panel. The game was paused in 2022-05 and
-never launched.
+through Hardhat with upgradeable proxies. I wrote the backend that owned every operator-side
+contract call, the MySQL schema for off-chain state, and the pre-sale panel. The game was paused
+in 2022-05 and never launched.
 
 ## Context
 
-A Next.js pre-sale panel with referral reporting ran ahead of the game. Contracts were being
-written at the same time as the product. Operator actions such as minting and pre-sale
-allocation needed a server-side key and an audit trail; user actions needed a wallet.
+A Next.js pre-sale panel with referral reporting ran ahead of the game through three sale phases.
+Contracts were being written at the same time as the product. Operator actions such as minting
+and pre-sale allocation needed a server-side key and an audit trail; user actions needed a wallet.
 
 ## Constraints
 
-- Front-end code and the pre-sale panel must not embed private keys or call the chain directly.
+- Front-end code and the pre-sale panel must not embed private keys or node URLs.
 - Rules that need trust (mining timers, claimable balances) live on chain. Everything else
   (profiles, referrals, sale phases) lives in MySQL.
 - Chain reads are slow and rate-limited. The panel must not block on them.
-- A small team, with contracts changing under the product. [CONFIRM: team size and your share
-  of the Solidity]
+- A small team, with contracts changing under the product.
 
 ## The alternative on the table
 
@@ -55,13 +54,16 @@ creates a second source of truth for balances before there are users.
 
 ## Decision
 
-A Node.js and TypeScript backend owns every contract interaction through Ethers and Web3: it
-holds ABIs and addresses per network, signs operator transactions, and exposes REST endpoints
-the product calls. MySQL holds users, referrals, sale phases and off-chain game state.
-User-signed actions go through the wallet in the browser. Operator actions never do.
+A Node.js and TypeScript backend owns every operator-side contract interaction through Ethers.js
+(Web3.js remained for the older contract tooling): it holds ABIs and addresses per network, signs
+operator transactions, and exposes REST endpoints the product calls. MySQL holds users,
+referrals, sale phases and off-chain game state. User-signed actions go through the wallet in
+the browser. Operator actions never do.
 
 ```mermaid
 flowchart TB
+  accTitle: Pre-sale panel, backend and contracts
+  accDescr: The pre-sale panel holds no secrets and talks to the backend over REST. The backend holds the ABIs, addresses and operator key, sends operator-signed transactions to the contracts on BNB Chain, and stores users, referrals and sale phases in MySQL. User-signed transactions go from the wallet in the browser to the chain. The panel never calls the chain.
   panel[Pre-sale panel, no secrets] -->|REST| backend[Backend: ABIs, addresses, operator key]
   wallet[Wallet in the browser] -->|user-signed| chain[Contracts on BNB Chain]
   backend -->|operator-signed| chain
@@ -81,4 +83,3 @@ flowchart TB
 Never launched. The product was paused in 2022-05 during the wave of NFT-game collapses, and I
 moved on. What it proved: the boundary let the pre-sale panel deploy to a public host with no
 secrets in it, and contract upgrades did not require front-end releases.
-[CONFIRM: any testnet addresses that can be linked as evidence]

@@ -2,7 +2,7 @@
 title: A contest backend that mints the winners
 tagline: Submissions, moderation and public voting on DynamoDB and S3, with winning entries minted as ERC-721 tokens by a single Lambda that holds the only key.
 kind: case-study
-status: in-production # CONFIRM the contest went live
+status: in-production
 period: { start: '2022-07', end: '2022-09' }
 role: ciandt
 featured: 3
@@ -31,7 +31,7 @@ evidence:
 A consumer brand ran a design contest whose winners received their design as a wearable token on
 a metaverse platform. The backend had to take file submissions, let moderators shortlist, open
 public voting without accounts, and hand finalists to an on-chain mint, all by the campaign date.
-I was one of two backend engineers. We shipped it with integration and end-to-end tests against
+I was one of two backend engineers. We delivered it with integration and end-to-end tests against
 local AWS emulation, and the minting key never touched the web service.
 
 ## Context
@@ -69,6 +69,8 @@ with the owner key from its own environment.
 
 ```mermaid
 flowchart TB
+  accTitle: Contest API with a separate signing Lambda
+  accDescr: Entrants submit designs, public voters vote with a reCAPTCHA v3 token, and moderators with a JWT shortlist entries, all through the contest API. The API stores files in S3, increments vote counts atomically in DynamoDB, and passes finalist ids to a signing Lambda that holds the owner key and mints the ERC-721 tokens on Polygon.
   entrant[Entrant] -->|submission| api[Contest API]
   voter[Public voter] -->|vote, reCAPTCHA v3| api
   moderator[Moderator, JWT] -->|shortlist| api
@@ -89,6 +91,6 @@ flowchart TB
 
 ## Outcome
 
-Delivered on the campaign schedule. [CONFIRM: did the contest go live, and did mints happen on
-Polygon mainnet? A verified contract address would be a public evidence link.] The test suite
-covered repositories and use cases end to end.
+Delivered to the client on the campaign schedule, with the test suite covering repositories and
+use cases end to end. The campaign ran on the client's side after the engagement, so I cannot
+point at a public contract address.
