@@ -8,7 +8,8 @@ export interface HastNode {
 const nestedHeadingTags = new Set(['h4', 'h5', 'h6']);
 
 const isDiagram = (node: HastNode): boolean =>
-  node.tagName === 'svg' && 'ariaRoledescription' in (node.properties ?? {});
+  node.tagName === 'svg' &&
+  Object.keys(node.properties ?? {}).some((key) => key.toLowerCase() === 'ariaroledescription');
 
 const walk = (node: HastNode, visit: (node: HastNode) => void): void => {
   visit(node);

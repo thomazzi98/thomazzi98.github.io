@@ -1,4 +1,4 @@
-import { unified } from '@astrojs/markdown-remark';
+import { rehypeHeadingIds, unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, fontProviders, passthroughImageService } from 'astro/config';
@@ -24,6 +24,7 @@ export default defineConfig({
     rehypePlugins: [
       [rehypeMermaid, { strategy: 'inline-svg', mermaidConfig }],
       rehypeWrapDiagrams,
+      rehypeHeadingIds,
       rehypeDropNestedHeadingIds,
     ],
   },
