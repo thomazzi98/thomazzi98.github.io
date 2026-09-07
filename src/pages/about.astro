@@ -48,8 +48,10 @@ const wovenMonths = cloth.cells.reduce(
 
   <a href="#career-title" class="skip-cloth mono">Skip the cloth</a>
   <figure class="cloth-figure">
-    <Cloth cloth={cloth} roles={roles} orientation="horizontal" />
-    <Cloth cloth={cloth} roles={roles} orientation="vertical" />
+    <div class="cloth-scroll" role="region" aria-label="The career as a weaving draft" tabindex="0">
+      <Cloth cloth={cloth} roles={roles} orientation="horizontal" />
+      <Cloth cloth={cloth} roles={roles} orientation="vertical" />
+    </div>
     <figcaption class="cloth-figure__caption mono">
       <span
         >{cloth.threads.length} threads · {cloth.picks.length} picks · {wovenMonths} woven cells</span
@@ -82,7 +84,14 @@ const wovenMonths = cloth.cells.reduce(
               <p class="muted">
                 {formatPeriod(role.data.period)} · {role.data.location}
               </p>
-              <p class="muted role__stack">{role.data.stack.map(technologyName).join(' · ')}</p>
+              <p class="muted role__stack">
+                {role.data.stack.map((reference, index) => (
+                  <>
+                    {index > 0 && ' · '}
+                    <a href={`/stack/#${reference.id}`}>{technologyName(reference)}</a>
+                  </>
+                ))}
+              </p>
             </header>
             <div class="prose">
               <Content />
@@ -151,7 +160,7 @@ const wovenMonths = cloth.cells.reduce(
       llms.txt file and the stack page are projections of them, computed once at build and served as
       static files. Nothing on a page reads the source documents at request time, which is the same
       shape as the read-model bench: write once, project for each reader. The projection for this
-      page is at <a href="/draft.json">/draft.json</a>, and the resume it agrees with is at
+      page is at <a href="/draft.json">/draft.json</a>, and the resume it agrees with is at{' '}
       <a href="/resume.txt">/resume.txt</a>.
     </p>
     <p class="measure muted">

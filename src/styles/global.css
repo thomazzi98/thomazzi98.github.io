@@ -221,7 +221,7 @@
   }
 
   .site-nav a:hover,
-  .site-nav a[aria-current='page'] {
+  .site-nav a[aria-current] {
     color: var(--ink);
     border-bottom-color: var(--indigo);
   }
@@ -321,7 +321,7 @@
   }
 
   .drawing__hatch-line {
-    stroke: var(--greige);
+    stroke: var(--greige-strong);
     stroke-width: 1;
   }
 
@@ -332,7 +332,7 @@
   }
 
   .wire[data-dashed='true'] path {
-    stroke: var(--greige);
+    stroke: var(--greige-strong);
     stroke-dasharray: 3 4;
   }
 
@@ -358,7 +358,7 @@
   }
 
   .station__detail {
-    stroke: var(--greige);
+    stroke: var(--greige-strong);
     stroke-width: 1;
   }
 
@@ -1101,6 +1101,9 @@
     display: grid;
     gap: 0.75rem;
     margin-block: 1rem 0.5rem;
+  }
+
+  .cloth-scroll {
     overflow-x: auto;
   }
 
@@ -1158,6 +1161,15 @@
 
   .cloth__thread[data-group='shipped-with'] .cloth__cell {
     fill: var(--thread-shipped);
+    stroke: var(--ink);
+    stroke-width: 0.75;
+  }
+
+  .cloth__thread[data-group='familiar'] .cloth__cell {
+    fill: var(--thread-familiar);
+    stroke: var(--ink);
+    stroke-width: 0.75;
+    stroke-dasharray: 2 2;
   }
 
   .cloth__cell[data-weave='float'] {
@@ -1193,6 +1205,14 @@
 
   .cloth-key[data-group='shipped-with'] {
     background: var(--thread-shipped);
+    outline: 1px solid var(--ink);
+    outline-offset: -1px;
+  }
+
+  .cloth-key[data-group='familiar'] {
+    background: var(--thread-familiar);
+    outline: 1px dashed var(--ink);
+    outline-offset: -1px;
   }
 
   .cloth-key[data-weave='float'] {
@@ -1226,6 +1246,10 @@
 
   .role__stack {
     margin-top: 0.4rem;
+  }
+
+  .role__stack a {
+    color: inherit;
   }
 
   .practices {

@@ -11,7 +11,7 @@
     "name": "JavaScript",
     "category": "language",
     "firstUsed": 2019,
-    "group": "owned-in-production"
+    "group": "shipped-with"
   },
   {
     "id": "solidity",

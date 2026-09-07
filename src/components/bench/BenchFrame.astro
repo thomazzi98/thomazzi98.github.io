@@ -1,5 +1,6 @@
 ---
 import { transcriptOf } from '../../bench/core/demonstration';
+import { leverStation } from '../../bench/core/simulation';
 import { layoutBench } from '../../bench/render/layout';
 import type { ScenarioId, ScenarioModule } from '../../bench/scenarios';
 import BenchDrawing from './BenchDrawing.astro';
@@ -31,6 +32,14 @@ const vertical = layoutBench(module.definition, 'vertical');
 const leverValue = (leverId: string): string | undefined =>
   (initialLevers as Record<string, string | undefined>)[leverId];
 const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFixed(1)} s`;
+const describeLeverChange = (message: string): string => {
+  const [leverId, value] = message.split(' → ');
+  const lever = module.definition.levers.find((candidate) => candidate.id === leverId);
+  const option = lever?.options.find((candidate) => candidate.value === value);
+  return lever === undefined || option === undefined
+    ? message
+    : `${lever.label} set to ${option.label}`;
+};
 ---
 
 <bench-frame
@@ -43,7 +52,7 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
   <div class="bench__stage">
     <p class="bench__headline" data-headline>{initialView.headline}</p>
     <p class="bench__note">
-      Simulated. Latencies, counts and bytes are the model's, not measurements from production.
+      Simulated. The {module.measures} are the model's, not measurements from production.
     </p>
     <p class="sr-only" role="status" data-status></p>
     <BenchDrawing layout={horizontal} title={title} description={description} />
@@ -106,7 +115,7 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
         ))
       }
     </dl>
-    <div class="ledger-scroll">
+    <div class="ledger-scroll" role="region" aria-label="Ledger" tabindex="0">
       <table class="ledger">
         <caption>{initialView.ledger.caption}</caption>
         <thead>
@@ -153,6 +162,7 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
       Transcript of a scripted run · seed {transcript.seed} · {seconds(transcript.duration)} simulated
     </summary>
     <table>
+      <caption class="sr-only">Transcript of the scripted run</caption>
       <thead>
         <tr><th scope="col">Time</th><th scope="col">Station</th><th scope="col">Event</th></tr>
       </thead>
@@ -161,8 +171,12 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
           transcript.entries.map((entry) => (
             <tr data-tone={entry.tone}>
               <td>{seconds(entry.at)}</td>
-              <td>{entry.station}</td>
-              <td>{entry.message}</td>
+              <td>{entry.station === leverStation ? 'lever' : entry.station}</td>
+              <td>
+                {entry.station === leverStation
+                  ? describeLeverChange(entry.message)
+                  : entry.message}
+              </td>
             </tr>
           ))
         }

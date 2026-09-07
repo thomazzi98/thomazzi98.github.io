@@ -20,7 +20,12 @@ const navigation = [
   { href: '/stack/', label: 'Stack' },
   { href: '/colophon/', label: 'Colophon' },
 ];
-const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
+const currentState = (href: string): 'page' | 'true' | undefined => {
+  if (Astro.url.pathname === href) {
+    return 'page';
+  }
+  return Astro.url.pathname.startsWith(href) ? 'true' : undefined;
+};
 const threadCount = (group: string) =>
   technologies.filter((technology) => technology.data.group === group).length;
 const selvedgeName = `The warp: ${String(technologies.length)} technologies in the registry, ${String(threadCount('owned-in-production'))} owned in production, ${String(threadCount('shipped-with'))} shipped with, ${String(threadCount('familiar'))} familiar`;
@@ -66,7 +71,7 @@ const contacts = [
         <nav aria-label="Primary" class="site-nav">
           {
             navigation.map(({ href, label }) => (
-              <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>
+              <a href={href} aria-current={currentState(href)}>
                 {label}
               </a>
             ))

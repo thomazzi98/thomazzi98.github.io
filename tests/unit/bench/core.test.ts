@@ -111,6 +111,7 @@ describe('createSimulation', () => {
     simulation.dispatch({ type: 'reset' });
     expect(simulation.state.count).toBe(0);
     expect(simulation.log.at(-1)).toEqual({
+      sequence: 1,
       at: 100,
       station: 'counter',
       tone: 'neutral',

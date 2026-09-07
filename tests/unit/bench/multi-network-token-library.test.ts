@@ -46,7 +46,7 @@ describe('multi-network token library', () => {
     expect(simulation.state.registered).toHaveLength(4);
     const view = present(simulation.state, simulation.levers);
     expect(view.stations.bnb?.badge).toBe('registered');
-    expect(view.meters).toHaveLength(1);
+    expect(view.meters.map((meter) => meter.id)).toEqual(['latency', 'networks']);
     expect(view.stations.registry?.badge).toBe('4 networks · core v1');
   });
 

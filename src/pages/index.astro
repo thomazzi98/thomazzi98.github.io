@@ -8,10 +8,10 @@ import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { isTiedToCaseStudy, sortPracticesByTie } from '../lib/practices';
 import { selectCaseStudies } from '../lib/projects';
-import { statusLabels } from '../lib/status';
+import { describeStatus } from '../lib/status';
 
 const openingId = 'queued-bank-onboarding';
-const { roles, projects, practices } = await loadContent();
+const { roles, projects, practices, roleOf } = await loadContent();
 const onboarding = await loadScenario(openingId);
 const caseStudies = selectCaseStudies(projects);
 const opening = caseStudies.find((project) => project.id === openingId);
@@ -23,6 +23,10 @@ const backs = (practiceId: string, projectId: string) =>
   practices
     .find((practice) => practice.id === practiceId)
     ?.data.backedBy.some((reference) => reference.id === projectId) ?? false;
+const smallerBacking = (practice: (typeof practices)[number]) =>
+  practice.data.backedBy.filter(
+    (reference) => !caseStudies.some((project) => project.id === reference.id),
+  );
 const projectTitle = (id: string) =>
   projects.find((project) => project.id === id)?.data.title ?? id;
 
@@ -74,10 +78,10 @@ const personSchema = {
       <a href={`/work/${openingId}/`} class="mono">Read the decision →</a>
     </div>
     <p class="opening__invite">
-      This is a simulation of a design I shipped in 2021, running in your browser; the numbers are
-      the model's. Flip the bank provider to 503 and watch sign-ups keep answering in milliseconds
-      while the worker backs off. Flip to 422 and watch the fault get recorded instead of retried.
-      Then switch to what it replaced.
+      This is a simulation of a design I shipped in 2021, running in your browser. Flip the bank
+      provider to 503 and watch sign-ups keep answering in milliseconds while the worker backs off.
+      Flip to 422 and watch the fault get recorded instead of retried. Then switch to what it
+      replaced.
     </p>
     <BenchFrame
       id={openingId}
@@ -93,7 +97,7 @@ const personSchema = {
   <section class="section" aria-labelledby="tie-up-title">
     <div class="section__head">
       <h2 id="tie-up-title">How I work, tied to what backs it</h2>
-      <p class="kicker">Rows are practices · columns are case studies</p>
+      <p class="kicker">Practices down, case studies across</p>
     </div>
     <div
       class="tie-up"
@@ -119,10 +123,10 @@ const personSchema = {
           <div role="row" style="display: contents">
             <div class="tie-up__claim" role="rowheader">
               <span>{practice.data.claim}</span>
-              {!isTiedToCaseStudy(practice, caseStudies) && (
+              {smallerBacking(practice).length > 0 && (
                 <span class="tie-up__backing mono">
-                  backed by{' '}
-                  {practice.data.backedBy.map((reference, index) => (
+                  {isTiedToCaseStudy(practice, caseStudies) ? 'also backed by' : 'backed by'}{' '}
+                  {smallerBacking(practice).map((reference, index) => (
                     <>
                       {index > 0 && ', '}
                       <a href={`/work/${reference.id}/`}>{projectTitle(reference.id)}</a>
@@ -154,14 +158,18 @@ const personSchema = {
         caseStudies.map((project, index) => (
           <li>
             {benchNumber(index)} · <a href={`/work/${project.id}/`}>{project.data.title}</a>
-            <span class="muted"> · {statusLabels[project.data.status].toLowerCase()}</span>
+            <span class="muted">
+              {' · '}
+              {describeStatus(project.data.status, roleOf(project)?.data.period).toLowerCase()}
+            </span>
           </li>
         ))
       }
     </ol>
     <p class="measure muted tie-up__after">
       The <a href="/about/">whole cloth</a> weaves the career month by month from the same files that
-      generate this page. Contact is in the footer, where it stays next to the timezone.
+      generate this page. Reach me at <a href={`mailto:${identity.email}`}>{identity.email}</a>,
+      {identity.timezone}, {identity.availability}.
     </p>
   </section>
 </Base>

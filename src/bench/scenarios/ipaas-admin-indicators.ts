@@ -84,6 +84,7 @@ export const definition: BenchDefinition = {
     { id: 'count-running', label: 'Count running' },
     { id: 'usage', label: 'Usage this month' },
   ],
+  idleTraffic: true,
 };
 
 const writeInterval = 700;
@@ -367,3 +368,5 @@ export const actionEvent = (actionId: string): Event | undefined => {
 
 export const invitation =
   'Ask for a count while the workers write. Then point reports at the execution store, ask again, and watch the write rate dip.';
+
+export const measures = 'latencies, counts and bytes';

@@ -4,11 +4,14 @@ import { createScheduler } from './scheduler';
 export type Tone = 'neutral' | 'ok' | 'pending' | 'fault' | 'refused';
 
 export interface LogEntry {
+  sequence: number;
   at: number;
   station: string;
   tone: Tone;
   message: string;
 }
+
+export const leverStation = 'lever';
 
 export interface Packet {
   id: number;
@@ -72,6 +75,7 @@ export const createSimulation = <State, Event, Levers extends object>(
   let state = scenario.initialState(levers);
   let now = 0;
   let packetSequence = 0;
+  let logSequence = 0;
 
   const notify = (): void => {
     for (const listener of listeners) {
@@ -88,10 +92,7 @@ export const createSimulation = <State, Event, Levers extends object>(
       scheduler.schedule(now + Math.max(0, delay), event);
     },
     log: (station, tone, message) => {
-      log.push({ at: now, station, tone, message });
-      if (log.length > logLimit) {
-        log.splice(0, log.length - logLimit);
-      }
+      record(station, tone, message);
     },
     send: (from, destination, tone, travel) => {
       packets.push({
@@ -103,6 +104,14 @@ export const createSimulation = <State, Event, Levers extends object>(
         arrivesAt: now + travel,
       });
     },
+  };
+
+  const record = (station: string, tone: Tone, message: string): void => {
+    logSequence += 1;
+    log.push({ sequence: logSequence, at: now, station, tone, message });
+    if (log.length > logLimit) {
+      log.splice(0, log.length - logLimit);
+    }
   };
 
   const forgetArrivedPackets = (): void => {
@@ -160,6 +169,7 @@ export const createSimulation = <State, Event, Levers extends object>(
     },
     setLever: (name, value) => {
       levers = { ...levers, [name]: value };
+      record(leverStation, 'neutral', `${String(name)} → ${String(value)}`);
       notify();
     },
     step,

@@ -8,6 +8,7 @@
   --ink-muted: #5a5750;
   --rule: #d9d2c2;
   --greige: #b9ae95;
+  --greige-strong: #8c826c;
 
   /* Thread colours. Indigo is the weft in flight; madder is a fault; turmeric waits; moss is done. */
   --indigo: #24456e;
@@ -18,8 +19,8 @@
 
   /* Technology groups on the cloth and the selvedge: full indigo, a thinner indigo, and greige. */
   --thread-owned: var(--indigo);
-  --thread-shipped: color-mix(in srgb, var(--indigo) 50%, var(--ground));
-  --thread-familiar: var(--greige);
+  --thread-shipped: color-mix(in srgb, var(--indigo) 65%, var(--ground));
+  --thread-familiar: var(--greige-strong);
 
   --font-sans: var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
@@ -41,6 +42,7 @@
     --ink-muted: #a39d90;
     --rule: #33353a;
     --greige: #5e5a50;
+    --greige-strong: #8f8878;
     --indigo: #8fb0e0;
     --madder: #e8846c;
     --turmeric: #d9a441;

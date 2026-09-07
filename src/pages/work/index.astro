@@ -4,10 +4,10 @@ import Base from '../../layouts/Base.astro';
 import { loadContent } from '../../lib/content';
 import { formatPeriod } from '../../lib/period';
 import { selectAlsoBuilt, selectCaseStudies } from '../../lib/projects';
-import { statusLabels } from '../../lib/status';
+import { describeStatus } from '../../lib/status';
 import { createTechnologyNameLookup } from '../../lib/technologies';
 
-const { projects, technologies, companyOf } = await loadContent();
+const { projects, technologies, companyOf, roleOf } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
 const caseStudies = selectCaseStudies(projects);
 const alsoBuilt = selectAlsoBuilt(projects);
@@ -52,7 +52,7 @@ const benched = caseStudies.filter((project) => isScenarioId(project.id)).length
               </p>
             </div>
             <div class="work-row__meta mono">
-              <span>{statusLabels[project.data.status]}</span>
+              <span>{describeStatus(project.data.status, roleOf(project)?.data.period)}</span>
               <span>built {formatPeriod(project.data.period)}</span>
               {companyOf(project) !== undefined && <span>{companyOf(project)}</span>}
               {isScenarioId(project.id) && <span class="work-row__bench">bench</span>}
@@ -82,7 +82,7 @@ const benched = caseStudies.filter((project) => isScenarioId(project.id)).length
               <p class="muted">{project.data.tagline}</p>
             </div>
             <div class="work-row__meta mono">
-              <span>{statusLabels[project.data.status]}</span>
+              <span>{describeStatus(project.data.status, roleOf(project)?.data.period)}</span>
               <span>built {formatPeriod(project.data.period)}</span>
             </div>
           </li>

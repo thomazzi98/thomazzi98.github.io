@@ -2,6 +2,7 @@ import type { BenchView, Meter } from '../core/presentation';
 import type { LogEntry, Packet, Simulation } from '../core/simulation';
 import type { ScenarioModule } from '../scenarios';
 import { pointAlong, type PlacedWire } from './layout';
+import { logCapacity, unrenderedEntries } from './log-window';
 
 export interface Clock {
   beatMilliseconds: number;
@@ -31,7 +32,8 @@ interface Drawing {
   layer: SVGGElement;
 }
 
-const logCapacity = 10;
+type LedgerRow = BenchView['ledger']['rows'][number];
+
 const backlogLimitInBeats = 8;
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
@@ -153,16 +155,14 @@ const renderMeter = (root: ParentNode, meter: Meter): void => {
   );
 };
 
-const buildLedgerRow = (
-  row: BenchView['ledger']['rows'][number],
-  hasActionColumn: boolean,
-): HTMLTableRowElement => {
+const buildLedgerRow = (row: LedgerRow, hasActionColumn: boolean): HTMLTableRowElement => {
   const tableRow = document.createElement('tr');
   tableRow.dataset.key = row.cells[0] ?? '';
   for (const [index, cell] of row.cells.entries()) {
     const element = document.createElement(index === 0 ? 'th' : 'td');
     if (index === 0) {
       element.setAttribute('scope', 'row');
+      element.setAttribute('tabindex', '-1');
     }
     element.textContent = cell;
     tableRow.append(element);
@@ -173,9 +173,16 @@ const buildLedgerRow = (
   return tableRow;
 };
 
+const removeKeepingFocus = (button: HTMLButtonElement, tableRow: HTMLTableRowElement): void => {
+  if (document.activeElement === button) {
+    tableRow.querySelector<HTMLElement>('th')?.focus();
+  }
+  button.remove();
+};
+
 const patchLedgerRow = (
   tableRow: HTMLTableRowElement,
-  row: BenchView['ledger']['rows'][number],
+  row: LedgerRow,
   hasActionColumn: boolean,
 ): void => {
   setData(tableRow, 'tone', row.tone);
@@ -192,20 +199,24 @@ const patchLedgerRow = (
   }
   const button = actionCell.querySelector('button');
   if (row.action === undefined) {
-    button?.remove();
+    if (button !== null) {
+      removeKeepingFocus(button, tableRow);
+    }
     return;
   }
+  const name = `${row.action.label} #${row.cells[0] ?? ''}`;
   if (button === null) {
     const created = document.createElement('button');
     created.type = 'button';
     created.dataset.action = row.action.id;
     created.textContent = row.action.label;
-    created.setAttribute('aria-label', `${row.action.label} #${row.cells[0] ?? ''}`);
+    created.setAttribute('aria-label', name);
     actionCell.append(created);
     return;
   }
   setData(button, 'action', row.action.id);
   setText(button, row.action.label);
+  setAttribute(button, 'aria-label', name);
 };
 
 const renderLedger = (root: ParentNode, view: BenchView, hasActionColumn: boolean): void => {
@@ -240,33 +251,42 @@ const renderLedger = (root: ParentNode, view: BenchView, hasActionColumn: boolea
   }
 };
 
+const buildLogItem = (entry: LogEntry): HTMLLIElement => {
+  const item = document.createElement('li');
+  item.dataset.tone = entry.tone;
+  const time = document.createElement('span');
+  time.textContent = formatSeconds(entry.at);
+  const station = document.createElement('span');
+  station.textContent = entry.station;
+  const message = document.createElement('span');
+  message.textContent = entry.message;
+  item.append(time, station, message);
+  return item;
+};
+
 const renderLog = (root: ParentNode, entries: readonly LogEntry[]): void => {
   const list = root.querySelector<HTMLOListElement>('[data-log]');
   if (list === null) {
     return;
   }
-  const firstShown = Math.max(0, entries.length - logCapacity);
-  const rendered = Number(list.dataset.renderedThrough ?? '0');
-  for (let index = Math.max(rendered, firstShown); index < entries.length; index += 1) {
-    const entry = entries[index];
-    if (entry === undefined) {
-      continue;
-    }
-    const item = document.createElement('li');
-    item.dataset.tone = entry.tone;
-    const time = document.createElement('span');
-    time.textContent = formatSeconds(entry.at);
-    const station = document.createElement('span');
-    station.textContent = entry.station;
-    const message = document.createElement('span');
-    message.textContent = entry.message;
-    item.append(time, station, message);
-    list.append(item);
+  const lastRendered = Number(list.dataset.renderedSequence ?? '0');
+  const fresh = unrenderedEntries(entries, lastRendered);
+  for (const entry of fresh) {
+    list.append(buildLogItem(entry));
   }
-  list.dataset.renderedThrough = String(entries.length);
+  const newest = fresh.at(-1);
+  if (newest !== undefined) {
+    list.dataset.renderedSequence = String(newest.sequence);
+  }
   while (list.children.length > logCapacity) {
     list.firstElementChild?.remove();
   }
+};
+
+const describeLever = (input: HTMLInputElement): string => {
+  const legend = input.closest('fieldset')?.querySelector('legend')?.textContent.trim() ?? '';
+  const option = input.closest('label')?.textContent.trim() ?? input.value;
+  return `${legend}: ${option}`;
 };
 
 export const bindBench = (options: BindOptions): BenchBinding => {
@@ -277,7 +297,13 @@ export const bindBench = (options: BindOptions): BenchBinding => {
   let frame = 0;
   let timer = 0;
   let lastBeatAt = 0;
-  let announcePending = false;
+  let announcement: string | undefined;
+  let hiddenByTab = false;
+  let offScreen = false;
+  let wasRunning = false;
+
+  const latestLogAfter = (sequence: number): LogEntry | undefined =>
+    simulation.log.filter((entry) => entry.sequence > sequence).at(-1);
 
   const render = (): void => {
     const view = module.present(simulation.state, simulation.levers);
@@ -294,10 +320,9 @@ export const bindBench = (options: BindOptions): BenchBinding => {
         renderPackets(drawing, simulation.packets, simulation.now);
       }
     }
-    if (announcePending) {
-      announcePending = false;
-      const latest = simulation.log.at(-1);
-      setText(root.querySelector('[data-status]'), latest === undefined ? '' : latest.message);
+    if (announcement !== undefined) {
+      setText(root.querySelector('[data-status]'), announcement);
+      announcement = undefined;
     }
   };
 
@@ -345,10 +370,19 @@ export const bindBench = (options: BindOptions): BenchBinding => {
     stopLoop();
   };
 
+  const runIfAllowed = (): void => {
+    if (!running && options.motionAllowed) {
+      run();
+    }
+  };
+
   const step = (): void => {
     pause();
-    announcePending = true;
+    const before = simulation.log.at(-1)?.sequence ?? 0;
     simulation.step();
+    const fresh = latestLogAfter(before);
+    announcement = fresh === undefined ? `t = ${formatSeconds(simulation.now)}` : fresh.message;
+    render();
   };
 
   const onClick = (event: Event): void => {
@@ -380,11 +414,15 @@ export const bindBench = (options: BindOptions): BenchBinding => {
     if (nextEvent === undefined) {
       return;
     }
-    announcePending = true;
+    const before = simulation.log.at(-1)?.sequence ?? 0;
     simulation.dispatch(nextEvent);
-    if (!running && options.motionAllowed) {
-      run();
-    }
+    const fresh = latestLogAfter(before);
+    announcement =
+      fresh === undefined
+        ? module.present(simulation.state, simulation.levers).headline
+        : fresh.message;
+    render();
+    runIfAllowed();
   };
 
   const onChange = (event: Event): void => {
@@ -392,25 +430,26 @@ export const bindBench = (options: BindOptions): BenchBinding => {
     if (!(input instanceof HTMLInputElement) || input.dataset.lever === undefined) {
       return;
     }
-    announcePending = true;
+    announcement = describeLever(input);
     simulation.setLever(input.dataset.lever as never, input.value as never);
+    runIfAllowed();
   };
 
-  let pausedByPage = false;
   const suspend = (): void => {
     if (running) {
-      pausedByPage = true;
+      wasRunning = true;
       pause();
     }
   };
   const resume = (): void => {
-    if (pausedByPage) {
-      pausedByPage = false;
+    if (wasRunning && !hiddenByTab && !offScreen) {
+      wasRunning = false;
       run();
     }
   };
   const onVisibility = (): void => {
-    if (document.hidden) {
+    hiddenByTab = document.hidden;
+    if (hiddenByTab) {
       suspend();
       return;
     }
@@ -420,11 +459,12 @@ export const bindBench = (options: BindOptions): BenchBinding => {
     typeof IntersectionObserver === 'function'
       ? new IntersectionObserver((entries) => {
           for (const entry of entries) {
-            if (entry.isIntersecting) {
-              resume();
+            offScreen = !entry.isIntersecting;
+            if (offScreen) {
+              suspend();
               continue;
             }
-            suspend();
+            resume();
           }
         })
       : undefined;

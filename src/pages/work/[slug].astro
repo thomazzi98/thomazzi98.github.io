@@ -8,7 +8,7 @@ import Base from '../../layouts/Base.astro';
 import { loadContent } from '../../lib/content';
 import { formatPeriod } from '../../lib/period';
 import { selectCaseStudies } from '../../lib/projects';
-import { statusLabels } from '../../lib/status';
+import { describeStatus } from '../../lib/status';
 import { createTechnologyNameLookup } from '../../lib/technologies';
 
 export const getStaticPaths = (async () => {
@@ -17,7 +17,7 @@ export const getStaticPaths = (async () => {
 }) satisfies GetStaticPaths;
 
 const { project } = Astro.props;
-const { roles, projects, technologies, companyOf } = await loadContent();
+const { roles, projects, technologies, companyOf, roleOf } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
 const { Content } = await render(project);
 const role = roles.find((candidate) => candidate.id === project.data.role?.id);
@@ -34,7 +34,7 @@ const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No publi
     <header class="case__head">
       <p class="kicker">
         {benchNumber !== undefined && <span>Bench {benchNumber} · </span>}
-        <span>{statusLabels[project.data.status]}</span>
+        <span>{describeStatus(project.data.status, roleOf(project)?.data.period)}</span>
         <span> · built {formatPeriod(project.data.period)}</span>
         {companyOf(project) !== undefined && <span> · {companyOf(project)}</span>}
       </p>
@@ -52,6 +52,7 @@ const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No publi
           <BenchFrame
             id={project.id}
             module={scenario}
+            autorun={scenario.definition.idleTraffic === true}
             title={project.data.title}
             description={describeDefinition(scenario.definition)}
             announce

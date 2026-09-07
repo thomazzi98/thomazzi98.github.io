@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { assertDefinitionIsConsistent } from '../../../src/bench/core/definition';
 import { transcriptOf } from '../../../src/bench/core/demonstration';
+import { leverStation } from '../../../src/bench/core/simulation';
 import { loadScenario, scenarioIds } from '../../../src/bench/scenarios';
 
 describe.each(scenarioIds)('scenario module %s', (id) => {
@@ -23,7 +24,10 @@ describe.each(scenarioIds)('scenario module %s', (id) => {
     }
     expect(module.actionEvent('no-such-action')).toBeUndefined();
 
-    const stations = new Set(module.definition.stations.map((station) => station.id));
+    const stations = new Set([
+      leverStation,
+      ...module.definition.stations.map((station) => station.id),
+    ]);
     const transcript = transcriptOf(module.scenario, module.demonstration);
     expect(transcript.entries.length).toBeGreaterThan(3);
     for (const entry of transcript.entries) {

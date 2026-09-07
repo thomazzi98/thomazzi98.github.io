@@ -18,5 +18,9 @@ export const loadContent = async () => {
   const companyByRoleId = new Map(roles.map((role) => [role.id, role.data.company]));
   const companyOf = (project: HasRole): string | undefined =>
     project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
-  return { roles, projects, technologies, education, practices, companyOf };
+  const roleOf = (project: HasRole) =>
+    project.data.role === undefined
+      ? undefined
+      : roles.find((role) => role.id === project.data.role?.id);
+  return { roles, projects, technologies, education, practices, companyOf, roleOf };
 };

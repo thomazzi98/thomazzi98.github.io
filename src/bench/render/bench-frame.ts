@@ -84,7 +84,7 @@ export class BenchFrame extends HTMLElement {
         reproduction.searchParams.set(lever, value);
       }
       console.info(
-        `bench ${id} · seed ${String(simulation.seed)} · deterministic · levers travel in the URL · reproduce this run at ${reproduction.href}`,
+        `bench ${id} · seed ${String(simulation.seed)} replays the same scripted traffic and the levers travel in the URL: ${reproduction.href}`,
       );
     }
   }

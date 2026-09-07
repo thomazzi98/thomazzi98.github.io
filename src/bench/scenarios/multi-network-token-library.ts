@@ -1,6 +1,6 @@
 import type { BenchDefinition } from '../core/definition';
 import type { Demonstration } from '../core/demonstration';
-import type { Presenter } from '../core/presentation';
+import { median, type Presenter } from '../core/presentation';
 import type { Scenario, StepContext, Tone } from '../core/simulation';
 
 export type Network = 'ethereum' | 'polygon' | 'bitcoin' | 'bnb';
@@ -17,6 +17,7 @@ export interface Call {
   answeredBy: string;
   result: string;
   tone: Tone;
+  latency: number;
 }
 
 export interface State {
@@ -122,7 +123,15 @@ const read = (
       nextId: id + 1,
       calls: [
         ...state.calls,
-        { id, reading, network, answeredBy: 'nobody', result: 'refused', tone: 'refused' },
+        {
+          id,
+          reading,
+          network,
+          answeredBy: 'nobody',
+          result: 'refused',
+          tone: 'refused',
+          latency: resolveLatency,
+        },
       ],
     };
   }
@@ -141,6 +150,7 @@ const read = (
         answeredBy: `${networkLabel[network]} implementation`,
         result: resultFor(reading, network, context),
         tone: 'pending',
+        latency: resolveLatency + latency,
       },
     ],
   };
@@ -212,6 +222,7 @@ const stationTone = (state: State, network: Network): Tone =>
 
 export const present: Presenter<State, Levers> = (state, levers) => {
   const lastCall = state.calls.at(-1);
+  const answered = state.calls.filter((call) => call.tone === 'ok').slice(-8);
   const headline = (() => {
     if (lastCall?.tone === 'refused') {
       return `The input names ${networkLabel[lastCall.network]} and nothing is registered for it. The library refuses instead of guessing.`;
@@ -237,6 +248,18 @@ export const present: Presenter<State, Levers> = (state, levers) => {
       },
     },
     meters: [
+      {
+        id: 'latency',
+        label: 'Answer time, last calls',
+        value: median(answered.map((call) => call.latency)),
+        maximum: 1200,
+        unit: 'ms',
+        tone: 'neutral',
+        caption:
+          answered.length === 0
+            ? 'no answers yet'
+            : `${String(Math.round(median(answered.map((call) => call.latency))))} ms median across ${String(answered.length)} answered`,
+      },
       {
         id: 'networks',
         label: 'Networks registered',
@@ -295,3 +318,5 @@ export const actionEvent = (actionId: string): Event | undefined => {
 
 export const invitation =
   'Ask totalSupply on Polygon, then on Bitcoin, which has no contracts. Name BNB Chain before it is registered, register it, and ask again.';
+
+export const measures = 'latencies and counts';

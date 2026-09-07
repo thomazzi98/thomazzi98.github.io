@@ -9,6 +9,7 @@ export interface ScenarioModule<State = unknown, Event = unknown, Levers extends
   present: Presenter<State, Levers>;
   demonstration: Demonstration<Event, Levers>;
   invitation: string;
+  measures: string;
   actionEvent(actionId: string): Event | undefined;
 }
 

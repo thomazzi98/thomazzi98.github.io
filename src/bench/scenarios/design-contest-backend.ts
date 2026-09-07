@@ -74,7 +74,7 @@ export const definition: BenchDefinition = {
   actions: [
     { id: 'cast', label: 'Cast votes' },
     { id: 'mint', label: 'Mint finalists' },
-    { id: 'mint-from-api', label: 'Mint from the API' },
+    { id: 'mint-from-api', label: 'Mint from the API (refused)' },
   ],
 };
 
@@ -332,4 +332,6 @@ export const actionEvent = (actionId: string): Event | undefined => {
 };
 
 export const invitation =
-  'Cast fifty votes and watch every one land. Then switch to what the first version did, cast again, and count what the race lost.';
+  'Cast fifty votes and watch every one land. Then switch to what the first version did, cast again, and count what the race lost. Then press Mint from the API and watch it refused; only the signer can.';
+
+export const measures = 'counts and timings';

@@ -98,6 +98,29 @@ describe('queued bank onboarding', () => {
     expect(steady.state.registrations.length).toBeGreaterThanOrEqual(4);
   });
 
+  it('processes every sign-up even when the ledger is trimmed', () => {
+    const simulation = start();
+    for (let count = 0; count < 120; count += 1) {
+      simulation.dispatch({ type: 'signup' });
+    }
+    simulation.advance(120_000);
+    expect(simulation.state.queue).toEqual([]);
+    expect(simulation.state.workerBusy).toBe(false);
+    expect(simulation.state.registrations.length).toBeLessThanOrEqual(80);
+    expect(simulation.state.registrations.every((entry) => entry.status === 'processed')).toBe(
+      true,
+    );
+  });
+
+  it('keeps working under steady slow traffic for ten simulated minutes', () => {
+    const simulation = start({ traffic: 'steady', providerHealth: 'slow' });
+    simulation.advance(600_000);
+    expect(simulation.pending()).toBeGreaterThan(1);
+    expect(simulation.state.createdTotal).toBeGreaterThan(150);
+    expect(simulation.state.registrations.length).toBeLessThanOrEqual(80);
+    expect(simulation.log.at(-1)?.message).not.toMatch(/^takes #1 /);
+  });
+
   it('is deterministic for a seed', () => {
     const run = () => {
       const simulation = start({ traffic: 'steady', providerHealth: 'server-fault' }, 99);

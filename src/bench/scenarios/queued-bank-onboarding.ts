@@ -33,6 +33,7 @@ export interface State {
   providerLatencies: number[];
   supportInbox: number[];
   nextId: number;
+  createdTotal: number;
 }
 
 export type Event =
@@ -138,8 +139,12 @@ const updateRegistration = (
   patch: Partial<Registration>,
 ): State => ({
   ...state,
-  registrations: state.registrations.map((registration) =>
-    registration.id === registrationId ? { ...registration, ...patch } : registration,
+  registrations: trimSettled(
+    state.registrations.map((registration) =>
+      registration.id === registrationId ? { ...registration, ...patch } : registration,
+    ),
+    state.queue,
+    state.supportInbox,
   ),
 });
 
@@ -147,6 +152,30 @@ const findRegistration = (state: State, registrationId: number): Registration | 
   state.registrations.find((registration) => registration.id === registrationId);
 
 const describeBackoff = (attempt: number): number => backoffBase * 2 ** (attempt - 1);
+
+const settledStatuses: readonly RegistrationStatus[] = ['processed', 'lost'];
+
+const trimSettled = (
+  registrations: Registration[],
+  queue: readonly number[],
+  supportInbox: readonly number[],
+): Registration[] => {
+  let excess = registrations.length - registrationLimit;
+  if (excess <= 0) {
+    return registrations;
+  }
+  return registrations.filter((registration) => {
+    const disposable =
+      excess > 0 &&
+      settledStatuses.includes(registration.status) &&
+      !queue.includes(registration.id) &&
+      !supportInbox.includes(registration.id);
+    if (disposable) {
+      excess -= 1;
+    }
+    return !disposable;
+  });
+};
 
 const startProviderCall = (
   registrationId: number,
@@ -181,7 +210,7 @@ const signUpQueued = (state: State, context: StepContext<Event>): State => {
   return {
     ...state,
     nextId: id + 1,
-    registrations: [...state.registrations, queued].slice(-registrationLimit),
+    registrations: trimSettled([...state.registrations, queued], state.queue, state.supportInbox),
     queue: [...state.queue, id],
     signupLatencies: pushSample(state.signupLatencies, apiLatency),
   };
@@ -207,9 +236,13 @@ const dequeue = (state: State, context: StepContext<Event>, levers: Levers): Sta
   if (state.workerBusy || registrationId === undefined) {
     return state;
   }
-  context.send('queue', 'worker', 'pending', 80);
   const registration = findRegistration(state, registrationId);
-  const attempts = (registration?.attempts ?? 0) + 1;
+  if (registration === undefined) {
+    context.schedule(0, { type: 'dequeue' });
+    return { ...state, queue: rest };
+  }
+  context.send('queue', 'worker', 'pending', 80);
+  const attempts = registration.attempts + 1;
   context.log(
     'worker',
     'pending',
@@ -228,9 +261,6 @@ const settleQueued = (
   context: StepContext<Event>,
 ): State => {
   const registration = findRegistration(state, event.registrationId);
-  if (registration === undefined) {
-    return state;
-  }
   const freed: State = {
     ...state,
     workerBusy: false,
@@ -238,6 +268,9 @@ const settleQueued = (
   };
   if (state.queue.length > 0) {
     context.schedule(50, { type: 'dequeue' });
+  }
+  if (registration === undefined) {
+    return freed;
   }
   const id = event.registrationId;
   if (event.statusCode < 300) {
@@ -247,7 +280,7 @@ const settleQueued = (
       'ok',
       `#${String(id)} · ${String(event.statusCode)} from provider · account created`,
     );
-    return updateRegistration(freed, id, {
+    return updateRegistration({ ...freed, createdTotal: freed.createdTotal + 1 }, id, {
       status: 'processed',
       lastStatusCode: event.statusCode,
       settledAt: context.now,
@@ -305,7 +338,7 @@ const settleSynchronous = (
   if (event.statusCode < 300) {
     context.send('api', 'user', 'ok', 60);
     context.log('api', 'ok', `201 Created · #${String(id)} · ${String(event.latency)} ms`);
-    return updateRegistration(withLatency, id, {
+    return updateRegistration({ ...withLatency, createdTotal: withLatency.createdTotal + 1 }, id, {
       status: 'processed',
       lastStatusCode: event.statusCode,
       settledAt: context.now,
@@ -372,6 +405,7 @@ export const scenario: Scenario<State, Event, Levers> = {
     providerLatencies: [],
     supportInbox: [],
     nextId: 1,
+    createdTotal: 0,
   }),
   boot: (context) => {
     context.schedule(steadyInterval, { type: 'traffic-tick' });
@@ -462,7 +496,7 @@ const headlineFor = (state: State, levers: Levers): string => {
       ? 'Sign-up answers in milliseconds. The provider’s health is the worker’s problem, on purpose.'
       : 'What it replaced: every sign-up waits for the provider and inherits its failures.';
   }
-  const created = countWithStatus(state, ['processed']);
+  const created = state.createdTotal;
   if (levers.mode === 'synchronous') {
     const waited = Math.round(median(state.signupLatencies));
     const lost = countWithStatus(state, ['lost']);
@@ -572,3 +606,5 @@ export const actionEvent = (actionId: string): Event | undefined => {
 
 export const invitation =
   'Press Sign up, then flip the bank provider to 503 and watch the worker back off while sign-ups keep answering. Flip to 422 and watch the fault get recorded instead of retried. Then switch to what it replaced.';
+
+export const measures = 'latencies and counts';
