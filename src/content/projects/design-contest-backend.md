@@ -67,19 +67,6 @@ and end-to-end tests with Jest against LocalStack. An ERC-721 contract on Polygo
 burn, royalty and enumerable extensions. A single-purpose Lambda that signs and broadcasts mints
 with the owner key from its own environment.
 
-```mermaid
-flowchart TB
-  accTitle: Contest API with a separate signing Lambda
-  accDescr: Entrants submit designs, public voters vote with a reCAPTCHA v3 token, and moderators with a JWT shortlist entries, all through the contest API. The API stores files in S3, increments vote counts atomically in DynamoDB, and passes finalist ids to a signing Lambda that holds the owner key and mints the ERC-721 tokens on Polygon.
-  entrant[Entrant] -->|submission| api[Contest API]
-  voter[Public voter] -->|vote, reCAPTCHA v3| api
-  moderator[Moderator, JWT] -->|shortlist| api
-  api -->|files| files[S3]
-  api -->|atomic increment| votes[DynamoDB]
-  api -->|finalist ids| signer[Signing Lambda, owner key]
-  signer -->|mint| contract[ERC-721 on Polygon]
-```
-
 ## What it cost
 
 - DynamoDB access patterns were designed for the contest's known queries. Ad-hoc reporting needed

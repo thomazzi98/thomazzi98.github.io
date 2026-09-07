@@ -53,22 +53,6 @@ faults: a 4xx is recorded as processed and surfaced to support. Two admin routes
 registration or every pending or failed one. A re-queue of a row already marked processed is
 refused. A queue dashboard is mounted under the admin routes.
 
-```mermaid
-flowchart TB
-  accTitle: Sign-up with a queued bank-account job
-  accDescr: The API persists a registration row in MySQL, enqueues its id on BullMQ over Redis and responds to the user that the account is being created. A worker takes the job and calls the banking provider. A 2xx or 4xx is recorded and marked processed; a 5xx makes the worker throw so the job retries with backoff. Support can re-queue pending or failed jobs.
-  user[User] -->|sign-up| api[API]
-  api -->|persist row| db[MySQL]
-  api -->|enqueue id| queue[BullMQ on Redis]
-  api -->|202, account being created| user
-  queue --> worker[Worker]
-  worker -->|create account| provider[Banking provider]
-  provider -->|2xx or 4xx: record, mark processed| worker
-  provider -.->|5xx: throw, retry with backoff| worker
-  worker -->|response, status| db
-  support[Support] -->|re-queue pending or failed| queue
-```
-
 ## What it cost
 
 - A second process to deploy and monitor: the worker.

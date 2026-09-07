@@ -1,87 +1,128 @@
 ---
-import type { InferGetStaticPropsType } from 'astro';
+import type { GetStaticPaths } from 'astro';
 import { render } from 'astro:content';
-import StatusLabel from '../../components/StatusLabel.astro';
+import { isScenarioId, loadScenario } from '../../bench/scenarios';
+import BenchFrame from '../../components/bench/BenchFrame.astro';
 import Base from '../../layouts/Base.astro';
 import { loadContent } from '../../lib/content';
 import { formatPeriod } from '../../lib/period';
+import { selectCaseStudies } from '../../lib/projects';
 import { createTechnologyNameLookup } from '../../lib/technologies';
 
-export const getStaticPaths = async () => {
+export const getStaticPaths = (async () => {
   const { projects } = await loadContent();
   return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
-};
-
-type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+}) satisfies GetStaticPaths;
 
 const { project } = Astro.props;
-const { roles, technologies } = await loadContent();
+const { roles, projects, technologies, companyOf } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
-const role = roles.find((candidate) => candidate.id === project.data.role?.id);
 const { Content } = await render(project);
-const { title, tagline, status, period, stack, confidentiality, evidence } = project.data;
+const role = roles.find((candidate) => candidate.id === project.data.role?.id);
+const benchIndex = selectCaseStudies(projects).findIndex(
+  (candidate) => candidate.id === project.id,
+);
+const benchNumber = benchIndex === -1 ? undefined : String(benchIndex + 1).padStart(2, '0');
+const scenario = isScenarioId(project.id) ? await loadScenario(project.id) : undefined;
+const statusLabel = project.data.status.replaceAll('-', ' ');
+const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No public artefact' };
 ---
 
-<Base title={`${title} · Rafael Thomazzi`} description={tagline}>
-  <article class="py-12 md:py-16">
-    <p class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-ink-muted">
-      {role && <span>{role.data.company}</span>}
-      <span>{formatPeriod(period)}</span>
-      <StatusLabel status={status} />
-    </p>
-    <h1 class="mt-4 max-w-(--measure) text-fluid-xl leading-tight font-semibold tracking-tight">
-      {title}
-    </h1>
-    <p class="mt-4 max-w-(--measure) text-fluid-lg text-ink-muted">{tagline}</p>
+<Base title={`${project.data.title} · Rafael Thomazzi`} description={project.data.tagline}>
+  <article class="case">
+    <header class="case__head">
+      <p class="kicker">
+        {benchNumber !== undefined && <span>Bench {benchNumber} · </span>}
+        <span>{statusLabel}</span>
+        <span> · {formatPeriod(project.data.period)}</span>
+        {companyOf(project) !== undefined && <span> · {companyOf(project)}</span>}
+      </p>
+      <h1>{project.data.title}</h1>
+      <p class="case__tagline">{project.data.tagline}</p>
+    </header>
 
-    <div class="mt-12 grid gap-12 lg:grid-cols-[minmax(0,var(--measure))_16rem] lg:gap-16">
+    {
+      scenario !== undefined && isScenarioId(project.id) && (
+        <section class="case__bench" aria-labelledby="bench-title">
+          <h2 id="bench-title" class="kicker">
+            Pull the lever, then read why
+          </h2>
+          <BenchFrame
+            id={project.id}
+            module={scenario}
+            title={project.data.title}
+            description={project.data.tagline}
+            announce
+          />
+        </section>
+      )
+    }
+
+    <div class="case__body">
       <div class="prose">
         <Content />
       </div>
-      <aside class="font-mono text-xs text-ink-muted lg:sticky lg:top-8 lg:self-start">
+      <aside class="case__aside">
         {
-          role && (
+          role !== undefined && (
             <section>
-              <h2 class="tracking-label uppercase">Role</h2>
-              <p class="mt-2 text-ink">{role.data.title}</p>
+              <h2 class="kicker">Role</h2>
               <p>
-                {role.data.company} · {role.data.companyGloss}
+                <strong>{role.data.title}</strong>
+                <br />
+                <span class="muted">
+                  {role.data.company} · {role.data.companyGloss}
+                </span>
               </p>
             </section>
           )
         }
-        <section class="mt-6">
-          <h2 class="tracking-label uppercase">Stack</h2>
-          <ul class="mt-2">
-            {stack.map((technology) => <li class="text-ink">{technologyName(technology)}</li>)}
+        <section>
+          <h2 class="kicker">Stack</h2>
+          <ul class="case__stack">
+            {project.data.stack.map((id) => <li>{technologyName(id)}</li>)}
+          </ul>
+        </section>
+        <section>
+          <h2 class="kicker">Evidence</h2>
+          <ul>
+            {
+              project.data.evidence.map((item) => (
+                <li>
+                  <span class="muted">{evidenceLabel[item.kind]}</span>
+                  {item.label !== undefined && (
+                    <>
+                      {' · '}
+                      {item.url !== undefined ? <a href={item.url}>{item.label}</a> : item.label}
+                    </>
+                  )}
+                </li>
+              ))
+            }
           </ul>
         </section>
         {
-          evidence.length > 0 && (
-            <section class="mt-6">
-              <h2 class="tracking-label uppercase">Evidence</h2>
-              <ul class="mt-2">
-                {evidence.map((item) => (
-                  <li class="text-ink">
-                    {item.url ? (
-                      <a href={item.url}>{item.label ?? item.url}</a>
-                    ) : (
-                      (item.label ?? 'None public')
-                    )}
-                  </li>
-                ))}
-              </ul>
+          project.data.confidentiality !== undefined && (
+            <section>
+              <h2 class="kicker">Confidentiality</h2>
+              <p class="muted">{project.data.confidentiality}</p>
             </section>
           )
         }
-        {
-          confidentiality && (
-            <section class="mt-6">
-              <h2 class="tracking-label uppercase">Confidentiality</h2>
-              <p class="mt-2">{confidentiality}</p>
-            </section>
-          )
-        }
+        <section>
+          <h2 class="kicker">Machine-readable</h2>
+          <p>
+            <a href="/resume.txt">resume.txt</a> · <a href="/llms.txt">llms.txt</a>
+            {
+              scenario !== undefined && (
+                <>
+                  {' · '}
+                  <a href={`/bench/${project.id}.json`}>bench transcript</a>
+                </>
+              )
+            }
+          </p>
+        </section>
       </aside>
     </div>
   </article>

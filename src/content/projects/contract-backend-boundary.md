@@ -60,17 +60,6 @@ operator transactions, and exposes REST endpoints the product calls. MySQL holds
 referrals, sale phases and off-chain game state. User-signed actions go through the wallet in
 the browser. Operator actions never do.
 
-```mermaid
-flowchart TB
-  accTitle: Pre-sale panel, backend and contracts
-  accDescr: The pre-sale panel holds no secrets and talks to the backend over REST. The backend holds the ABIs, addresses and operator key, sends operator-signed transactions to the contracts on BNB Chain, and stores users, referrals and sale phases in MySQL. User-signed transactions go from the wallet in the browser to the chain. The panel never calls the chain.
-  panel[Pre-sale panel, no secrets] -->|REST| backend[Backend: ABIs, addresses, operator key]
-  wallet[Wallet in the browser] -->|user-signed| chain[Contracts on BNB Chain]
-  backend -->|operator-signed| chain
-  backend -->|users, referrals, phases| db[MySQL]
-  panel -.->|never| chain
-```
-
 ## What it cost
 
 - The backend is a trusted intermediary. If it lies, the UI lies. Accepted, because the operator

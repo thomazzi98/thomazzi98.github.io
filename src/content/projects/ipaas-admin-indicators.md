@@ -56,18 +56,6 @@ timestamps, billable bytes, duration and the last component. Admin use cases rea
 collection through a repository interface, with one shared query handler for filtering,
 pagination and sorting.
 
-```mermaid
-flowchart TB
-  accTitle: Admin reads served from an execution reference collection
-  accDescr: Worker instances write payload, logs and trail to the execution store and write status, bytes and duration to a slim execution reference collection. The admin service reads counts, indicators and usage only from the reference collection and never from the execution store, and serves operators and billing.
-  worker[Worker instances] -->|payload, logs, trail| executions[Execution store]
-  worker -->|status, bytes, duration| reference[Execution reference]
-  reference -->|counts, indicators, usage| admin[Admin service]
-  executions -.->|never read by admin| admin
-  admin --> operators[Operators]
-  admin --> billing[Billing]
-```
-
 ## What it cost
 
 - Two writes per execution instead of one, and the reference can lag the execution.
