@@ -9,7 +9,7 @@ interface RoleLike {
 
 interface ProjectLike {
   id: string;
-  data: { stack: Reference[]; role?: Reference | undefined };
+  data: { stack: Reference[]; role?: Reference | undefined; kind?: 'case-study' | 'also-built' };
 }
 
 interface TechnologyLike {
@@ -20,6 +20,7 @@ export interface ContentGraph {
   roles: RoleLike[];
   projects: ProjectLike[];
   technologies: TechnologyLike[];
+  scenarioIds?: readonly string[];
 }
 
 export class ContentIntegrityError extends Error {
@@ -79,8 +80,22 @@ export const findIntegrityProblems = ({
   return problems;
 };
 
+export const findBenchProblems = ({ projects, scenarioIds }: ContentGraph): string[] => {
+  if (scenarioIds === undefined) {
+    return [];
+  }
+  const caseStudies = projects.filter((project) => project.data.kind === 'case-study');
+  const withoutBench = caseStudies
+    .filter((project) => !scenarioIds.includes(project.id))
+    .map((project) => `case study "${project.id}" has no bench scenario`);
+  const withoutCase = scenarioIds
+    .filter((id) => !caseStudies.some((project) => project.id === id))
+    .map((id) => `bench scenario "${id}" has no case study`);
+  return [...withoutBench, ...withoutCase];
+};
+
 export const assertContentIntegrity = (graph: ContentGraph): void => {
-  const problems = findIntegrityProblems(graph);
+  const problems = [...findIntegrityProblems(graph), ...findBenchProblems(graph)];
   if (problems.length === 0) {
     return;
   }

@@ -1,4 +1,5 @@
 import { getCollection } from 'astro:content';
+import { scenarioIds } from '../bench/scenarios';
 import { assertContentIntegrity } from './integrity';
 
 interface HasRole {
@@ -13,7 +14,7 @@ export const loadContent = async () => {
     getCollection('education'),
     getCollection('practices'),
   ]);
-  assertContentIntegrity({ roles, projects, technologies });
+  assertContentIntegrity({ roles, projects, technologies, scenarioIds });
   const companyByRoleId = new Map(roles.map((role) => [role.id, role.data.company]));
   const companyOf = (project: HasRole): string | undefined =>
     project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);

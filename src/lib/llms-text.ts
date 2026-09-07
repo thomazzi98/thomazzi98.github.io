@@ -11,6 +11,7 @@ export interface LlmsSource {
   work: { title: string; tagline: string; url: string; status: string }[];
   roles: { title: string; company: string; period: Period }[];
   technologyGroups: { label: string; names: string[] }[];
+  benches?: { id: string; url: string }[];
 }
 
 export const renderLlmsText = (source: LlmsSource): string =>
@@ -39,5 +40,8 @@ export const renderLlmsText = (source: LlmsSource): string =>
     '',
     `- [Plain-text resume](${source.siteUrl}resume.txt)`,
     ...source.links.map((link) => `- [${link.label}](${link.url})`),
+    ...(source.benches ?? []).map(
+      (bench) => `- [Bench transcript: ${bench.id}](${bench.url}) (deterministic simulation, JSON)`,
+    ),
     '',
   ].join('\n');
