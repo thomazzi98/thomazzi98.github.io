@@ -41,7 +41,11 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
   data-running="false"
 >
   <div class="bench__stage">
-    <p class="bench__headline" data-headline aria-live="polite">{initialView.headline}</p>
+    <p class="bench__headline" data-headline>{initialView.headline}</p>
+    <p class="bench__note">
+      Simulated. Latencies, counts and bytes are the model's, not measurements from production.
+    </p>
+    <p class="sr-only" role="status" data-status></p>
     <BenchDrawing layout={horizontal} title={title} description={description} />
     <BenchDrawing layout={vertical} title={title} description={description} />
   </div>
@@ -75,12 +79,14 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
         ))
       }
       <span class="bench__transport">
-        <button type="button" data-run aria-pressed="false" class="button button--quiet">Run</button
-        >
+        <button type="button" data-run class="button button--quiet">Run</button>
         <button type="button" data-step class="button button--quiet">Step</button>
         <span class="bench__clock" data-clock>t = 0.0 s</span>
         <span class="bench__unit">simulated time</span>
       </span>
+      <p class="bench__motion-note">
+        Motion is reduced on this device: Step advances one event, Run plays them.
+      </p>
     </div>
   </div>
 
@@ -105,12 +111,19 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
       <thead>
         <tr>
           {initialView.ledger.columns.map((column) => <th scope="col">{column}</th>)}
-          <th scope="col"><span class="sr-only">Action</span></th>
+          {
+            module.definition.rowActions === true && (
+              <th scope="col">
+                <span class="sr-only">Action</span>
+              </th>
+            )
+          }
         </tr>
       </thead>
       <tbody data-ledger></tbody>
     </table>
-    <ol class="log" data-log></ol>
+    <h3 class="sr-only" id={`${id}-log-title`}>Recent events</h3>
+    <ol class="log" data-log aria-labelledby={`${id}-log-title`}></ol>
   </div>
 
   <details class="transcript" open>

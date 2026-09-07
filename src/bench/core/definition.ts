@@ -35,6 +35,7 @@ export interface BenchDefinition {
   wires: readonly Wire[];
   levers: readonly LeverDefinition[];
   actions: readonly ActionDefinition[];
+  rowActions?: boolean;
 }
 
 export const assertDefinitionIsConsistent = (definition: BenchDefinition): void => {

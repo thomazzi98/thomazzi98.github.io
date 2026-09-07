@@ -1,5 +1,35 @@
 import { expect, test } from '@playwright/test';
 
+test('a Re-queue button keeps keyboard focus while the bench runs, and Enter works', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('bench-frame')).toHaveAttribute('data-ready', 'true');
+  await page.getByLabel('Answers 422').check();
+  await page.getByRole('button', { name: 'Sign up' }).click();
+  await page.getByLabel('Manual').check();
+  const firstButton = page.locator('[data-ledger] button').first();
+  await expect(firstButton).toBeVisible({ timeout: 15_000 });
+  const name = (await firstButton.getAttribute('aria-label')) ?? 'Re-queue';
+  const requeue = page.getByRole('button', { name, exact: true });
+  await requeue.focus();
+  await page.waitForTimeout(600);
+  await expect(requeue).toBeFocused();
+  await page.getByLabel('Healthy').check();
+  await requeue.press('Enter');
+  await expect(page.locator('[data-log]')).toContainText('re-queued #', { timeout: 5000 });
+});
+
+test('a bench on a case page starts ticking after the first action', async ({ page }) => {
+  await page.goto('/work/design-contest-backend/');
+  const frame = page.locator('bench-frame');
+  await expect(frame).toHaveAttribute('data-ready', 'true');
+  await expect(frame).toHaveAttribute('data-running', 'false');
+  await page.getByRole('button', { name: 'Cast votes' }).click();
+  await expect(frame).toHaveAttribute('data-running', 'true');
+  await expect(page.locator('[data-log]')).toContainText('cast', { timeout: 10_000 });
+});
+
 test.beforeEach(({ javaScriptEnabled }) => {
   test.skip(!javaScriptEnabled, 'the interactive bench needs JavaScript');
 });
@@ -31,6 +61,7 @@ test('under reduced motion nothing moves until asked, and Step advances one even
   await expect(frame).toHaveAttribute('data-ready', 'true');
   await expect(frame).toHaveAttribute('data-running', 'false');
   await expect(page.locator('[data-clock]')).toHaveText('t = 0.0 s');
+  await expect(page.locator('.bench__motion-note')).toBeVisible();
   await page.getByRole('button', { name: 'Step' }).click();
   await expect(page.locator('[data-clock]')).toHaveText('t = 1.8 s');
   await context.close();

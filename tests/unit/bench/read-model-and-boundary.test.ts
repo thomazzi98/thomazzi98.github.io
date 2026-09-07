@@ -22,7 +22,7 @@ describe('integration platform read model', () => {
     expect(query?.writesSlowed).toBe(false);
     expect(query?.duration).toBeLessThan(80);
     expect(simulation.state.executions - before).toBeGreaterThanOrEqual(8);
-    expect(simulation.log.at(-1)?.message).toMatch(/workers did not notice/);
+    expect(simulation.log.at(-1)?.message).toMatch(/did not notice/);
   });
 
   it('scans the execution store slowly and slows the workers meanwhile', () => {
@@ -42,7 +42,7 @@ describe('integration platform read model', () => {
     expect(query?.writesSlowed).toBe(true);
     expect(query?.duration).toBeGreaterThan(500);
     expect(slow.state.executions).toBeLessThan(undisturbed);
-    expect(slow.log.at(-1)?.message).toMatch(/half speed/);
+    expect(slow.log.at(-1)?.message).toMatch(/slowed worker writes/);
   });
 
   it('adds and removes workers when the lever moves', () => {

@@ -20,6 +20,7 @@ export interface Query {
   bytes: number;
   duration: number;
   writesSlowed: boolean;
+  finishedAt?: number;
 }
 
 export interface State {
@@ -30,7 +31,7 @@ export interface State {
   scanUntil: number;
   queries: Query[];
   nextQueryId: number;
-  workersBooted: number;
+  liveWorkers: number[];
 }
 
 export type Event =
@@ -95,6 +96,7 @@ const referenceCostPerDocument = 0.4;
 const storeBytesPerMillisecond = 25_000;
 const referenceBytesPerMillisecond = 250_000;
 const queryFloor = 6;
+const slowdownFactor = 2.5;
 
 const queryLabel: Record<QueryKind, string> = {
   'count-running': 'count running executions',
@@ -103,15 +105,24 @@ const queryLabel: Record<QueryKind, string> = {
 
 const scheduleWrite = (context: StepContext<Event>, worker: number, slowed: boolean): void => {
   const jitter = context.random.between(0.7, 1.3);
-  context.schedule(writeInterval * jitter * (slowed ? 2 : 1), { type: 'worker-write', worker });
+  context.schedule(writeInterval * jitter * (slowed ? slowdownFactor : 1), {
+    type: 'worker-write',
+    worker,
+  });
 };
 
 const bootWorkers = (state: State, context: StepContext<Event>, levers: Levers): State => {
   const wanted = Number(levers.workers);
-  for (let worker = state.workersBooted; worker < wanted; worker += 1) {
-    scheduleWrite(context, worker, false);
+  const started: number[] = [];
+  for (let worker = 0; worker < wanted; worker += 1) {
+    if (!state.liveWorkers.includes(worker)) {
+      scheduleWrite(context, worker, false);
+      started.push(worker);
+    }
   }
-  return { ...state, workersBooted: Math.max(state.workersBooted, wanted) };
+  return started.length === 0
+    ? state
+    : { ...state, liveWorkers: [...state.liveWorkers, ...started] };
 };
 
 const write = (
@@ -121,7 +132,7 @@ const write = (
   levers: Levers,
 ): State => {
   if (worker >= Number(levers.workers)) {
-    return { ...state, workersBooted: Math.min(state.workersBooted, worker) };
+    return { ...state, liveWorkers: state.liveWorkers.filter((live) => live !== worker) };
   }
   const slowed = context.now < state.scanUntil;
   const heavy = Math.round(context.random.between(heavyBytesMinimum, heavyBytesMaximum));
@@ -188,21 +199,26 @@ const finishQuery = (state: State, queryId: number, context: StepContext<Event>)
   }
   const tone: Tone = done.writesSlowed ? 'fault' : 'ok';
   const effect = done.writesSlowed
-    ? 'worker writes ran at half speed meanwhile'
-    : 'workers did not notice';
+    ? 'the model slowed worker writes to a fraction while it ran'
+    : 'the workers did not notice';
   context.send('admin', done.kind === 'usage' ? 'billing' : 'operators', tone, 60);
   context.log(
     'admin',
     tone,
     `${queryLabel[done.kind]} · ${String(done.documents)} documents · ${formatBytes(done.bytes)} · ${String(done.duration)} ms · ${effect}`,
   );
-  return state;
+  return {
+    ...state,
+    queries: state.queries.map((query) =>
+      query.id === queryId ? { ...query, finishedAt: context.now } : query,
+    ),
+  };
 };
 
 export const scenario: Scenario<State, Event, Levers> = {
   id: 'ipaas-admin-indicators',
   defaultLevers: { workers: '4', source: 'reference' },
-  initialState: () => ({
+  initialState: (levers) => ({
     executions: 0,
     storeBytes: 0,
     referenceBytes: 0,
@@ -210,7 +226,7 @@ export const scenario: Scenario<State, Event, Levers> = {
     scanUntil: 0,
     queries: [],
     nextQueryId: 1,
-    workersBooted: 0,
+    liveWorkers: [...Array(Number(levers.workers)).keys()],
   }),
   boot: (context, levers) => {
     for (let worker = 0; worker < Number(levers.workers); worker += 1) {
@@ -248,7 +264,9 @@ export const present: Presenter<State, Levers> = (state, levers) => {
   const lastQuery = state.queries.at(-1);
   const writesPerSecond = state.writeTimes.length / (throughputWindow / 1000);
   const expectedPerSecond = workers / (writeInterval / 1000);
-  const scanning = lastQuery?.writesSlowed === true && state.scanUntil > 0;
+  const scanning = state.queries.some(
+    (query) => query.writesSlowed && query.finishedAt === undefined,
+  );
   const headline =
     levers.source === 'reference'
       ? 'Operators and billing read a slim reference collection. The workers never notice.'
@@ -259,7 +277,7 @@ export const present: Presenter<State, Levers> = (state, levers) => {
       workers: {
         badge: `×${String(workers)}`,
         tone:
-          writesPerSecond < expectedPerSecond * 0.6 && state.executions > 4 ? 'fault' : 'neutral',
+          writesPerSecond < expectedPerSecond * 0.7 && state.executions > 4 ? 'fault' : 'neutral',
       },
       executions: { badge: formatBytes(state.storeBytes), tone: scanning ? 'fault' : 'neutral' },
       reference: { badge: formatBytes(state.referenceBytes), tone: 'ok' },
@@ -274,7 +292,7 @@ export const present: Presenter<State, Levers> = (state, levers) => {
         value: writesPerSecond,
         maximum: Math.max(expectedPerSecond, 1),
         unit: 'writes/s',
-        tone: writesPerSecond < expectedPerSecond * 0.6 && state.executions > 4 ? 'fault' : 'ok',
+        tone: writesPerSecond < expectedPerSecond * 0.7 && state.executions > 4 ? 'fault' : 'ok',
         caption: `${writesPerSecond.toFixed(1)} of ${expectedPerSecond.toFixed(1)} expected`,
       },
       {

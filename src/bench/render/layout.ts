@@ -41,21 +41,25 @@ const stationHeight = 44;
 const rankGap = 72;
 const laneGap = 28;
 const margin = 12;
+const verticalLaneLimit = 2;
 
 const rankStations = (definition: BenchDefinition): Map<string, number> => {
   const ranks = new Map<string, number>();
-  const solidWires = definition.wires.filter((wire) => wire.dashed !== true);
-  const incoming = new Map<string, number>();
-  for (const station of definition.stations) {
-    incoming.set(station.id, 0);
-  }
-  for (const wire of solidWires) {
+  const hasSolidWire = (id: string): boolean =>
+    definition.wires.some((wire) => wire.dashed !== true && (wire.from === id || wire.to === id));
+  const hasIncoming = (id: string): boolean => definition.wires.some((wire) => wire.to === id);
+  const deferred = new Set(
+    definition.stations
+      .filter((station) => !hasIncoming(station.id) && !hasSolidWire(station.id))
+      .map((station) => station.id),
+  );
+  const wires = definition.wires.filter((wire) => !deferred.has(wire.from));
+  const incoming = new Map(definition.stations.map((station) => [station.id, 0]));
+  for (const wire of wires) {
     incoming.set(wire.to, (incoming.get(wire.to) ?? 0) + 1);
   }
-  const hasSolidWire = (id: string): boolean =>
-    solidWires.some((wire) => wire.from === id || wire.to === id);
   const queue = definition.stations
-    .filter((station) => incoming.get(station.id) === 0 && hasSolidWire(station.id))
+    .filter((station) => incoming.get(station.id) === 0 && !deferred.has(station.id))
     .map((station) => station.id);
   for (const id of queue) {
     ranks.set(id, 0);
@@ -66,10 +70,9 @@ const rankStations = (definition: BenchDefinition): Map<string, number> => {
       break;
     }
     const currentRank = ranks.get(current) ?? 0;
-    for (const wire of solidWires.filter((candidate) => candidate.from === current)) {
+    for (const wire of wires.filter((candidate) => candidate.from === current)) {
       const proposed = currentRank + 1;
-      const known = ranks.get(wire.to);
-      if (known === undefined || known < proposed) {
+      if ((ranks.get(wire.to) ?? -1) < proposed) {
         ranks.set(wire.to, proposed);
       }
       const remaining = (incoming.get(wire.to) ?? 1) - 1;
@@ -133,10 +136,19 @@ export const layoutBench = (definition: BenchDefinition, orientation: Orientatio
   }
   const rankCount = Math.max(...lanes.keys()) + 1;
   const laneCount = Math.max(...[...lanes.values()].map((lane) => lane.length));
+  const verticalLaneCount = Math.min(laneCount, verticalLaneLimit);
+  const rowsOf = (rank: number): number =>
+    Math.ceil((lanes.get(rank)?.length ?? 1) / verticalLaneLimit);
+  const rowOffsets = [...Array(rankCount).keys()].map((rank) =>
+    [...Array(rank).keys()].reduce((total, earlier) => total + rowsOf(earlier), 0),
+  );
   const along = (rank: number): number => margin + rank * (stationWidth + rankGap);
-  const alongVertical = (rank: number): number => margin + rank * (stationHeight + rankGap);
+  const alongVertical = (rank: number): number =>
+    margin + (rowOffsets[rank] ?? 0) * (stationHeight + laneGap) + rank * rankGap;
   const across = (index: number, count: number, size: number): number =>
     margin + (index + (laneCount - count) / 2) * (size + laneGap);
+  const acrossVertical = (index: number, count: number): number =>
+    margin + (index + (verticalLaneCount - count) / 2) * (stationWidth + laneGap);
 
   const stations: PlacedStation[] = definition.stations.map((station) => {
     const rank = ranks.get(station.id) ?? 0;
@@ -152,11 +164,13 @@ export const layoutBench = (definition: BenchDefinition, orientation: Orientatio
         height: stationHeight,
       };
     }
+    const row = Math.floor(index / verticalLaneLimit);
+    const rowLength = Math.min(verticalLaneLimit, lane.length - row * verticalLaneLimit);
     return {
       station,
       rank,
-      x: across(index, lane.length, stationWidth),
-      y: alongVertical(rank),
+      x: acrossVertical(index % verticalLaneLimit, rowLength),
+      y: alongVertical(rank) + row * (stationHeight + laneGap),
       width: stationWidth,
       height: stationHeight,
     };
@@ -178,11 +192,14 @@ export const layoutBench = (definition: BenchDefinition, orientation: Orientatio
   const width =
     orientation === 'horizontal'
       ? along(rankCount - 1) + stationWidth + margin
-      : across(laneCount - 1, laneCount, stationWidth) + stationWidth + margin;
+      : acrossVertical(verticalLaneCount - 1, verticalLaneCount) + stationWidth + margin;
   const height =
     orientation === 'horizontal'
       ? across(laneCount - 1, laneCount, stationHeight) + stationHeight + margin
-      : alongVertical(rankCount - 1) + stationHeight + margin;
+      : alongVertical(rankCount - 1) +
+        (rowsOf(rankCount - 1) - 1) * (stationHeight + laneGap) +
+        stationHeight +
+        margin;
 
   return { orientation, width, height, stations, wires };
 };

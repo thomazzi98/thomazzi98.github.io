@@ -102,6 +102,7 @@ export const definition: BenchDefinition = {
     { id: 'signup', label: 'Sign up' },
     { id: 'requeue-failed', label: 'Re-queue failed' },
   ],
+  rowActions: true,
 };
 
 export const maxAttempts = 3;
@@ -498,9 +499,9 @@ export const present: Presenter<State, Levers> = (state, levers) => {
         .reverse()
         .map((registration) => ({
           tone: statusTone[registration.status],
-          actionId:
+          action:
             registration.status === 'failed' || registration.status === 'recorded-fault'
-              ? `requeue:${String(registration.id)}`
+              ? { id: `requeue:${String(registration.id)}`, label: 'Re-queue' }
               : undefined,
           cells: [
             String(registration.id),

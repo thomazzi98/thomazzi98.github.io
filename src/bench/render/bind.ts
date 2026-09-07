@@ -22,15 +22,18 @@ interface BindOptions {
   simulation: Simulation<unknown, unknown, object>;
   clock: Clock;
   autoRun: boolean;
+  motionAllowed: boolean;
 }
 
-const logCapacity = 10;
-const svgNamespace = 'http://www.w3.org/2000/svg';
-
 interface Drawing {
+  svg: SVGSVGElement;
   wires: PlacedWire[];
   layer: SVGGElement;
 }
+
+const logCapacity = 10;
+const backlogLimitInBeats = 8;
+const svgNamespace = 'http://www.w3.org/2000/svg';
 
 const readNumber = (element: Element, name: string): number => Number(element.getAttribute(name));
 
@@ -48,6 +51,15 @@ const readWires = (root: ParentNode): PlacedWire[] =>
         : undefined,
     };
   });
+
+const readDrawings = (root: ParentNode): Drawing[] =>
+  [...root.querySelectorAll<SVGSVGElement>('svg[data-bench-drawing]')].flatMap((svg) => {
+    const layer = svg.querySelector<SVGGElement>('[data-packets]');
+    return layer === null ? [] : [{ svg, wires: readWires(svg), layer }];
+  });
+
+const isShown = (element: Element): boolean =>
+  typeof element.checkVisibility === 'function' ? element.checkVisibility() : true;
 
 const locatePacket = (
   wires: readonly PlacedWire[],
@@ -71,33 +83,46 @@ const locatePacket = (
 
 const formatSeconds = (milliseconds: number): string => `${(milliseconds / 1000).toFixed(1)} s`;
 
-const renderPackets = (
-  layer: SVGGElement,
-  wires: readonly PlacedWire[],
-  packets: readonly Packet[],
-  now: number,
-): void => {
+const setText = (element: Element | null, text: string): void => {
+  if (element !== null && element.textContent !== text) {
+    element.textContent = text;
+  }
+};
+
+const setData = (element: HTMLElement | SVGElement, name: string, value: string): void => {
+  if (element.dataset[name] !== value) {
+    element.dataset[name] = value;
+  }
+};
+
+const setAttribute = (element: Element, name: string, value: string): void => {
+  if (element.getAttribute(name) !== value) {
+    element.setAttribute(name, value);
+  }
+};
+
+const renderPackets = (drawing: Drawing, packets: readonly Packet[], now: number): void => {
   const live = new Set<string>();
   for (const packet of packets) {
-    const position = locatePacket(wires, packet, now);
+    const position = locatePacket(drawing.wires, packet, now);
     if (position === undefined || now > packet.arrivesAt) {
       continue;
     }
     const key = String(packet.id);
     live.add(key);
-    let shuttle = layer.querySelector<SVGRectElement>(`[data-packet="${key}"]`);
+    let shuttle = drawing.layer.querySelector<SVGRectElement>(`[data-packet="${key}"]`);
     if (shuttle === null) {
       shuttle = document.createElementNS(svgNamespace, 'rect');
       shuttle.dataset.packet = key;
       shuttle.setAttribute('width', '9');
       shuttle.setAttribute('height', '9');
-      layer.append(shuttle);
+      drawing.layer.append(shuttle);
     }
-    shuttle.dataset.tone = packet.tone;
-    shuttle.setAttribute('x', String(position.x - 4.5));
-    shuttle.setAttribute('y', String(position.y - 4.5));
+    setData(shuttle, 'tone', packet.tone);
+    setAttribute(shuttle, 'x', String(position.x - 4.5));
+    setAttribute(shuttle, 'y', String(position.y - 4.5));
   }
-  for (const shuttle of layer.querySelectorAll<SVGRectElement>('[data-packet]')) {
+  for (const shuttle of drawing.layer.querySelectorAll<SVGRectElement>('[data-packet]')) {
     if (!live.has(shuttle.dataset.packet ?? '')) {
       shuttle.remove();
     }
@@ -107,11 +132,8 @@ const renderPackets = (
 const renderStations = (root: ParentNode, view: BenchView): void => {
   for (const group of root.querySelectorAll<SVGGElement>('[data-station]')) {
     const stationView = view.stations[group.dataset.station ?? ''];
-    group.dataset.tone = stationView?.tone ?? 'neutral';
-    const badge = group.querySelector<SVGTextElement>('[data-badge]');
-    if (badge !== null) {
-      badge.textContent = stationView?.badge ?? '';
-    }
+    setData(group, 'tone', stationView?.tone ?? 'neutral');
+    setText(group.querySelector('[data-badge]'), stationView?.badge ?? '');
   }
 };
 
@@ -120,44 +142,102 @@ const renderMeter = (root: ParentNode, meter: Meter): void => {
   if (element === null) {
     return;
   }
-  const share = Math.min(1, meter.value / meter.maximum);
-  element.dataset.tone = meter.tone;
-  element.style.setProperty('--share', String(share));
-  const caption = element.querySelector<HTMLElement>('[data-meter-caption]');
-  if (caption !== null) {
-    caption.textContent = meter.caption ?? `${String(Math.round(meter.value))} ${meter.unit}`;
+  const share = String(Math.min(1, meter.value / meter.maximum));
+  setData(element, 'tone', meter.tone);
+  if (element.style.getPropertyValue('--share') !== share) {
+    element.style.setProperty('--share', share);
   }
+  setText(
+    element.querySelector('[data-meter-caption]'),
+    meter.caption ?? `${String(Math.round(meter.value))} ${meter.unit}`,
+  );
 };
 
-const renderLedger = (root: ParentNode, view: BenchView): void => {
+const buildLedgerRow = (
+  row: BenchView['ledger']['rows'][number],
+  hasActionColumn: boolean,
+): HTMLTableRowElement => {
+  const tableRow = document.createElement('tr');
+  tableRow.dataset.key = row.cells[0] ?? '';
+  for (const [index, cell] of row.cells.entries()) {
+    const element = document.createElement(index === 0 ? 'th' : 'td');
+    if (index === 0) {
+      element.setAttribute('scope', 'row');
+    }
+    element.textContent = cell;
+    tableRow.append(element);
+  }
+  if (hasActionColumn) {
+    tableRow.append(document.createElement('td'));
+  }
+  return tableRow;
+};
+
+const patchLedgerRow = (
+  tableRow: HTMLTableRowElement,
+  row: BenchView['ledger']['rows'][number],
+  hasActionColumn: boolean,
+): void => {
+  setData(tableRow, 'tone', row.tone);
+  const cells = tableRow.querySelectorAll('th, td');
+  for (const [index, cell] of row.cells.entries()) {
+    setText(cells[index] ?? null, cell);
+  }
+  if (!hasActionColumn) {
+    return;
+  }
+  const actionCell = cells[row.cells.length];
+  if (actionCell === undefined) {
+    return;
+  }
+  const button = actionCell.querySelector('button');
+  if (row.action === undefined) {
+    button?.remove();
+    return;
+  }
+  if (button === null) {
+    const created = document.createElement('button');
+    created.type = 'button';
+    created.dataset.action = row.action.id;
+    created.textContent = row.action.label;
+    created.setAttribute('aria-label', `${row.action.label} #${row.cells[0] ?? ''}`);
+    actionCell.append(created);
+    return;
+  }
+  setData(button, 'action', row.action.id);
+  setText(button, row.action.label);
+};
+
+const renderLedger = (root: ParentNode, view: BenchView, hasActionColumn: boolean): void => {
   const body = root.querySelector<HTMLTableSectionElement>('[data-ledger]');
   if (body === null) {
     return;
   }
-  body.replaceChildren(
-    ...view.ledger.rows.map((row) => {
-      const tableRow = document.createElement('tr');
-      tableRow.dataset.tone = row.tone;
-      for (const [index, cell] of row.cells.entries()) {
-        const element = document.createElement(index === 0 ? 'th' : 'td');
-        if (index === 0) {
-          element.setAttribute('scope', 'row');
-        }
-        element.textContent = cell;
-        tableRow.append(element);
-      }
-      const actionCell = document.createElement('td');
-      if (row.actionId !== undefined) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.dataset.action = row.actionId;
-        button.textContent = 'Re-queue';
-        actionCell.append(button);
-      }
-      tableRow.append(actionCell);
-      return tableRow;
-    }),
+  const existing = new Map(
+    [...body.querySelectorAll<HTMLTableRowElement>('tr[data-key]')].map((tableRow) => [
+      tableRow.dataset.key ?? '',
+      tableRow,
+    ]),
   );
+  const wanted = new Set<string>();
+  const ordered = view.ledger.rows.map((row) => {
+    const key = row.cells[0] ?? '';
+    wanted.add(key);
+    const tableRow = existing.get(key) ?? buildLedgerRow(row, hasActionColumn);
+    patchLedgerRow(tableRow, row, hasActionColumn);
+    return tableRow;
+  });
+  for (const [key, tableRow] of existing) {
+    if (!wanted.has(key)) {
+      tableRow.remove();
+    }
+  }
+  for (const [index, tableRow] of ordered.entries()) {
+    const current = body.children[index];
+    if (current !== tableRow) {
+      body.insertBefore(tableRow, current ?? null);
+    }
+  }
 };
 
 const renderLog = (root: ParentNode, entries: readonly LogEntry[]): void => {
@@ -165,43 +245,39 @@ const renderLog = (root: ParentNode, entries: readonly LogEntry[]): void => {
   if (list === null) {
     return;
   }
-  const recent = entries.slice(-logCapacity);
-  list.replaceChildren(
-    ...recent.map((entry) => {
-      const item = document.createElement('li');
-      item.dataset.tone = entry.tone;
-      const time = document.createElement('span');
-      time.textContent = formatSeconds(entry.at);
-      const station = document.createElement('span');
-      station.textContent = entry.station;
-      const message = document.createElement('span');
-      message.textContent = entry.message;
-      item.append(time, station, message);
-      return item;
-    }),
-  );
-};
-
-const renderText = (root: ParentNode, selector: string, text: string): void => {
-  const element = root.querySelector<HTMLElement>(selector);
-  if (element !== null && element.textContent !== text) {
-    element.textContent = text;
+  const firstShown = Math.max(0, entries.length - logCapacity);
+  const rendered = Number(list.dataset.renderedThrough ?? '0');
+  for (let index = Math.max(rendered, firstShown); index < entries.length; index += 1) {
+    const entry = entries[index];
+    if (entry === undefined) {
+      continue;
+    }
+    const item = document.createElement('li');
+    item.dataset.tone = entry.tone;
+    const time = document.createElement('span');
+    time.textContent = formatSeconds(entry.at);
+    const station = document.createElement('span');
+    station.textContent = entry.station;
+    const message = document.createElement('span');
+    message.textContent = entry.message;
+    item.append(time, station, message);
+    list.append(item);
+  }
+  list.dataset.renderedThrough = String(entries.length);
+  while (list.children.length > logCapacity) {
+    list.firstElementChild?.remove();
   }
 };
-
-const readDrawings = (root: ParentNode): Drawing[] =>
-  [...root.querySelectorAll<SVGSVGElement>('svg[data-bench-drawing]')].flatMap((svg) => {
-    const layer = svg.querySelector<SVGGElement>('[data-packets]');
-    return layer === null ? [] : [{ wires: readWires(svg), layer }];
-  });
 
 export const bindBench = (options: BindOptions): BenchBinding => {
   const { root, module, simulation, clock } = options;
   const drawings = readDrawings(root);
+  const hasActionColumn = module.definition.rowActions === true;
   let running = false;
   let frame = 0;
-  let lastTick = 0;
-  let accumulated = 0;
+  let timer = 0;
+  let lastBeatAt = 0;
+  let announcePending = false;
 
   const render = (): void => {
     const view = module.present(simulation.state, simulation.levers);
@@ -209,43 +285,50 @@ export const bindBench = (options: BindOptions): BenchBinding => {
     for (const meter of view.meters) {
       renderMeter(root, meter);
     }
-    renderLedger(root, view);
+    renderLedger(root, view, hasActionColumn);
     renderLog(root, simulation.log);
-    renderText(root, '[data-headline]', view.headline);
-    renderText(root, '[data-clock]', `t = ${formatSeconds(simulation.now)}`);
+    setText(root.querySelector('[data-headline]'), view.headline);
+    setText(root.querySelector('[data-clock]'), `t = ${formatSeconds(simulation.now)}`);
     for (const drawing of drawings) {
-      renderPackets(drawing.layer, drawing.wires, simulation.packets, simulation.now);
+      if (isShown(drawing.svg)) {
+        renderPackets(drawing, simulation.packets, simulation.now);
+      }
+    }
+    if (announcePending) {
+      announcePending = false;
+      const latest = simulation.log.at(-1);
+      setText(root.querySelector('[data-status]'), latest === undefined ? '' : latest.message);
     }
   };
 
   const setRunning = (next: boolean): void => {
     running = next;
-    root.dataset.running = String(next);
-    const toggle = root.querySelector<HTMLButtonElement>('[data-run]');
-    if (toggle !== null) {
-      toggle.setAttribute('aria-pressed', String(next));
-      toggle.textContent = next ? 'Pause' : 'Run';
-    }
+    setData(root, 'running', String(next));
+    setText(root.querySelector('[data-run]'), next ? 'Pause' : 'Run');
   };
 
-  const tick = (timestamp: number): void => {
+  const stopLoop = (): void => {
+    cancelAnimationFrame(frame);
+    clearTimeout(timer);
+  };
+
+  const loop = (): void => {
     if (!running) {
       return;
     }
-    if (lastTick === 0) {
-      lastTick = timestamp;
+    const now = performance.now();
+    if (now - lastBeatAt > clock.beatMilliseconds * backlogLimitInBeats) {
+      lastBeatAt = now - clock.beatMilliseconds;
     }
-    accumulated += timestamp - lastTick;
-    lastTick = timestamp;
-    let beats = 0;
-    while (accumulated >= clock.beatMilliseconds && beats < 4) {
-      accumulated -= clock.beatMilliseconds;
-      beats += 1;
-    }
+    const beats = Math.floor((now - lastBeatAt) / clock.beatMilliseconds);
     if (beats > 0) {
+      lastBeatAt += beats * clock.beatMilliseconds;
       simulation.advance(beats * clock.virtualPerBeat);
     }
-    frame = requestAnimationFrame(tick);
+    const wait = Math.max(0, clock.beatMilliseconds - (performance.now() - lastBeatAt));
+    timer = window.setTimeout(() => {
+      frame = requestAnimationFrame(loop);
+    }, wait);
   };
 
   const run = (): void => {
@@ -253,17 +336,18 @@ export const bindBench = (options: BindOptions): BenchBinding => {
       return;
     }
     setRunning(true);
-    lastTick = 0;
-    frame = requestAnimationFrame(tick);
+    lastBeatAt = performance.now();
+    frame = requestAnimationFrame(loop);
   };
 
   const pause = (): void => {
     setRunning(false);
-    cancelAnimationFrame(frame);
+    stopLoop();
   };
 
   const step = (): void => {
     pause();
+    announcePending = true;
     simulation.step();
   };
 
@@ -293,8 +377,13 @@ export const bindBench = (options: BindOptions): BenchBinding => {
       return;
     }
     const nextEvent = module.actionEvent(actionId);
-    if (nextEvent !== undefined) {
-      simulation.dispatch(nextEvent);
+    if (nextEvent === undefined) {
+      return;
+    }
+    announcePending = true;
+    simulation.dispatch(nextEvent);
+    if (!running && options.motionAllowed) {
+      run();
     }
   };
 
@@ -303,25 +392,48 @@ export const bindBench = (options: BindOptions): BenchBinding => {
     if (!(input instanceof HTMLInputElement) || input.dataset.lever === undefined) {
       return;
     }
+    announcePending = true;
     simulation.setLever(input.dataset.lever as never, input.value as never);
   };
 
-  const onVisibility = (): void => {
-    if (document.hidden && running) {
+  let pausedByPage = false;
+  const suspend = (): void => {
+    if (running) {
+      pausedByPage = true;
       pause();
-      root.dataset.pausedByVisibility = 'true';
-      return;
     }
-    if (!document.hidden && root.dataset.pausedByVisibility === 'true') {
-      delete root.dataset.pausedByVisibility;
+  };
+  const resume = (): void => {
+    if (pausedByPage) {
+      pausedByPage = false;
       run();
     }
   };
+  const onVisibility = (): void => {
+    if (document.hidden) {
+      suspend();
+      return;
+    }
+    resume();
+  };
+  const observer =
+    typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              resume();
+              continue;
+            }
+            suspend();
+          }
+        })
+      : undefined;
 
   const unsubscribe = simulation.subscribe(render);
   root.addEventListener('click', onClick);
   root.addEventListener('change', onChange);
   document.addEventListener('visibilitychange', onVisibility);
+  observer?.observe(root);
   render();
   if (options.autoRun) {
     run();
@@ -337,6 +449,7 @@ export const bindBench = (options: BindOptions): BenchBinding => {
     destroy: () => {
       pause();
       unsubscribe();
+      observer?.disconnect();
       root.removeEventListener('click', onClick);
       root.removeEventListener('change', onChange);
       document.removeEventListener('visibilitychange', onVisibility);

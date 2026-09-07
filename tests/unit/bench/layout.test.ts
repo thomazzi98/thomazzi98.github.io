@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { layoutBench, pointAlong } from '../../../src/bench/render/layout';
+import { definition as contest } from '../../../src/bench/scenarios/design-contest-backend';
 import { definition } from '../../../src/bench/scenarios/queued-bank-onboarding';
+import { definition as library } from '../../../src/bench/scenarios/multi-network-token-library';
 
 const rankOf = (id: string, orientation: 'horizontal' | 'vertical' = 'horizontal') =>
   layoutBench(definition, orientation).stations.find((placed) => placed.station.id === id)?.rank;
@@ -47,5 +49,24 @@ describe('layoutBench', () => {
     expect(pointAlong(wire, 0.5)).toEqual({ x: 50, y: 25 });
     expect(pointAlong(wire, 2)).toEqual({ x: 100, y: 50 });
     expect(pointAlong(wire, -1)).toEqual({ x: 0, y: 0 });
+  });
+  it('ranks a station reached only by dashed wires after its source', () => {
+    const find = (layout: ReturnType<typeof layoutBench>, id: string) =>
+      layout.stations.find((placed) => placed.station.id === id)?.rank ?? -1;
+    const libraryLayout = layoutBench(library, 'horizontal');
+    expect(find(libraryLayout, 'bnb')).toBeGreaterThan(find(libraryLayout, 'library'));
+    const contestLayout = layoutBench(contest, 'horizontal');
+    expect(find(contestLayout, 'signer')).toBeGreaterThan(find(contestLayout, 'api'));
+  });
+
+  it('keeps every vertical drawing narrow enough for a phone', () => {
+    for (const candidate of [definition, contest, library]) {
+      const layout = layoutBench(candidate, 'vertical');
+      expect(layout.width).toBeLessThanOrEqual(320);
+      for (const placed of layout.stations) {
+        expect(placed.x + placed.width).toBeLessThanOrEqual(layout.width);
+        expect(placed.y + placed.height).toBeLessThanOrEqual(layout.height);
+      }
+    }
   });
 });

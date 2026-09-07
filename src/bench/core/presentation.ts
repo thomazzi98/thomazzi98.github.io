@@ -15,10 +15,15 @@ export interface Meter {
   caption?: string;
 }
 
+export interface RowAction {
+  id: string;
+  label: string;
+}
+
 export interface Ledger {
   caption: string;
   columns: readonly string[];
-  rows: readonly { cells: readonly string[]; tone: Tone; actionId?: string }[];
+  rows: readonly { cells: readonly string[]; tone: Tone; action?: RowAction }[];
 }
 
 export interface BenchView {
