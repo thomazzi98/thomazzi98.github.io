@@ -11,7 +11,12 @@ export interface ScenarioModule<State = unknown, Event = unknown, Levers extends
   actionEvent(actionId: string): Event | undefined;
 }
 
-export const scenarioIds = ['queued-bank-onboarding', 'design-contest-backend'] as const;
+export const scenarioIds = [
+  'queued-bank-onboarding',
+  'design-contest-backend',
+  'ipaas-admin-indicators',
+  'contract-backend-boundary',
+] as const;
 
 export type ScenarioId = (typeof scenarioIds)[number];
 
@@ -20,6 +25,10 @@ const loaders: Record<ScenarioId, () => Promise<ScenarioModule>> = {
     import('./queued-bank-onboarding').then((module) => module as unknown as ScenarioModule),
   'design-contest-backend': () =>
     import('./design-contest-backend').then((module) => module as unknown as ScenarioModule),
+  'ipaas-admin-indicators': () =>
+    import('./ipaas-admin-indicators').then((module) => module as unknown as ScenarioModule),
+  'contract-backend-boundary': () =>
+    import('./contract-backend-boundary').then((module) => module as unknown as ScenarioModule),
 };
 
 export const isScenarioId = (candidate: string): candidate is ScenarioId =>
