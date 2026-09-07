@@ -14,12 +14,18 @@ export interface PlacedStation extends Box {
   rank: number;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface PlacedWire {
   wire: Wire;
   x1: number;
   y1: number;
   x2: number;
   y2: number;
+  control?: Point;
 }
 
 export interface Layout {
@@ -86,12 +92,26 @@ const rankStations = (definition: BenchDefinition): Map<string, number> => {
   return ranks;
 };
 
-const center = (box: Box): { x: number; y: number } => ({
+const bowShare = 0.22;
+const bowLimit = 64;
+
+const bowOf = (start: Point, end: Point): Point => {
+  const deltaX = end.x - start.x;
+  const deltaY = end.y - start.y;
+  const length = Math.hypot(deltaX, deltaY) || 1;
+  const bow = Math.min(bowLimit, length * bowShare);
+  return {
+    x: (start.x + end.x) / 2 - (deltaY / length) * bow,
+    y: (start.y + end.y) / 2 + (deltaX / length) * bow,
+  };
+};
+
+const center = (box: Box): Point => ({
   x: box.x + box.width / 2,
   y: box.y + box.height / 2,
 });
 
-const edgePoint = (box: Box, towards: { x: number; y: number }): { x: number; y: number } => {
+const edgePoint = (box: Box, towards: Point): Point => {
   const middle = center(box);
   const deltaX = towards.x - middle.x;
   const deltaY = towards.y - middle.y;
@@ -151,7 +171,8 @@ export const layoutBench = (definition: BenchDefinition, orientation: Orientatio
     }
     const start = edgePoint(origin, center(destination));
     const end = edgePoint(destination, center(origin));
-    return [{ wire, x1: start.x, y1: start.y, x2: end.x, y2: end.y }];
+    const control = wire.dashed === true ? bowOf(start, end) : undefined;
+    return [{ wire, x1: start.x, y1: start.y, x2: end.x, y2: end.y, control }];
   });
 
   const width =
@@ -166,7 +187,28 @@ export const layoutBench = (definition: BenchDefinition, orientation: Orientatio
   return { orientation, width, height, stations, wires };
 };
 
-export const pointAlong = (wire: PlacedWire, progress: number): { x: number; y: number } => {
+export const pointAlong = (wire: PlacedWire, progress: number): Point => {
   const clamped = Math.min(1, Math.max(0, progress));
-  return { x: wire.x1 + (wire.x2 - wire.x1) * clamped, y: wire.y1 + (wire.y2 - wire.y1) * clamped };
+  if (wire.control === undefined) {
+    return {
+      x: wire.x1 + (wire.x2 - wire.x1) * clamped,
+      y: wire.y1 + (wire.y2 - wire.y1) * clamped,
+    };
+  }
+  const remaining = 1 - clamped;
+  return {
+    x:
+      remaining * remaining * wire.x1 +
+      2 * remaining * clamped * wire.control.x +
+      clamped * clamped * wire.x2,
+    y:
+      remaining * remaining * wire.y1 +
+      2 * remaining * clamped * wire.control.y +
+      clamped * clamped * wire.y2,
+  };
 };
+
+export const wirePath = (wire: PlacedWire): string =>
+  wire.control === undefined
+    ? `M${String(wire.x1)},${String(wire.y1)} L${String(wire.x2)},${String(wire.y2)}`
+    : `M${String(wire.x1)},${String(wire.y1)} Q${String(wire.control.x)},${String(wire.control.y)} ${String(wire.x2)},${String(wire.y2)}`;

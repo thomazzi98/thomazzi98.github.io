@@ -28,7 +28,7 @@ describe('readBudgets', () => {
       { audit: 'categories:accessibility', threshold: 'score ≥ 0.98' },
       { audit: 'categories:best-practices', threshold: 'score ≥ 0.98' },
       { audit: 'categories:seo', threshold: 'score ≥ 0.98' },
-      { audit: 'resource-summary:script:size', threshold: '≤ 0 bytes' },
+      { audit: 'resource-summary:script:size', threshold: '≤ 30000 bytes' },
       { audit: 'resource-summary:document:size', threshold: '≤ 60000 bytes' },
       { audit: 'resource-summary:font:count', threshold: '≤ 3 files' },
     ]);

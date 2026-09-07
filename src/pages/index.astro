@@ -1,17 +1,23 @@
 ---
-import ProjectCard from '../components/ProjectCard.astro';
+import * as onboarding from '../bench/scenarios/queued-bank-onboarding';
+import BenchFrame from '../components/bench/BenchFrame.astro';
 import Base from '../layouts/Base.astro';
+import { buildInfo } from '../lib/build-info';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
-import { selectFeatured } from '../lib/projects';
-import { createTechnologyNameLookup } from '../lib/technologies';
+import { selectCaseStudies } from '../lib/projects';
 
-const { roles, projects, technologies, companyOf } = await loadContent();
-const technologyName = createTechnologyNameLookup(technologies);
+const { roles, projects, practices } = await loadContent();
+const caseStudies = selectCaseStudies(projects);
 const latestRole = [...roles].sort(compareByStartDescending)[0];
-const featured = selectFeatured(projects);
-const person = {
+const benchNumber = (index: number) => String(index + 1).padStart(2, '0');
+const backs = (practiceId: string, projectId: string) =>
+  practices
+    .find((practice) => practice.id === practiceId)
+    ?.data.backedBy.some((reference) => reference.id === projectId) ?? false;
+
+const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: identity.name,
@@ -24,47 +30,125 @@ const person = {
 };
 ---
 
-<Base title="Rafael Thomazzi · Senior Software Engineer, backend" description={identity.summary}>
-  <script type="application/ld+json" is:inline set:html={JSON.stringify(person)} slot="head" />
-  <section class="py-16 md:py-24">
-    <p class="font-mono text-xs tracking-label text-ink-muted uppercase">
-      {identity.headline} · {identity.availability}
+<Base title={`${identity.name} · ${identity.headline}`} description={identity.summary}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+  </Fragment>
+
+  <section class="identity">
+    <p class="kicker">{identity.headline} · {identity.availability}</p>
+    <h1>{identity.positioning}</h1>
+    <p class="identity__meta">
+      <span>{identity.location}</span>
+      <span>{identity.timezone}</span>
+      <a href={`mailto:${identity.email}`}>{identity.email}</a>
+      <a href="/resume.txt">resume.txt</a>
     </p>
-    <h1 class="mt-6 max-w-(--measure) text-fluid-2xl leading-[1.05] font-semibold tracking-tight">
-      {identity.positioning}
-    </h1>
-    <p class="mt-8 max-w-(--measure) text-fluid-lg text-ink-muted">
-      Six years in Node.js and TypeScript, usually from first design through production support.
-      Most recently payment-gateway integrations at Brainrocket and the backend of an integration
-      platform at Sky.One.
+  </section>
+
+  <section class="opening" aria-labelledby="opening-title">
+    <div class="opening__lead">
+      <h2 id="opening-title" class="kicker">
+        Bench 01 · Queued bank onboarding · in production from 2021-05
+      </h2>
+      <a href="/work/queued-bank-onboarding/" class="mono">Read the decision →</a>
+    </div>
+    <BenchFrame
+      id="queued-bank-onboarding"
+      module={onboarding}
+      title="Queued bank onboarding"
+      description="A user signs up through the API, which writes a row to MySQL, enqueues the id on BullMQ and answers at once. A worker takes the job and calls the bank provider; server faults are retried with backoff, client faults are recorded for support, and support can re-queue failed rows."
+      levers={{ traffic: 'steady' }}
+      autorun
+      announce
+    />
+    <p class="opening__invite">
+      This is a replay of a decision I made in 2021, running in your browser. Flip the bank provider
+      to 503 and watch sign-ups keep answering in milliseconds while the worker backs off. Flip to
+      422 and watch the fault get recorded instead of retried. Then switch to what it replaced.
     </p>
+  </section>
+
+  <section class="section" aria-labelledby="tie-up-title">
+    <div class="section__head">
+      <h2 id="tie-up-title">How I work, tied to what backs it</h2>
+      <p class="kicker">Rows are practices · columns are case studies</p>
+    </div>
+    <div class="tie-up" style={`--cases: ${String(caseStudies.length)}`} role="table">
+      <div role="row" style="display: contents">
+        <div class="tie-up__corner" role="columnheader"><span class="sr-only">Practice</span></div>
+        {
+          caseStudies.map((project, index) => (
+            <div class="tie-up__head" role="columnheader">
+              <a href={`/work/${project.id}/`} aria-label={project.data.title}>
+                {benchNumber(index)}
+              </a>
+            </div>
+          ))
+        }
+      </div>
+      {
+        practices.map((practice) => (
+          <div role="row" style="display: contents">
+            <div class="tie-up__claim" role="rowheader">
+              {practice.data.claim}
+            </div>
+            {caseStudies.map((project) => (
+              <div class="tie-up__cell" role="cell">
+                {backs(practice.id, project.id) ? (
+                  <a
+                    href={`/work/${project.id}/`}
+                    aria-label={`${practice.data.claim} Backed by ${project.data.title}.`}
+                  />
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+              </div>
+            ))}
+          </div>
+        ))
+      }
+    </div>
+    <ol class="tie-up__legend">
+      {
+        caseStudies.map((project, index) => (
+          <li>
+            {benchNumber(index)} · <a href={`/work/${project.id}/`}>{project.data.title}</a>
+            <span class="muted"> · {project.data.status.replaceAll('-', ' ')}</span>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="latest-title">
+    <div class="section__head">
+      <h2 id="latest-title">Where I have been</h2>
+      <a href="/about/" class="mono">The whole cloth →</a>
+    </div>
     {
-      latestRole && (
-        <p class="mt-10 font-mono text-sm text-ink-muted">
-          <span class="tracking-label uppercase">Last role</span> · {latestRole.data.title},{' '}
-          {latestRole.data.company} · {formatPeriod(latestRole.data.period)}
+      latestRole !== undefined && (
+        <p class="measure">
+          Last role: {latestRole.data.title} at {latestRole.data.company},{' '}
+          {formatPeriod(latestRole.data.period)}. Before that, three years building and running the
+          backend services of an integration platform. The About page weaves the whole career, month
+          by month, from the same files that generate this site’s resume.
         </p>
       )
     }
   </section>
 
-  <section aria-labelledby="selected-work" class="pb-16 md:pb-24">
-    <div class="flex items-baseline justify-between">
-      <h2 id="selected-work" class="font-mono text-xs tracking-label text-ink-muted uppercase">
-        Selected work
-      </h2>
-      <a href="/work/" class="font-mono text-xs text-ink-muted hover:text-ink">All work →</a>
+  <section class="section" aria-labelledby="contact-title">
+    <div class="section__head">
+      <h2 id="contact-title">Open a connection</h2>
+      <p class="kicker">{identity.availability} · built {buildInfo.date}</p>
     </div>
-    <div class="mt-4">
-      {
-        featured.map((project) => (
-          <ProjectCard
-            project={project}
-            company={companyOf(project)}
-            technologyName={technologyName}
-          />
-        ))
-      }
-    </div>
+    <p class="contact">
+      <a href={`mailto:${identity.email}`}>{identity.email}</a>
+      <a href={identity.links.github}>GitHub</a>
+      <a href={identity.links.linkedin}>LinkedIn</a>
+      <a href="/resume.txt">resume.txt</a>
+      <a href="/llms.txt">llms.txt</a>
+    </p>
   </section>
 </Base>

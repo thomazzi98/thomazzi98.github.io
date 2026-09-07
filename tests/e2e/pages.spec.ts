@@ -1,5 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+
+const scriptBudgetBytes = 40_000;
 import { readSitemapRoutes } from './routes';
 
 const routes = readSitemapRoutes();
@@ -25,12 +27,18 @@ for (const route of routes) {
       );
     });
 
-    test('ships no JavaScript of its own', async ({ page }) => {
+    test('stays inside the script budget', async ({ page, request }) => {
       await page.goto(route);
-      const inlineScripts = page.locator('script:not([src]):not([type="application/ld+json"])');
-      const ownScripts = page.locator('script[src^="/"], script[src^="http://127.0.0.1"]');
-      await expect(inlineScripts).toHaveCount(0);
-      await expect(ownScripts).toHaveCount(0);
+      const sources = await page
+        .locator('script[src]')
+        .evaluateAll((scripts) => scripts.map((script) => script.getAttribute('src') ?? ''));
+      let bytes = 0;
+      for (const source of sources) {
+        const response = await request.get(source);
+        expect(response.status()).toBe(200);
+        bytes += (await response.body()).byteLength;
+      }
+      expect(bytes).toBeLessThanOrEqual(scriptBudgetBytes);
     });
 
     test('has no accessibility violations at WCAG 2.2 AA', async ({ page, javaScriptEnabled }) => {

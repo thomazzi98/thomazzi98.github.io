@@ -147,7 +147,6 @@ const findRegistration = (state: State, registrationId: number): Registration | 
 const describeBackoff = (attempt: number): number => backoffBase * 2 ** (attempt - 1);
 
 const startProviderCall = (
-  state: State,
   registrationId: number,
   from: 'api' | 'worker',
   context: StepContext<Event>,
@@ -192,7 +191,7 @@ const signUpSynchronous = (state: State, context: StepContext<Event>, levers: Le
   const id = state.nextId;
   context.send('user', 'api', 'neutral', 60);
   context.log('api', 'pending', `sign-up #${String(id)} waits for the provider`);
-  startProviderCall(state, id, 'api', context, levers);
+  startProviderCall(id, 'api', context, levers);
   return {
     ...state,
     nextId: id + 1,
@@ -216,7 +215,7 @@ const dequeue = (state: State, context: StepContext<Event>, levers: Levers): Sta
     'pending',
     `takes #${String(registrationId)} · attempt ${String(attempts)} of ${String(maxAttempts)}`,
   );
-  startProviderCall(state, registrationId, 'worker', context, levers);
+  startProviderCall(registrationId, 'worker', context, levers);
   return updateRegistration({ ...state, queue: rest, workerBusy: true }, registrationId, {
     status: 'processing',
     attempts,

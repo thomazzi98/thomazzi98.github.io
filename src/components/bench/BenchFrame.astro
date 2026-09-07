@@ -1,0 +1,146 @@
+---
+import { transcriptOf } from '../../bench/core/demonstration';
+import { layoutBench } from '../../bench/render/layout';
+import type { ScenarioId, ScenarioModule } from '../../bench/scenarios';
+import BenchDrawing from './BenchDrawing.astro';
+
+interface Props {
+  id: ScenarioId;
+  module: ScenarioModule;
+  title: string;
+  description: string;
+  levers?: Record<string, string>;
+  autorun?: boolean;
+  announce?: boolean;
+}
+
+const {
+  id,
+  module,
+  title,
+  description,
+  levers = {},
+  autorun = false,
+  announce = false,
+} = Astro.props;
+const initialLevers = { ...module.scenario.defaultLevers, ...levers };
+const initialView = module.present(module.scenario.initialState(initialLevers), initialLevers);
+const transcript = transcriptOf(module.scenario, module.demonstration);
+const horizontal = layoutBench(module.definition, 'horizontal');
+const vertical = layoutBench(module.definition, 'vertical');
+const leverValue = (leverId: string): string | undefined =>
+  (initialLevers as Record<string, string | undefined>)[leverId];
+const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFixed(1)} s`;
+---
+
+<bench-frame
+  class="bench"
+  data-scenario={id}
+  data-autorun={autorun ? 'true' : undefined}
+  data-announce={announce ? 'true' : undefined}
+  data-running="false"
+>
+  <div class="bench__stage">
+    <p class="bench__headline" data-headline aria-live="polite">{initialView.headline}</p>
+    <BenchDrawing layout={horizontal} title={title} description={description} />
+    <BenchDrawing layout={vertical} title={title} description={description} />
+  </div>
+
+  <div class="bench__controls">
+    {
+      module.definition.levers.map((lever) => (
+        <fieldset class="lever">
+          <legend>{lever.label}</legend>
+          {lever.options.map((option) => (
+            <label class="lever__option">
+              <input
+                type="radio"
+                name={`${id}-${lever.id}`}
+                value={option.value}
+                data-lever={lever.id}
+                checked={leverValue(lever.id) === option.value}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </fieldset>
+      ))
+    }
+    <div class="bench__actions">
+      {
+        module.definition.actions.map((action) => (
+          <button type="button" data-action={action.id} class="button">
+            {action.label}
+          </button>
+        ))
+      }
+      <span class="bench__transport">
+        <button type="button" data-run aria-pressed="false" class="button button--quiet">Run</button
+        >
+        <button type="button" data-step class="button button--quiet">Step</button>
+        <span class="bench__clock" data-clock>t = 0.0 s</span>
+        <span class="bench__unit">simulated time</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="bench__readout">
+    <dl class="meters">
+      {
+        initialView.meters.map((meter) => (
+          <div class="meter" data-meter={meter.id} data-tone={meter.tone} style={`--share: 0`}>
+            <dt>{meter.label}</dt>
+            <dd>
+              <span class="meter__bar" aria-hidden="true" />
+              <span class="meter__caption" data-meter-caption>
+                {meter.caption}
+              </span>
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+    <table class="ledger">
+      <caption>{initialView.ledger.caption}</caption>
+      <thead>
+        <tr>
+          {initialView.ledger.columns.map((column) => <th scope="col">{column}</th>)}
+          <th scope="col"><span class="sr-only">Action</span></th>
+        </tr>
+      </thead>
+      <tbody data-ledger></tbody>
+    </table>
+    <ol class="log" data-log></ol>
+  </div>
+
+  <details class="transcript" open>
+    <summary>
+      Transcript of a scripted run · seed {transcript.seed} · {seconds(transcript.duration)} simulated
+    </summary>
+    <table>
+      <thead>
+        <tr><th scope="col">Time</th><th scope="col">Station</th><th scope="col">Event</th></tr>
+      </thead>
+      <tbody>
+        {
+          transcript.entries.map((entry) => (
+            <tr data-tone={entry.tone}>
+              <td>{seconds(entry.at)}</td>
+              <td>{entry.station}</td>
+              <td>{entry.message}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+    <p class="transcript__source">
+      Machine-readable: <a href={`/bench/${id}.json`}>/bench/{id}.json</a>
+    </p>
+  </details>
+</bench-frame>
+
+<script>
+  import { defineBenchFrame } from '../../bench/render/bench-frame';
+
+  defineBenchFrame();
+</script>
