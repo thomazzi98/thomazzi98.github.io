@@ -21,6 +21,7 @@ const educationByRecency = [...education].sort(
 );
 const projectTitle = (id: string) =>
   projects.find((project) => project.id === id)?.data.title ?? id;
+const firstPick = cloth.picks[0] ?? '';
 const wovenMonths = cloth.cells.reduce(
   (total, row) => total + row.filter((cell) => cell !== 0).length,
   0,
@@ -36,9 +37,9 @@ const wovenMonths = cloth.cells.reduce(
     <p class="measure muted">
       Sorocaba, where I studied and started, was once called the Manchester Paulista for its textile
       mills. The work I do is the weft between fixed systems, so here is the career as a weaving
-      draft: every technology in the registry is a warp thread, every month since
-      {cloth.picks[0]} is a pick, and a cell is woven when a role used that thread that month. A darker
-      float marks a case study. Where two roles overlap, the treadle row doubles.
+      draft: every technology in the registry is a warp thread, every month from {firstPick} on is a pick,
+      and a cell is woven when a role used that thread that month. A darker float marks a case study.
+      Where two roles overlap, the treadle row doubles.
     </p>
   </section>
 
