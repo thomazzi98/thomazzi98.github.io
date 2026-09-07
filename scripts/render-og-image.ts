@@ -29,8 +29,8 @@ const page = `<!doctype html>
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        background: #faf9f6;
-        color: #161616;
+        background: #efe9dd;
+        color: #1b1a17;
         font-family: 'IBM Plex Sans', sans-serif;
       }
       .label {
@@ -38,7 +38,7 @@ const page = `<!doctype html>
         font-size: 22px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #5b5955;
+        color: #5a5750;
       }
       h1 {
         margin: 0;
@@ -48,7 +48,7 @@ const page = `<!doctype html>
         font-weight: 600;
         letter-spacing: -0.02em;
       }
-      .rule { border-top: 2px solid #161616; width: 96px; margin-bottom: 28px; }
+      .rule { border-top: 3px solid #24456e; width: 96px; margin-bottom: 28px; }
     </style>
   </head>
   <body>
