@@ -48,7 +48,8 @@ and pre-sale allocation needed a server-side key and an audit trail; user action
 ## The alternative on the table
 
 The common dapp pattern: a wallet-connected front end that calls contracts directly. That is fine
-for transactions the user signs and wrong for anything the operator signs. Mirroring all chain
+for transactions the user signs and wrong for anything the operator signs; the bench above can
+[put the operator key in the bundle](?keyLocation=panel#bench) to show why. Mirroring all chain
 state into MySQL through an indexer was the other option; it is over-built before launch and
 creates a second source of truth for balances before there are users.
 

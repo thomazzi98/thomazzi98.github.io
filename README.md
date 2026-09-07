@@ -50,8 +50,9 @@ case study without a scenario, or a scenario without a case study, fails the bui
 The client side is `src/bench/render`: `layout.ts` places stations by their longest solid path
 so one graph draws horizontally on desktop and vertically on phones; `bind.ts` advances the
 simulation on a 120 ms beat and writes state into markup that the build already rendered;
-`bench-frame.ts` is the custom element that loads a scenario on demand and reads the seed from
-the URL. Under reduced motion nothing runs until Step is pressed.
+`bench-frame.ts` is the custom element that loads a scenario on demand and reads the seed and
+the lever positions from the URL, writing lever changes back so a run can be shared as a link.
+Under reduced motion nothing runs until Step is pressed.
 
 ## Content
 

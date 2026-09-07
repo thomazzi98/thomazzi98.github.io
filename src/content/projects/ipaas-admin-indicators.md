@@ -41,7 +41,8 @@ replica set the workers write to.
 
 ## The alternative on the table
 
-Aggregate directly over the execution collection with better indexes. Indexes help the reads,
+Aggregate directly over the execution collection with better indexes, which the bench above can
+[replay against the execution store](?source=execution-store#bench). Indexes help the reads,
 but the aggregation still scans documents that carry payloads and logs, and the cost lands on the
 replica set the workers depend on. A nightly copy into a reporting database was the other
 option. "Running now" and "failed in the last hour" are operational questions that a day-old copy

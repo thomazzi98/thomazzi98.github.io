@@ -51,7 +51,8 @@ to develop locally without sharing AWS accounts.
 ## The alternative on the table
 
 Read-modify-write vote totals in the application. The first version did that and lost updates
-under concurrent voting; the fix was an atomic increment expression on the item. An in-process
+under concurrent voting; the fix was an atomic increment expression on the item. The bench above
+can count [the way the first version did](?writeMode=read-modify-write#bench). An in-process
 event emitter fanned out submission processing at first; failures were invisible and the order
 untestable inside a request lifecycle, so processing became an explicit use case with its own
 tests. A checkbox captcha adds friction to a one-click vote; reCAPTCHA v3 gates server-side with a

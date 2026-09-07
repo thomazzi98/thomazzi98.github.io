@@ -41,7 +41,8 @@ Keep it synchronous and raise the timeout, with a retry in the client. That move
 the user and multiplies load on a provider that is already failing. A fire-and-forget promise
 after responding was the cheap version of async; it loses the attempt on a process restart and
 leaves no record for support. A cron job scanning a pending table adds up to a minute of latency
-to every sign-up and gives no per-job backoff, concurrency limit or dashboard.
+to every sign-up and gives no per-job backoff, concurrency limit or dashboard. The bench above
+can run [the synchronous path](?mode=synchronous#bench) so the wait is visible.
 
 ## Decision
 
