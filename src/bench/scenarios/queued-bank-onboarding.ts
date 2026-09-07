@@ -1,5 +1,7 @@
 import type { BenchDefinition } from '../core/definition';
-import type { Scenario, StepContext } from '../core/simulation';
+import type { Demonstration } from '../core/demonstration';
+import { median, type Presenter } from '../core/presentation';
+import type { Scenario, StepContext, Tone } from '../core/simulation';
 
 export type Mode = 'queued' | 'synchronous';
 export type ProviderHealth = 'healthy' | 'slow' | 'server-fault' | 'client-fault';
@@ -406,4 +408,140 @@ export const scenario: Scenario<State, Event, Levers> = {
           : state;
     }
   },
+};
+
+const statusLabel: Record<RegistrationStatus, string> = {
+  queued: 'queued',
+  processing: 'with the worker',
+  'waiting-retry': 'waiting to retry',
+  processed: 'account created',
+  'recorded-fault': 'recorded for support',
+  failed: 'gave up, with support',
+  lost: 'lost, nothing recorded',
+};
+
+const statusTone: Record<RegistrationStatus, Tone> = {
+  queued: 'pending',
+  processing: 'pending',
+  'waiting-retry': 'fault',
+  processed: 'ok',
+  'recorded-fault': 'fault',
+  failed: 'fault',
+  lost: 'fault',
+};
+
+const healthTone: Record<ProviderHealth, Tone> = {
+  healthy: 'ok',
+  slow: 'pending',
+  'server-fault': 'fault',
+  'client-fault': 'fault',
+};
+
+const healthBadge: Record<ProviderHealth, string | undefined> = {
+  healthy: undefined,
+  slow: 'slow',
+  'server-fault': '503',
+  'client-fault': '422',
+};
+
+const describeLatency = (samples: readonly number[]): string =>
+  samples.length === 0 ? 'no calls yet' : `${String(Math.round(median(samples)))} ms median`;
+
+export const present: Presenter<State, Levers> = (state, levers) => {
+  const signup = median(state.signupLatencies);
+  const provider = median(state.providerLatencies);
+  const headline =
+    levers.mode === 'queued'
+      ? 'Sign-up answers in milliseconds. The provider is somebody else’s problem, on purpose.'
+      : 'The synchronous path: every sign-up waits for the provider and inherits its failures.';
+  return {
+    headline,
+    stations: {
+      queue: {
+        badge: state.queue.length > 0 ? String(state.queue.length) : undefined,
+        tone: 'pending',
+      },
+      worker: { tone: state.workerBusy ? 'pending' : 'neutral' },
+      provider: {
+        tone: healthTone[levers.providerHealth],
+        badge: healthBadge[levers.providerHealth],
+      },
+      support: {
+        badge: state.supportInbox.length > 0 ? String(state.supportInbox.length) : undefined,
+        tone: 'fault',
+      },
+    },
+    meters: [
+      {
+        id: 'signup',
+        label: 'Sign-up latency',
+        value: signup,
+        maximum: 4000,
+        unit: 'ms',
+        tone: signup < 50 ? 'ok' : 'fault',
+        caption: describeLatency(state.signupLatencies),
+      },
+      {
+        id: 'provider',
+        label: 'Provider latency',
+        value: provider,
+        maximum: 4000,
+        unit: 'ms',
+        tone: 'neutral',
+        caption: describeLatency(state.providerLatencies),
+      },
+    ],
+    ledger: {
+      caption: 'Registrations',
+      columns: ['#', 'Status', 'Attempts', 'Last answer'],
+      rows: state.registrations
+        .slice(-6)
+        .reverse()
+        .map((registration) => ({
+          tone: statusTone[registration.status],
+          actionId:
+            registration.status === 'failed' || registration.status === 'recorded-fault'
+              ? `requeue:${String(registration.id)}`
+              : undefined,
+          cells: [
+            String(registration.id),
+            statusLabel[registration.status],
+            String(registration.attempts),
+            registration.lastStatusCode === undefined ? '' : String(registration.lastStatusCode),
+          ],
+        })),
+    },
+  };
+};
+
+export const demonstration: Demonstration<Event, Levers> = {
+  seed: 7,
+  steps: [
+    { kind: 'dispatch', event: { type: 'signup' } },
+    { kind: 'advance', duration: 1200 },
+    { kind: 'lever', name: 'providerHealth', value: 'server-fault' },
+    { kind: 'dispatch', event: { type: 'signup' } },
+    { kind: 'advance', duration: 9000 },
+    { kind: 'lever', name: 'providerHealth', value: 'client-fault' },
+    { kind: 'dispatch', event: { type: 'signup' } },
+    { kind: 'advance', duration: 1500 },
+    { kind: 'dispatch', event: { type: 'requeue', registrationId: 1 } },
+    { kind: 'lever', name: 'providerHealth', value: 'healthy' },
+    { kind: 'dispatch', event: { type: 'requeue-failed' } },
+    { kind: 'advance', duration: 3000 },
+  ],
+};
+
+export const actionEvent = (actionId: string): Event | undefined => {
+  if (actionId === 'signup') {
+    return { type: 'signup' };
+  }
+  if (actionId === 'requeue-failed') {
+    return { type: 'requeue-failed' };
+  }
+  const [verb, argument] = actionId.split(':');
+  if (verb === 'requeue' && argument !== undefined) {
+    return { type: 'requeue', registrationId: Number(argument) };
+  }
+  return undefined;
 };
