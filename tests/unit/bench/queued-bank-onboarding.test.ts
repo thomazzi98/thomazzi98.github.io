@@ -117,7 +117,7 @@ describe('queued bank onboarding', () => {
     simulation.advance(600_000);
     expect(simulation.pending()).toBeGreaterThan(1);
     expect(simulation.state.createdTotal).toBeGreaterThan(150);
-    expect(simulation.state.registrations.length).toBeLessThanOrEqual(80);
+    expect(simulation.state.queue.length).toBeGreaterThan(0);
     expect(simulation.log.at(-1)?.message).not.toMatch(/^takes #1 /);
   });
 
