@@ -1,6 +1,5 @@
 import { rehypeHeadingIds, unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
-import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, fontProviders, passthroughImageService } from 'astro/config';
 import rehypeMermaid from 'rehype-mermaid';
 import { rehypeDropNestedHeadingIds, rehypeWrapDiagrams } from './src/lib/rehype';
@@ -60,5 +59,4 @@ export default defineConfig({
       },
     },
   ],
-  vite: { plugins: [tailwindcss()] },
 });
