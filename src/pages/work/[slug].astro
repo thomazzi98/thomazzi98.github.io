@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import { render } from 'astro:content';
+import { describeDefinition } from '../../bench/render/describe';
 import { isScenarioId, loadScenario } from '../../bench/scenarios';
 import BenchFrame from '../../components/bench/BenchFrame.astro';
 import Base from '../../layouts/Base.astro';
@@ -43,7 +44,7 @@ const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No publi
 
     {
       scenario !== undefined && isScenarioId(project.id) && (
-        <section class="case__bench" aria-labelledby="bench-title">
+        <section class="case__bench" id="bench" aria-labelledby="bench-title">
           <h2 id="bench-title" class="kicker">
             Pull the lever, then read why
           </h2>
@@ -52,7 +53,7 @@ const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No publi
             id={project.id}
             module={scenario}
             title={project.data.title}
-            description={project.data.tagline}
+            description={describeDefinition(scenario.definition)}
             announce
           />
         </section>

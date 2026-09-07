@@ -1,7 +1,8 @@
 ---
 import type { CollectionEntry } from 'astro:content';
-import { type Cloth, wovenByCaseStudy, wovenByRole } from '../lib/cloth';
+import { type Cloth, type Weave, wovenByCaseStudy } from '../lib/cloth';
 import { compareByStartDescending } from '../lib/period';
+import { technologyGroupLabels } from '../lib/technology-groups';
 
 interface Props {
   cloth: Cloth;
@@ -9,45 +10,63 @@ interface Props {
   orientation: 'horizontal' | 'vertical';
 }
 
+interface Run {
+  start: number;
+  length: number;
+  weave: Weave;
+}
+
 const { cloth, roles, orientation } = Astro.props;
 const horizontal = orientation === 'horizontal';
 const cellAlongTime = horizontal ? 8 : 7;
-const cellAcrossThreads = horizontal ? 11 : 10;
-const labelSpace = horizontal ? 118 : 96;
-const bandSpace = 38;
-const yearSpace = 14;
-const treadleSpace = 16;
+const cellAcrossThreads = horizontal ? 13 : 12;
+const labelSpace = horizontal ? 140 : 112;
+const bandSpace = 40;
+const yearSpace = 16;
+const treadleSpace = 18;
 const headSpace = bandSpace + yearSpace;
 const timeLength = cloth.picks.length * cellAlongTime;
 const threadLength = cloth.threads.length * cellAcrossThreads;
-const width = horizontal ? labelSpace + timeLength : labelSpace + threadLength;
+const width = horizontal ? labelSpace + timeLength : labelSpace + threadLength + treadleSpace;
 const height = horizontal
   ? headSpace + threadLength + treadleSpace
   : headSpace + timeLength + treadleSpace;
 
+const runsOf = (row: readonly Weave[]): Run[] => {
+  const runs: Run[] = [];
+  for (const [index, weave] of row.entries()) {
+    const last = runs.at(-1);
+    if (last !== undefined && last.weave === weave && last.start + last.length === index) {
+      last.length += 1;
+      continue;
+    }
+    runs.push({ start: index, length: 1, weave });
+  }
+  return runs.filter((run) => run.weave !== 0);
+};
+
+const treadleRuns = (lane: number): { start: number; length: number }[] =>
+  runsOf(cloth.treadles.map((count) => (count > lane ? 1 : 0))).map(({ start, length }) => ({
+    start,
+    length,
+  }));
+const treadleLanes = Math.max(0, ...cloth.treadles);
+
 const pickIndex = new Map(cloth.picks.map((pick, index) => [pick, index]));
+const lastPick = cloth.picks.at(-1) ?? '';
 const bands = [...roles].sort(compareByStartDescending).reverse();
-const laneOf = new Map<string, number>();
 const laneEnds: number[] = [];
-for (const role of bands) {
+const bandOf = (role: CollectionEntry<'roles'>) => {
   const start = pickIndex.get(role.data.period.start) ?? 0;
-  const end =
-    pickIndex.get(role.data.period.end ?? cloth.picks.at(-1) ?? '') ?? cloth.picks.length - 1;
+  const end = pickIndex.get(role.data.period.end ?? lastPick) ?? cloth.picks.length - 1;
   let lane = laneEnds.findIndex((laneEnd) => laneEnd < start);
   if (lane === -1) {
     lane = laneEnds.length;
-    laneEnds.push(end);
   }
   laneEnds[lane] = end;
-  laneOf.set(role.id, lane);
-}
-const bandOf = (role: CollectionEntry<'roles'>) => {
-  const start = pickIndex.get(role.data.period.start) ?? 0;
-  const end =
-    pickIndex.get(role.data.period.end ?? cloth.picks.at(-1) ?? '') ?? cloth.picks.length - 1;
-  const lane = laneOf.get(role.id) ?? 0;
   return { start, end, lane };
 };
+const placedBands = bands.map((role) => ({ role, ...bandOf(role) }));
 const positionAlongTime = (pick: number) =>
   (horizontal ? labelSpace : headSpace) + pick * cellAlongTime;
 const positionAcrossThreads = (thread: number) =>
@@ -56,14 +75,8 @@ const januaries = cloth.picks
   .map((pick, index) => ({ pick, index }))
   .filter(({ pick }) => pick.endsWith('-01'));
 const monthsWoven = (row: number) => cloth.cells[row]?.filter((cell) => cell !== 0).length ?? 0;
-const weaveName = (cell: number): string => {
-  if (cell === wovenByCaseStudy) {
-    return 'float';
-  }
-  return cell === wovenByRole ? 'role' : 'none';
-};
 const title = 'The career as a weaving draft';
-const description = `Every technology in the registry is a warp thread; every month from ${cloth.picks[0] ?? ''} to ${cloth.picks.at(-1) ?? ''} is a pick. A cell is woven when a role used that technology that month, and marked as a float when a case study did. Where two roles overlap, the treadle row doubles.`;
+const description = `Every technology in the registry is a warp thread; every month from ${cloth.picks[0] ?? ''} to ${lastPick} is a pick. A cell is woven when a role used that technology that month, and marked as a float when a case study did. Where two roles overlap, the treadle row doubles.`;
 ---
 
 <svg
@@ -78,26 +91,25 @@ const description = `Every technology in the registry is a warp thread; every mo
 
   <g class="cloth__bands">
     {
-      bands.map((role) => {
-        const band = bandOf(role);
-        const from = positionAlongTime(band.start);
-        const until = positionAlongTime(band.end + 1);
-        const offset = band.lane * 12;
+      placedBands.map(({ role, start, end, lane }) => {
+        const from = positionAlongTime(start);
+        const until = positionAlongTime(end + 1);
+        const offset = lane * 13;
         return horizontal ? (
           <g>
-            <rect x={from} y={offset} width={until - from} height="9" class="cloth__band" />
-            <text x={from + 3} y={offset + 7} class="cloth__band-label">
+            <rect x={from} y={offset} width={until - from} height="10" class="cloth__band" />
+            <text x={from + 3} y={offset + 8} class="cloth__band-label">
               {role.data.company}
             </text>
           </g>
         ) : (
           <g>
-            <rect x={offset} y={from} width="9" height={until - from} class="cloth__band" />
+            <rect x={offset} y={from} width="10" height={until - from} class="cloth__band" />
             <text
-              x={offset + 7}
+              x={offset + 8}
               y={from + 3}
               class="cloth__band-label"
-              transform={`rotate(90 ${String(offset + 7)} ${String(from + 3)})`}
+              transform={`rotate(90 ${String(offset + 8)} ${String(from + 3)})`}
             >
               {role.data.company}
             </text>
@@ -111,16 +123,11 @@ const description = `Every technology in the registry is a warp thread; every mo
     {
       januaries.map(({ pick, index }) =>
         horizontal ? (
-          <text x={positionAlongTime(index)} y={bandSpace + 10} class="cloth__year">
+          <text x={positionAlongTime(index)} y={bandSpace + 11} class="cloth__year">
             {pick.slice(0, 4)}
           </text>
         ) : (
-          <text
-            x={bandSpace + 2}
-            y={positionAlongTime(index) + 6}
-            class="cloth__year"
-            text-anchor="start"
-          >
+          <text x={bandSpace + 2} y={positionAlongTime(index) + 7} class="cloth__year">
             {pick.slice(0, 4)}
           </text>
         ),
@@ -132,7 +139,7 @@ const description = `Every technology in the registry is a warp thread; every mo
     {
       cloth.threads.map((thread, row) => {
         const across = positionAcrossThreads(row);
-        const label = `${thread.name} · ${String(monthsWoven(row))} months`;
+        const label = `${thread.name} · ${technologyGroupLabels[thread.group].toLowerCase()} · ${String(monthsWoven(row))} months`;
         return (
           <a
             href={`/stack/#${thread.id}`}
@@ -141,6 +148,13 @@ const description = `Every technology in the registry is a warp thread; every mo
             aria-label={label}
           >
             <title>{label}</title>
+            <rect
+              x={horizontal ? 0 : across}
+              y={horizontal ? across : 0}
+              width={horizontal ? width : cellAcrossThreads}
+              height={horizontal ? cellAcrossThreads : height - treadleSpace}
+              class="cloth__hit"
+            />
             {horizontal ? (
               <line
                 x1={labelSpace}
@@ -160,7 +174,7 @@ const description = `Every technology in the registry is a warp thread; every mo
             )}
             {horizontal ? (
               <text
-                x={labelSpace - 6}
+                x={labelSpace - 8}
                 y={across + cellAcrossThreads - 3}
                 text-anchor="end"
                 class="cloth__label"
@@ -170,26 +184,24 @@ const description = `Every technology in the registry is a warp thread; every mo
             ) : (
               <text
                 x={across + cellAcrossThreads - 2}
-                y={labelSpace - 4}
+                y={labelSpace - 6}
                 text-anchor="end"
                 class="cloth__label"
-                transform={`rotate(-90 ${String(across + cellAcrossThreads - 2)} ${String(labelSpace - 4)})`}
+                transform={`rotate(-90 ${String(across + cellAcrossThreads - 2)} ${String(labelSpace - 6)})`}
               >
                 {thread.name}
               </text>
             )}
-            {cloth.cells[row]?.map((cell, column) =>
-              cell === 0 ? null : (
-                <rect
-                  x={horizontal ? positionAlongTime(column) : across + 1}
-                  y={horizontal ? across + 1 : positionAlongTime(column)}
-                  width={horizontal ? cellAlongTime - 1 : cellAcrossThreads - 2}
-                  height={horizontal ? cellAcrossThreads - 2 : cellAlongTime - 1}
-                  class="cloth__cell"
-                  data-weave={weaveName(cell)}
-                />
-              ),
-            )}
+            {runsOf(cloth.cells[row] ?? []).map((run) => (
+              <rect
+                x={horizontal ? positionAlongTime(run.start) : across + 1}
+                y={horizontal ? across + 1 : positionAlongTime(run.start)}
+                width={horizontal ? run.length * cellAlongTime - 1 : cellAcrossThreads - 2}
+                height={horizontal ? cellAcrossThreads - 2 : run.length * cellAlongTime - 1}
+                class="cloth__cell"
+                data-weave={run.weave === wovenByCaseStudy ? 'float' : 'role'}
+              />
+            ))}
           </a>
         );
       })
@@ -198,15 +210,17 @@ const description = `Every technology in the registry is a warp thread; every mo
 
   <g class="cloth__treadles">
     {
-      cloth.treadles.map((count, column) =>
-        [...Array(count).keys()].map((lane) => (
+      [...Array(treadleLanes).keys()].flatMap((lane) =>
+        treadleRuns(lane).map((run) => (
           <rect
             x={
-              horizontal ? positionAlongTime(column) + 1 : labelSpace + threadLength + 2 + lane * 5
+              horizontal
+                ? positionAlongTime(run.start) + 1
+                : labelSpace + threadLength + 3 + lane * 6
             }
-            y={horizontal ? height - treadleSpace + 3 + lane * 5 : positionAlongTime(column) + 1}
-            width={horizontal ? cellAlongTime - 2 : 4}
-            height={horizontal ? 4 : cellAlongTime - 2}
+            y={horizontal ? height - treadleSpace + 4 + lane * 6 : positionAlongTime(run.start) + 1}
+            width={horizontal ? run.length * cellAlongTime - 2 : 4}
+            height={horizontal ? 4 : run.length * cellAlongTime - 2}
             class="cloth__treadle"
           />
         )),

@@ -106,25 +106,47 @@ const seconds = (milliseconds: number): string => `${(milliseconds / 1000).toFix
         ))
       }
     </dl>
-    <table class="ledger">
-      <caption>{initialView.ledger.caption}</caption>
-      <thead>
-        <tr>
-          {initialView.ledger.columns.map((column) => <th scope="col">{column}</th>)}
-          {
-            module.definition.rowActions === true && (
-              <th scope="col">
-                <span class="sr-only">Action</span>
-              </th>
-            )
-          }
-        </tr>
-      </thead>
-      <tbody data-ledger></tbody>
-    </table>
+    <div class="ledger-scroll">
+      <table class="ledger">
+        <caption>{initialView.ledger.caption}</caption>
+        <thead>
+          <tr>
+            {initialView.ledger.columns.map((column) => <th scope="col">{column}</th>)}
+            {
+              module.definition.rowActions === true && (
+                <th scope="col">
+                  <span class="sr-only">Action</span>
+                </th>
+              )
+            }
+          </tr>
+        </thead>
+        <tbody data-ledger></tbody>
+      </table>
+    </div>
     <h3 class="sr-only" id={`${id}-log-title`}>Recent events</h3>
     <ol class="log" data-log aria-labelledby={`${id}-log-title`}></ol>
   </div>
+
+  <details class="bench__key">
+    <summary>Key to the drawing</summary>
+    <dl class="bench__key-list">
+      <div><dt>Rounded box</dt><dd>an actor: a person or a caller outside the system</dd></div>
+      <div><dt>Plain box</dt><dd>a service the design owns</dd></div>
+      <div><dt>Box with a top rule</dt><dd>a store</dd></div>
+      <div><dt>Striped box</dt><dd>a queue</dd></div>
+      <div><dt>Hatched box</dt><dd>an external system the design does not control</dd></div>
+      <div><dt>Dashed box</dt><dd>a boundary that holds a key or an interface</dd></div>
+      <div>
+        <dt>Dashed wire</dt><dd>a path the design avoids, or the alternative on the table</dd>
+      </div>
+      <div>
+        <dt>Square in flight</dt><dd>
+          a message; indigo in flight, turmeric waiting, moss done, madder a fault
+        </dd>
+      </div>
+    </dl>
+  </details>
 
   <details class="transcript" open>
     <summary>

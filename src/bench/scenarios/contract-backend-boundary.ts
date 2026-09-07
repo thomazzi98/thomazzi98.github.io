@@ -34,7 +34,7 @@ export const definition: BenchDefinition = {
   stations: [
     { id: 'panel', label: 'Pre-sale panel', kind: 'service', note: 'Next.js · public host' },
     { id: 'wallet', label: 'User wallet', kind: 'actor' },
-    { id: 'backend', label: 'Backend', kind: 'boundary', note: 'ABIs · addresses · operator key' },
+    { id: 'backend', label: 'Backend', kind: 'boundary', note: 'ABIs, addresses, key' },
     { id: 'db', label: 'MySQL', kind: 'store', note: 'users, referrals, phases' },
     { id: 'chain', label: 'BNB Chain', kind: 'external', note: 'upgradeable contracts' },
   ],

@@ -27,6 +27,14 @@ for (const route of routes) {
       );
     });
 
+    test('does not scroll horizontally', async ({ page }) => {
+      await page.goto(route);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+
     test('stays inside the script budget', async ({ page, request }) => {
       await page.goto(route);
       const sources = await page

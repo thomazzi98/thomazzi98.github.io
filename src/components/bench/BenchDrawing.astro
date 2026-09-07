@@ -42,6 +42,7 @@ const hatch = `hatch-${uid}`;
       patternUnits="userSpaceOnUse"
       patternTransform="rotate(45)"
     >
+      <rect width="6" height="6" class="drawing__hatch-ground"></rect>
       <line x1="0" y1="0" x2="0" y2="6" class="drawing__hatch-line"></line>
     </pattern>
   </defs>
@@ -49,6 +50,11 @@ const hatch = `hatch-${uid}`;
     {
       layout.wires.map((placed, index) => {
         const middle = pointAlong(placed, 0.5);
+        const chordX = (placed.x1 + placed.x2) / 2;
+        const chordY = (placed.y1 + placed.y2) / 2;
+        const bowLength = Math.hypot(middle.x - chordX, middle.y - chordY) || 1;
+        const labelX = middle.x + ((middle.x - chordX) / bowLength) * 9;
+        const labelY = middle.y + ((middle.y - chordY) / bowLength) * 9;
         return (
           <g class="wire" data-dashed={placed.wire.dashed === true ? 'true' : undefined}>
             <path
@@ -65,7 +71,12 @@ const hatch = `hatch-${uid}`;
               marker-end={`url(#${arrow})`}
             />
             {placed.wire.label !== undefined && (
-              <text x={middle.x} y={middle.y - 5} text-anchor="middle" class="wire__label">
+              <text
+                x={placed.control === undefined ? middle.x : labelX}
+                y={placed.control === undefined ? middle.y - 5 : labelY + 3}
+                text-anchor="middle"
+                class="wire__label"
+              >
                 {placed.wire.label}
               </text>
             )}

@@ -45,7 +45,7 @@ export const definition: BenchDefinition = {
     { id: 'executions', label: 'Execution store', kind: 'store', note: 'payload, logs, trail' },
     {
       id: 'reference',
-      label: 'Execution reference',
+      label: 'Reference',
       kind: 'store',
       note: 'status, bytes, duration',
     },

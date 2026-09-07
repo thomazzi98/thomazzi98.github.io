@@ -1,14 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <style>
-    .ground { fill: #161616; }
-    .bar { fill: #faf9f6; }
+    .ground { fill: #efe9dd; }
+    .warp { fill: #24456e; }
+    .weft { fill: #b9ae95; }
     @media (prefers-color-scheme: dark) {
-      .ground { fill: #e6e4df; }
-      .bar { fill: #111213; }
+      .ground { fill: #191a1d; }
+      .warp { fill: #8fb0e0; }
+      .weft { fill: #5e5a50; }
     }
   </style>
-  <rect class="ground" width="32" height="32" rx="3" />
-  <rect class="bar" x="6" y="9" width="11" height="3" />
-  <rect class="bar" x="10" y="15" width="16" height="3" />
-  <rect class="bar" x="14" y="21" width="6" height="2" />
+  <rect class="ground" width="32" height="32" rx="4" />
+  <rect class="warp" x="4" y="4" width="8" height="8" />
+  <rect class="weft" x="12" y="4" width="8" height="8" />
+  <rect class="warp" x="20" y="4" width="8" height="8" />
+  <rect class="weft" x="4" y="12" width="8" height="8" />
+  <rect class="warp" x="12" y="12" width="8" height="8" />
+  <rect class="weft" x="20" y="12" width="8" height="8" />
+  <rect class="warp" x="4" y="20" width="8" height="8" />
+  <rect class="weft" x="12" y="20" width="8" height="8" />
+  <rect class="warp" x="20" y="20" width="8" height="8" />
 </svg>

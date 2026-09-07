@@ -76,7 +76,7 @@ test('without JavaScript the transcript is open and the controls are hidden', as
   await expect(page.locator('details.transcript')).toHaveAttribute('open', '');
   expect(await page.locator('.transcript tbody tr').count()).toBeGreaterThan(8);
   await expect(page.locator('.bench__controls')).toBeHidden();
-  await expect(page.locator('.drawing[data-orientation="horizontal"]')).toBeVisible();
+  await expect(page.locator('.drawing:visible')).toHaveCount(1);
   await context.close();
 });
 

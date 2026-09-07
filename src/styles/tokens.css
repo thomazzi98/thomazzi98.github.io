@@ -2,19 +2,24 @@
   color-scheme: light dark;
 
   /* Ground and ink, named after the loom: unbleached cotton by day, loom iron by night. */
-  --ground: light-dark(#efe9dd, #191a1d);
-  --raised: light-dark(#f7f3ea, #202226);
-  --ink: light-dark(#1b1a17, #e4dccb);
-  --ink-muted: light-dark(#5a5750, #a39d90);
-  --rule: light-dark(#d9d2c2, #33353a);
-  --greige: light-dark(#b9ae95, #5e5a50);
+  --ground: #efe9dd;
+  --raised: #f7f3ea;
+  --ink: #1b1a17;
+  --ink-muted: #5a5750;
+  --rule: #d9d2c2;
+  --greige: #b9ae95;
 
   /* Thread colours. Indigo is the weft in flight; madder is a fault; turmeric waits; moss is done. */
-  --indigo: light-dark(#24456e, #8fb0e0);
-  --madder: light-dark(#a63f2b, #e8846c);
-  --turmeric: light-dark(#8a5a00, #d9a441);
-  --moss: light-dark(#3d6b3a, #8cc08a);
-  --indigo-ink: light-dark(#efe9dd, #191a1d);
+  --indigo: #24456e;
+  --madder: #a63f2b;
+  --turmeric: #8a5a00;
+  --moss: #3d6b3a;
+  --indigo-ink: #efe9dd;
+
+  /* Technology groups on the cloth and the selvedge: full indigo, a thinner indigo, and greige. */
+  --thread-owned: var(--indigo);
+  --thread-shipped: color-mix(in srgb, var(--indigo) 50%, var(--ground));
+  --thread-familiar: var(--greige);
 
   --font-sans: var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
@@ -26,6 +31,22 @@
   /* One pick per beat. Every state change on a bench lands on this grid; nothing eases. */
   --beat: 120ms;
   --pick: steps(1, end);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #191a1d;
+    --raised: #202226;
+    --ink: #e4dccb;
+    --ink-muted: #a39d90;
+    --rule: #33353a;
+    --greige: #5e5a50;
+    --indigo: #8fb0e0;
+    --madder: #e8846c;
+    --turmeric: #d9a441;
+    --moss: #8cc08a;
+    --indigo-ink: #191a1d;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

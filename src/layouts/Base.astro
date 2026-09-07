@@ -21,6 +21,9 @@ const navigation = [
   { href: '/colophon/', label: 'Colophon' },
 ];
 const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
+const threadCount = (group: string) =>
+  technologies.filter((technology) => technology.data.group === group).length;
+const selvedgeName = `The warp: ${String(technologies.length)} technologies in the registry, ${String(threadCount('owned-in-production'))} owned in production, ${String(threadCount('shipped-with'))} shipped with, ${String(threadCount('familiar'))} familiar`;
 const contacts = [
   { href: `mailto:${identity.email}`, label: identity.email },
   { href: identity.links.github, label: 'GitHub' },
@@ -70,7 +73,9 @@ const contacts = [
           }
         </nav>
       </div>
-      <Selvedge technologies={technologies} />
+      <a href="/stack/" class="selvedge-link" aria-label={selvedgeName} title={selvedgeName}>
+        <Selvedge technologies={technologies} />
+      </a>
     </header>
     <main id="main" tabindex="-1" class="shell">
       <slot />

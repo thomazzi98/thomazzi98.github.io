@@ -212,6 +212,9 @@
   }
 
   .site-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
     color: var(--ink-muted);
     padding-bottom: 2px;
     border-bottom: 2px solid transparent;
@@ -221,6 +224,10 @@
   .site-nav a[aria-current='page'] {
     color: var(--ink);
     border-bottom-color: var(--indigo);
+  }
+
+  .selvedge-link {
+    display: block;
   }
 
   .selvedge {
@@ -309,6 +316,10 @@
     fill: var(--ink-muted);
   }
 
+  .drawing__hatch-ground {
+    fill: var(--raised);
+  }
+
   .drawing__hatch-line {
     stroke: var(--greige);
     stroke-width: 1;
@@ -329,6 +340,10 @@
     font-size: 9px;
     fill: var(--ink-muted);
     letter-spacing: 0.04em;
+    paint-order: stroke;
+    stroke: var(--raised);
+    stroke-width: 3px;
+    stroke-linejoin: round;
   }
 
   .station__body {
@@ -440,6 +455,16 @@
     margin: 0;
   }
 
+  @media (pointer: coarse) {
+    .lever__option {
+      min-height: 2.75rem;
+    }
+
+    .button {
+      min-height: 2.75rem;
+    }
+  }
+
   .bench__actions {
     display: flex;
     flex-wrap: wrap;
@@ -449,11 +474,17 @@
 
   .bench__transport {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
     margin-left: 0.5rem;
     padding-left: 0.75rem;
     border-left: 1px solid var(--rule);
+  }
+
+  [data-run] {
+    min-width: 6.5ch;
+    justify-content: center;
   }
 
   .bench__clock {
@@ -488,7 +519,7 @@
     display: grid;
     gap: 0.75rem;
     grid-column: 1 / -1;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
   }
 
   .meter dt {
@@ -534,6 +565,10 @@
     font-family: var(--font-mono);
     font-size: 0.78rem;
     font-variant-numeric: tabular-nums;
+  }
+
+  .ledger-scroll {
+    overflow-x: auto;
   }
 
   .ledger,
@@ -585,7 +620,8 @@
   }
 
   .ledger button {
-    padding: 0.1rem 0.5rem;
+    min-height: 2.25rem;
+    padding: 0.1rem 0.6rem;
     border: 1px solid var(--ink);
     border-radius: 2px;
     background: transparent;
@@ -666,7 +702,38 @@
     order: 10;
   }
 
-  @media (max-width: 47rem) {
+  .bench__key {
+    order: 9;
+  }
+
+  .bench__key summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--ink-muted);
+  }
+
+  .bench__key-list {
+    display: grid;
+    gap: 0.25rem;
+    margin-top: 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  .bench__key-list div {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .bench__key-list dt {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    padding-top: 0.15rem;
+  }
+
+  @media (max-width: 60rem) {
     .bench {
       padding: 1rem;
     }
@@ -688,6 +755,13 @@
 
     .bench__controls {
       gap: 0.75rem 1.5rem;
+    }
+
+    .bench__transport {
+      flex-basis: 100%;
+      margin-left: 0;
+      padding-left: 0;
+      border-left: 0;
     }
 
     .lever__option {
@@ -1027,6 +1101,12 @@
     display: grid;
     gap: 0.75rem;
     margin-block: 1rem 0.5rem;
+    overflow-x: auto;
+  }
+
+  .skip-cloth {
+    font-size: 0.74rem;
+    color: var(--ink-muted);
   }
 
   .cloth {
@@ -1045,7 +1125,7 @@
   .cloth__band-label,
   .cloth__year,
   .cloth__label {
-    font-size: 7.5px;
+    font-size: 10px;
     fill: var(--ink-muted);
     letter-spacing: 0.03em;
   }
@@ -1068,12 +1148,16 @@
     fill: var(--greige);
   }
 
+  .cloth__hit {
+    fill: transparent;
+  }
+
   .cloth__thread[data-group='owned-in-production'] .cloth__cell {
-    fill: var(--indigo);
+    fill: var(--thread-owned);
   }
 
   .cloth__thread[data-group='shipped-with'] .cloth__cell {
-    fill: var(--madder);
+    fill: var(--thread-shipped);
   }
 
   .cloth__cell[data-weave='float'] {
@@ -1104,11 +1188,11 @@
   }
 
   .cloth-key[data-group='owned-in-production'] {
-    background: var(--indigo);
+    background: var(--thread-owned);
   }
 
   .cloth-key[data-group='shipped-with'] {
-    background: var(--madder);
+    background: var(--thread-shipped);
   }
 
   .cloth-key[data-weave='float'] {
@@ -1147,7 +1231,7 @@
   .practices {
     display: grid;
     gap: 1.25rem;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
   }
 
   .practice {
@@ -1231,6 +1315,7 @@
 
     .cloth[data-orientation='vertical'] {
       display: block;
+      min-width: 30rem;
     }
 
     .role {

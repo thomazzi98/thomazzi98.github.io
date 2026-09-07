@@ -47,22 +47,36 @@ const groups = technologyGroups.map((group) => ({
           <p class="kicker">{entries.length} threads</p>
         </div>
         <p class="measure muted stack-definition">{definition}</p>
-        <table class="stack-table">
-          <thead>
-            <tr>
-              <th scope="col">Technology</th>
-              <th scope="col">Category</th>
-              <th scope="col">Since</th>
-              <th scope="col">Evidence</th>
+        <table class="stack-table" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th role="columnheader" scope="col">
+                Technology
+              </th>
+              <th role="columnheader" scope="col">
+                Category
+              </th>
+              <th role="columnheader" scope="col">
+                Since
+              </th>
+              <th role="columnheader" scope="col">
+                Evidence
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {entries.map((technology) => (
-              <tr id={technology.id}>
-                <th scope="row">{technology.data.name}</th>
-                <td class="muted">{technology.data.category}</td>
-                <td class="muted">{technology.data.firstUsed}</td>
-                <td>
+              <tr role="row" id={technology.id}>
+                <th role="rowheader" scope="row">
+                  {technology.data.name}
+                </th>
+                <td role="cell" class="muted">
+                  {technology.data.category}
+                </td>
+                <td role="cell" class="muted">
+                  {technology.data.firstUsed}
+                </td>
+                <td role="cell">
                   {[
                     ...evidence.rolesFor(technology.id).map((role) => ({
                       label: role.data.company,

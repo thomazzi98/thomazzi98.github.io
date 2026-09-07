@@ -87,19 +87,21 @@ const workflow = `${repository}/actions/workflows/ci.yml`;
       budgets. A failure blocks the deploy. The latest run is on the{' '}
       <a href={workflow}>workflow page</a>.
     </p>
-    <table class="stack-table budgets">
-      <thead>
-        <tr>
-          <th scope="col">Audit</th>
-          <th scope="col">Budget</th>
+    <table class="stack-table budgets" role="table">
+      <thead role="rowgroup">
+        <tr role="row">
+          <th role="columnheader" scope="col">Audit</th>
+          <th role="columnheader" scope="col">Budget</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody role="rowgroup">
         {
           budgets.map((budget) => (
-            <tr>
-              <th scope="row">{budget.audit}</th>
-              <td>{budget.threshold}</td>
+            <tr role="row">
+              <th role="rowheader" scope="row">
+                {budget.audit}
+              </th>
+              <td role="cell">{budget.threshold}</td>
             </tr>
           ))
         }
