@@ -976,6 +976,246 @@
     }
   }
 
+  .cloth-figure {
+    display: grid;
+    gap: 0.75rem;
+    margin-block: 1rem 0.5rem;
+  }
+
+  .cloth {
+    width: 100%;
+    font-family: var(--font-mono);
+  }
+
+  .cloth[data-orientation='vertical'] {
+    display: none;
+  }
+
+  .cloth__band {
+    fill: var(--rule);
+  }
+
+  .cloth__band-label,
+  .cloth__year,
+  .cloth__label {
+    font-size: 7.5px;
+    fill: var(--ink-muted);
+    letter-spacing: 0.03em;
+  }
+
+  .cloth__label {
+    fill: var(--ink);
+  }
+
+  .cloth__warp {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+
+  .cloth__thread:hover .cloth__warp,
+  .cloth__thread:focus-visible .cloth__warp {
+    stroke: var(--ink);
+  }
+
+  .cloth__cell {
+    fill: var(--greige);
+  }
+
+  .cloth__thread[data-group='owned-in-production'] .cloth__cell {
+    fill: var(--indigo);
+  }
+
+  .cloth__thread[data-group='shipped-with'] .cloth__cell {
+    fill: var(--madder);
+  }
+
+  .cloth__cell[data-weave='float'] {
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+
+  .cloth__treadle {
+    fill: var(--ink);
+  }
+
+  .cloth-figure__caption {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.5rem;
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+  }
+
+  .cloth-key {
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
+    margin-right: 0.3rem;
+    vertical-align: -1px;
+    background: var(--greige);
+  }
+
+  .cloth-key[data-group='owned-in-production'] {
+    background: var(--indigo);
+  }
+
+  .cloth-key[data-group='shipped-with'] {
+    background: var(--madder);
+  }
+
+  .cloth-key[data-weave='float'] {
+    background: var(--indigo);
+    outline: 1px solid var(--ink);
+    outline-offset: -1px;
+  }
+
+  .roles {
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  .role {
+    display: grid;
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, var(--measure));
+    gap: 1rem 3rem;
+    align-items: start;
+  }
+
+  .role__head {
+    display: grid;
+    gap: 0.15rem;
+    font-size: 0.76rem;
+  }
+
+  .role__head h3 {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+  }
+
+  .role__stack {
+    margin-top: 0.4rem;
+  }
+
+  .practices {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  }
+
+  .practice {
+    display: grid;
+    gap: 0.3rem;
+    max-width: var(--measure);
+  }
+
+  .practice__claim {
+    font-weight: 500;
+  }
+
+  .practice__backing {
+    font-size: 0.76rem;
+    color: var(--ink-muted);
+  }
+
+  .education {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .education li {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .stack-definition {
+    margin-bottom: 1rem;
+  }
+
+  .stack-table {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+
+  .stack-table th,
+  .stack-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.55rem 1rem 0.55rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .stack-table thead th {
+    font-weight: 400;
+    color: var(--ink-muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .stack-table tbody th {
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .stack-table tr:target th {
+    color: var(--madder);
+  }
+
+  .decisions {
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  .decision {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .decision h3 {
+    font-size: 1.05rem;
+  }
+
+  @media (max-width: 47rem) {
+    .cloth[data-orientation='horizontal'] {
+      display: none;
+    }
+
+    .cloth[data-orientation='vertical'] {
+      display: block;
+    }
+
+    .role {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stack-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    .stack-table tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 0.2rem 0.75rem;
+      padding-block: 0.6rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .stack-table th,
+    .stack-table td {
+      border: 0;
+      padding: 0;
+    }
+
+    .stack-table td:last-child {
+      grid-column: 1 / -1;
+    }
+  }
+
   .prose {
     max-width: var(--measure);
   }

@@ -1,14 +1,17 @@
 ---
 import { render } from 'astro:content';
-import CareerTrace from '../components/CareerTrace.astro';
+import Cloth from '../components/Cloth.astro';
 import Base from '../layouts/Base.astro';
 import { buildInfo } from '../lib/build-info';
+import { weaveCloth } from '../lib/cloth';
 import { loadContent } from '../lib/content';
+import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { createTechnologyNameLookup } from '../lib/technologies';
 
-const { roles, education, technologies } = await loadContent();
+const { roles, projects, technologies, education, practices } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
+const cloth = weaveCloth({ roles, projects, technologies, now: buildInfo.yearMonth });
 const rolesByRecency = [...roles].sort(compareByStartDescending);
 const renderedRoles = await Promise.all(
   rolesByRecency.map(async (role) => ({ role, Content: (await render(role)).Content })),
@@ -16,117 +19,65 @@ const renderedRoles = await Promise.all(
 const educationByRecency = [...education].sort(
   (first, second) => second.data.year - first.data.year,
 );
-
-const practices = [
-  {
-    claim: 'Slow or unreliable third-party calls do not run inside a request.',
-    example:
-      'At Eight Assets, bank-account creation moved from the sign-up request to a BullMQ worker with a persisted job row. Sign-up returned at once, and the provider’s bad days stopped being the user’s problem.',
-    href: '/work/queued-bank-onboarding/',
-  },
-  {
-    claim: 'I retry server faults and record client faults.',
-    example:
-      'The same worker throws only on a 5xx, so the queue retries server faults and never replays a 4xx that a retry cannot fix. Support re-queues by hand, and a job already marked processed is refused.',
-    href: '/work/queued-bank-onboarding/',
-  },
-  {
-    claim: 'Application code stays off the chain.',
-    example:
-      'At Gold Rush every operator-side contract call went through a backend that held the ABIs, addresses and operator key, so the pre-sale panel deployed with no secrets. At CI&T, the one key that could mint lived in a Lambda whose only job was to sign.',
-    href: '/work/contract-backend-boundary/',
-  },
-  {
-    claim: 'Reports read a read model, not the collection the workers write.',
-    example:
-      'On Integra.Sky, counts, indicators and billing read a slim execution-reference collection rather than the execution store every worker writes on every run.',
-    href: '/work/ipaas-admin-indicators/',
-  },
-  {
-    claim: 'I increment counters with an atomic update instead of read-modify-write.',
-    example:
-      'In the contest API, vote totals became an atomic update expression after the first version lost updates under concurrent voting.',
-    href: '/work/design-contest-backend/',
-  },
-  {
-    claim: 'Local development runs the real dependencies.',
-    example:
-      'The contest backend developed against local S3 and DynamoDB emulation. The mutual-TLS harness for the platform worker generates its own certificate authority in Docker Compose so the failure reproduces on a laptop.',
-    href: '/work/mtls-poc/',
-  },
-  {
-    claim: 'I reproduce a failure before fixing it.',
-    example:
-      'When a legacy consumer mis-handled accented characters, I wrote a mock endpoint that proved the charset behavior before touching the integration.',
-    href: '/work/mock-endpoint/',
-  },
-];
+const projectTitle = (id: string) =>
+  projects.find((project) => project.id === id)?.data.title ?? id;
+const wovenMonths = cloth.cells.reduce(
+  (total, row) => total + row.filter((cell) => cell !== 0).length,
+  0,
+);
 ---
 
 <Base
   title="About · Rafael Thomazzi"
-  description="How I work, stated as practices with the project that backs each one, the career trace, and education glossed for readers outside Brazil."
+  description="The career woven month by month from the same files that generate the resume, the practices I work by and the cases that back them, and where I studied."
 >
-  <section class="py-12 md:py-16">
-    <h1 class="text-fluid-xl font-semibold tracking-tight">About</h1>
-    <div class="prose mt-6 text-fluid-lg">
-      <p>
-        I started in 2019 maintaining a school-management system in PHP, which taught me that most
-        software work is reading someone else’s decisions. From 2020 I built features in a fintech
-        platform’s API in Node.js and TypeScript: accounts, fees, cashback, identity checks, and the
-        bank integrations behind them. In 2021 I wrote the layer between a token and NFT product and
-        its contracts. Then I spent seven months at CI&T on blockchain-adjacent backends for two
-        clients.
-      </p>
-      <p>
-        From late 2022 to early 2026 I built and ran backend services of an integration platform at
-        Sky.One, which is the work I had been circling the whole time: the code between systems,
-        owned from design through the production issue. In 2026 I joined a payments group to work on
-        a payment gateway. That role ended in 2026-09. I am from São Paulo state and I am looking
-        for my next role, remote from Brazil.
-      </p>
-    </div>
+  <section class="page-head">
+    <h1>The whole cloth</h1>
+    <p class="measure muted">
+      Sorocaba, where I studied and started, was once called the Manchester Paulista for its textile
+      mills. The work I do is the weft between fixed systems, so here is the career as a weaving
+      draft: every technology in the registry is a warp thread, every month since
+      {cloth.picks[0]} is a pick, and a cell is woven when a role used that thread that month. A darker
+      float marks a case study. Where two roles overlap, the treadle row doubles.
+    </p>
   </section>
 
-  <section aria-labelledby="how-i-work" class="border-t border-rule py-12">
-    <h2 id="how-i-work" class="font-mono text-xs tracking-label text-ink-muted uppercase">
-      How I work
-    </h2>
-    <ol class="mt-6 grid gap-8 md:grid-cols-2">
-      {
-        practices.map(({ claim, example, href }) => (
-          <li class="max-w-(--measure)">
-            <p class="font-semibold">{claim}</p>
-            <p class="mt-2 text-ink-muted">{example}</p>
-            <p class="mt-2 font-mono text-xs">
-              <a href={href}>
-                Case study<span class="sr-only">: {claim}</span>
-                <span aria-hidden="true"> →</span>
-              </a>
-            </p>
-          </li>
-        ))
-      }
-    </ol>
-  </section>
+  <figure class="cloth-figure">
+    <Cloth cloth={cloth} roles={roles} orientation="horizontal" />
+    <Cloth cloth={cloth} roles={roles} orientation="vertical" />
+    <figcaption class="cloth-figure__caption mono">
+      <span
+        >{cloth.threads.length} threads · {cloth.picks.length} picks · {wovenMonths} woven cells</span
+      >
+      <span>
+        <span class="cloth-key" data-group="owned-in-production"></span> owned in production
+        <span class="cloth-key" data-group="shipped-with"></span> shipped with
+        <span class="cloth-key" data-group="familiar"></span> familiar
+        <span class="cloth-key" data-weave="float"></span> case study
+      </span>
+      <span>
+        Projected at build from the role and project files · <a href="/draft.json">draft.json</a>
+      </span>
+    </figcaption>
+  </figure>
 
-  <section aria-labelledby="career" class="border-t border-rule py-12">
-    <h2 id="career" class="font-mono text-xs tracking-label text-ink-muted uppercase">Career</h2>
-    <div class="mt-6">
-      <CareerTrace roles={roles} now={buildInfo.yearMonth} />
+  <section class="section" aria-labelledby="career-title">
+    <div class="section__head">
+      <h2 id="career-title">The roles, in order</h2>
+      <p class="kicker">Most recent first</p>
     </div>
-    <div class="mt-12 grid gap-12">
+    <div class="roles">
       {
         renderedRoles.map(({ role, Content }) => (
-          <article class="grid gap-6 lg:grid-cols-[16rem_minmax(0,var(--measure))]">
-            <header class="font-mono text-xs text-ink-muted">
-              <h3 class="text-sm font-medium text-ink">{role.data.company}</h3>
-              <p>{role.data.companyGloss}</p>
-              <p class="mt-2 text-ink">{role.data.title}</p>
-              <p>
+          <article class="role">
+            <header class="role__head mono">
+              <h3>{role.data.company}</h3>
+              <p class="muted">{role.data.companyGloss}</p>
+              <p>{role.data.title}</p>
+              <p class="muted">
                 {formatPeriod(role.data.period)} · {role.data.location}
               </p>
-              <p class="mt-2">{role.data.stack.map(technologyName).join(' · ')}</p>
+              <p class="muted role__stack">{role.data.stack.map(technologyName).join(' · ')}</p>
             </header>
             <div class="prose">
               <Content />
@@ -137,27 +88,69 @@ const practices = [
     </div>
   </section>
 
-  <section aria-labelledby="education" class="border-t border-rule py-12">
-    <h2 id="education" class="font-mono text-xs tracking-label text-ink-muted uppercase">
-      Education
-    </h2>
-    <ul class="mt-6 grid gap-4 font-mono text-sm">
+  <section class="section" aria-labelledby="practices-title">
+    <div class="section__head">
+      <h2 id="practices-title">How I work</h2>
+      <p class="kicker">Each claim names the bench that backs it</p>
+    </div>
+    <ol class="practices">
       {
-        educationByRecency.map(({ data }) => (
-          <li>
-            <span class="text-ink">
-              {data.credential}, {data.field}
-            </span>
-            <span class="text-ink-muted">
-              {' '}
-              · {data.institution} · {data.year}
-            </span>
-            <p class="text-xs text-ink-muted">
-              {data.credentialGloss} · {data.institutionGloss}
+        practices.map((practice) => (
+          <li class="practice">
+            <p class="practice__claim">{practice.data.claim}</p>
+            <p class="practice__backing mono">
+              {practice.data.backedBy.map((reference, index) => (
+                <>
+                  {index > 0 && <span aria-hidden="true"> · </span>}
+                  <a href={`/work/${reference.id}/`}>{projectTitle(reference.id)}</a>
+                </>
+              ))}
             </p>
           </li>
         ))
       }
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="education-title">
+    <div class="section__head">
+      <h2 id="education-title">Education</h2>
+      <p class="kicker">Glossed for readers outside Brazil</p>
+    </div>
+    <ul class="education">
+      {
+        educationByRecency.map(({ data }) => (
+          <li>
+            <span>
+              {data.credential}, {data.field}
+            </span>
+            <span class="muted mono">
+              {data.institution} · {data.year}
+            </span>
+            <span class="muted">
+              {data.credentialGloss} · {data.institutionGloss}
+            </span>
+          </li>
+        ))
+      }
     </ul>
+  </section>
+
+  <section class="section" aria-labelledby="read-side-title">
+    <div class="section__head">
+      <h2 id="read-side-title">Write side, read side</h2>
+      <p class="kicker">The site practices its own case</p>
+    </div>
+    <p class="measure">
+      The roles above are markdown files with typed front matter. The cloth, the resume, the
+      llms.txt file and the stack page are projections of them, computed once at build and served as
+      static files. Nothing on a page reads the source documents at request time, which is the same
+      shape as the read-model bench: write once, project for each reader. The projection for this
+      page is at <a href="/draft.json">/draft.json</a>, and the resume it agrees with is at
+      <a href="/resume.txt">/resume.txt</a>.
+    </p>
+    <p class="measure muted">
+      {identity.location} · {identity.timezone} · {identity.availability}.
+    </p>
   </section>
 </Base>

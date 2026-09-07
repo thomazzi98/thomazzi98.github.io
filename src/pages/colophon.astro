@@ -1,129 +1,142 @@
 ---
 import { getCollection, render } from 'astro:content';
 import lighthouseConfig from '../../lighthouserc.json';
-import packageJson from '../../package.json';
+import { scenarioIds } from '../bench/scenarios';
 import Base from '../layouts/Base.astro';
 import { readBudgets } from '../lib/budgets';
 import { buildInfo } from '../lib/build-info';
+import { identity } from '../lib/identity';
 
-const decisions = [...(await getCollection('decisions'))].sort((first, second) =>
+const decisions = (await getCollection('decisions')).sort((first, second) =>
   first.id.localeCompare(second.id),
 );
 const renderedDecisions = await Promise.all(
   decisions.map(async (decision) => ({ decision, Content: (await render(decision)).Content })),
 );
-const dependencies = Object.keys(packageJson.devDependencies).sort();
-const assertions = readBudgets(lighthouseConfig);
-const workflowUrl = `${buildInfo.repositoryUrl}/blob/main/.github/workflows/ci.yml`;
+const budgets = readBudgets(lighthouseConfig);
+const repository = 'https://github.com/thomazzi98/thomazzi98.github.io';
+const workflow = `${repository}/actions/workflows/ci.yml`;
 ---
 
 <Base
   title="Colophon · Rafael Thomazzi"
-  description="How this site is built and what its build refuses to ship: the stack, the budgets enforced in CI, the build stamp, and the decision records."
+  description="How this site is built and verified: the bench engine, the content model, the budgets the build enforces, and the decisions behind them."
 >
-  <section class="py-12 md:py-16">
-    <h1 class="text-fluid-xl font-semibold tracking-tight">Colophon</h1>
-    <p class="mt-4 max-w-(--measure) text-ink-muted">
-      A static site with no client-side JavaScript. Every page is HTML and CSS rendered at build
-      time from typed content collections. Three font files and the Open Graph image are the only
-      assets larger than the stylesheet.
+  <section class="page-head">
+    <h1>How this is made</h1>
+    <p class="measure muted">
+      A static site whose interactive parts are a small deterministic simulation engine. Everything
+      below is verifiable from the <a href={repository}>repository</a>.
     </p>
   </section>
 
-  <section aria-labelledby="build" class="border-t border-rule py-10">
-    <h2 id="build" class="font-mono text-xs tracking-label text-ink-muted uppercase">This build</h2>
-    <dl class="mt-4 grid max-w-(--measure) gap-2 font-mono text-sm sm:grid-cols-[10rem_1fr]">
-      <dt class="text-ink-muted">Commit</dt>
-      <dd>
-        <a href={`${buildInfo.repositoryUrl}/commit/${buildInfo.commit}`}>{buildInfo.commit}</a>
-      </dd>
-      <dt class="text-ink-muted">Built on</dt>
-      <dd>{buildInfo.date}</dd>
-      <dt class="text-ink-muted">Pipeline</dt>
-      <dd>
-        <a href={workflowUrl}>ci.yml</a>
-        {
-          buildInfo.runUrl && (
-            <span>
-              {' '}
-              · <a href={buildInfo.runUrl}>this run</a>
-            </span>
-          )
-        }
-      </dd>
-      <dt class="text-ink-muted">Source</dt>
-      <dd>
-        <a href={buildInfo.repositoryUrl}>{buildInfo.repositoryUrl.replace('https://', '')}</a>
-      </dd>
-    </dl>
-  </section>
-
-  <section aria-labelledby="gates" class="border-t border-rule py-10">
-    <h2 id="gates" class="font-mono text-xs tracking-label text-ink-muted uppercase">
-      What the build refuses to ship
-    </h2>
-    <p class="mt-4 max-w-(--measure) text-ink-muted">
-      The pipeline type-checks, lints, checks formatting, rejects draft markers, runs the unit
-      tests, builds, and checks every internal link in the output. It then runs Playwright with
-      axe-core against every route in the sitemap, once with JavaScript disabled, and asserts these
-      Lighthouse budgets. A failure blocks the deploy.
-    </p>
-    <div class="mt-6 overflow-x-auto">
-      <table class="w-full max-w-(--measure) border-collapse font-mono text-xs">
-        <thead class="text-left tracking-label text-ink-muted uppercase">
-          <tr class="border-b border-rule">
-            <th scope="col" class="py-2 pr-4 font-normal">Lighthouse assertion</th>
-            <th scope="col" class="py-2 font-normal">Threshold</th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            assertions.map(({ audit, threshold }) => (
-              <tr class="border-b border-rule">
-                <td class="py-2 pr-4">{audit}</td>
-                <td class="py-2">{threshold}</td>
-              </tr>
-            ))
-          }
-        </tbody>
-      </table>
+  <section class="section" aria-labelledby="engine-title">
+    <div class="section__head">
+      <h2 id="engine-title">The bench engine</h2>
+      <p class="kicker">{scenarioIds.length} scenarios · no runtime dependencies</p>
+    </div>
+    <div class="prose">
+      <p>
+        Each bench is a discrete-event simulation: a seeded random generator, a scheduler that
+        releases events by virtual time and then by insertion order, and a reducer per scenario that
+        turns an event into the next state and schedules what follows. Levers change future
+        behaviour without touching events already queued. The renderer advances virtual time by a
+        fixed amount every 120 ms beat and moves nothing between beats, so motion reads as a loom
+        rather than an animation.
+      </p>
+      <p>
+        The same engine runs at build time: every scenario has a scripted demonstration whose
+        transcript is printed for readers without JavaScript and served as JSON next to the page.
+        Under reduced motion nothing runs until Step is pressed, and every run is reproducible: the
+        console prints the seed, and a <code>?seed=</code> parameter replays it.
+      </p>
+      <p>
+        The drawings are laid out from the scenario graph at build, in both orientations, so a phone
+        gets a vertical schematic rather than a shrunken one. The client code is a custom element
+        that loads its scenario on demand and binds the simulation to markup that already exists,
+        which keeps each page well under the script budget below.
+      </p>
     </div>
   </section>
 
-  <section aria-labelledby="stack" class="border-t border-rule py-10">
-    <h2 id="stack" class="font-mono text-xs tracking-label text-ink-muted uppercase">
-      Build-time dependencies
-    </h2>
-    <p class="mt-4 max-w-(--measure) text-ink-muted">
-      {dependencies.length} development dependencies and no runtime ones. No UI kit, icon set, animation,
-      date or analytics library.
-    </p>
-    <p class="mt-4 max-w-(--measure) font-mono text-xs text-ink-muted">
-      {dependencies.join(' · ')}
-    </p>
+  <section class="section" aria-labelledby="content-title">
+    <div class="section__head">
+      <h2 id="content-title">The content model</h2>
+      <p class="kicker">Typed, referenced, checked at build</p>
+    </div>
+    <div class="prose">
+      <p>
+        Roles, projects, education and practices are content collections validated with schemas.
+        Technologies are a registry that roles and projects reference by id; a reference to an
+        unknown id fails the build, and so does a registry entry that nothing references. A practice
+        must name the projects that back it. The resume, the llms.txt file, the stack page and the
+        cloth on the About page are projections of those files, computed once.
+      </p>
+    </div>
   </section>
 
-  <section aria-labelledby="decisions" class="border-t border-rule py-10">
-    <h2 id="decisions" class="font-mono text-xs tracking-label text-ink-muted uppercase">
-      Decision records
-    </h2>
-    <div class="mt-6 grid gap-12">
+  <section class="section" aria-labelledby="budgets-title">
+    <div class="section__head">
+      <h2 id="budgets-title">What the build refuses</h2>
+      <p class="kicker">Enforced on every push</p>
+    </div>
+    <p class="measure muted">
+      The pipeline type-checks, lints, checks formatting, rejects draft markers, runs the unit
+      tests, builds, and checks every internal link. It then runs Playwright with axe-core against
+      every route in the sitemap, once with JavaScript disabled, and asserts these Lighthouse
+      budgets. A failure blocks the deploy. The latest run is on the
+      <a href={workflow}>workflow page</a>.
+    </p>
+    <table class="stack-table budgets">
+      <thead>
+        <tr>
+          <th scope="col">Audit</th>
+          <th scope="col">Budget</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          budgets.map((budget) => (
+            <tr>
+              <th scope="row">{budget.audit}</th>
+              <td>{budget.threshold}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section" aria-labelledby="decisions-title">
+    <div class="section__head">
+      <h2 id="decisions-title">Decisions</h2>
+      <p class="kicker">Recorded as they were made</p>
+    </div>
+    <div class="decisions">
       {
         renderedDecisions.map(({ decision, Content }) => (
-          <article id={decision.id} class="max-w-(--measure)">
-            <p class="font-mono text-xs text-ink-muted">
-              {decision.id.slice(0, 4)} · {decision.data.status} ·{' '}
-              {decision.data.date.toISOString().slice(0, 10)}
+          <article class="decision">
+            <h3>{decision.data.title}</h3>
+            <p class="kicker">
+              {decision.data.status} · {decision.data.date.toISOString().slice(0, 10)}
             </p>
-            <h3 class="mt-2 text-fluid-lg leading-snug font-semibold tracking-tight">
-              {decision.data.title}
-            </h3>
-            <div class="prose mt-4">
+            <div class="prose">
               <Content />
             </div>
           </article>
         ))
       }
     </div>
+  </section>
+
+  <section class="section" aria-labelledby="stamp-title">
+    <div class="section__head">
+      <h2 id="stamp-title">This build</h2>
+    </div>
+    <p class="mono">
+      commit <a href={`${repository}/commit/${buildInfo.commit}`}>{buildInfo.commit}</a> ·{' '}
+      {buildInfo.date} · type IBM Plex Sans and Mono, self-hosted · no analytics, no cookies, no third-party
+      requests · {identity.name}, {identity.location}
+    </p>
   </section>
 </Base>

@@ -26,86 +26,60 @@ const groups = technologyGroups.map((group) => ({
 
 <Base
   title="Stack · Rafael Thomazzi"
-  description="Technologies grouped by the claim I can back: owned in production, shipped with, or familiar. Every entry lists the roles and case studies that evidence it."
+  description="Technologies grouped by the claim I can back: owned in production, shipped with, or familiar. Every entry lists the roles and case studies behind it."
 >
-  <section class="py-12 md:py-16">
-    <h1 class="text-fluid-xl font-semibold tracking-tight">Stack</h1>
-    <p class="mt-4 max-w-(--measure) text-ink-muted">
-      Grouped by the claim I can back. Each entry lists the roles and case studies behind it.
+  <section class="page-head">
+    <h1>The warp</h1>
+    <p class="measure muted">
+      Every thread on the cloth, grouped by the claim I can back. Each entry lists the roles and
+      case studies behind it; a technology with nothing behind it cannot be listed, because the
+      build refuses it.
     </p>
   </section>
 
   {
     groups.map(({ group, heading, definition, entries }) => (
-      <section aria-labelledby={group} class="border-t border-rule py-10">
-        <h2 id={group} class="font-mono text-xs tracking-label text-ink-muted uppercase">
-          {heading}
-        </h2>
-        <p class="mt-2 max-w-(--measure) text-sm text-ink-muted">{definition}</p>
-        <div class="mt-6 overflow-x-auto">
-          <table
-            role="table"
-            aria-labelledby={group}
-            class="w-full border-collapse font-mono text-xs"
-          >
-            <thead
-              role="rowgroup"
-              class="text-left tracking-label text-ink-muted uppercase max-sm:sr-only"
-            >
-              <tr role="row" class="border-b border-rule">
-                <th role="columnheader" scope="col" class="py-2 pr-4 font-normal">
-                  Technology
-                </th>
-                <th role="columnheader" scope="col" class="py-2 pr-4 font-normal">
-                  Category
-                </th>
-                <th role="columnheader" scope="col" class="py-2 pr-4 font-normal">
-                  Since
-                </th>
-                <th role="columnheader" scope="col" class="py-2 font-normal">
-                  Evidence
-                </th>
-              </tr>
-            </thead>
-            <tbody role="rowgroup">
-              {entries.map((technology) => (
-                <tr
-                  role="row"
-                  class="border-b border-rule align-top max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto_auto] max-sm:gap-x-4 max-sm:py-3"
-                >
-                  <th
-                    role="rowheader"
-                    scope="row"
-                    class="py-3 pr-4 text-left font-medium whitespace-nowrap max-sm:py-0"
-                  >
-                    {technology.data.name}
-                  </th>
-                  <td role="cell" class="py-3 pr-4 text-ink-muted max-sm:py-0">
-                    {technology.data.category}
-                  </td>
-                  <td role="cell" class="py-3 pr-4 text-ink-muted max-sm:py-0">
-                    {technology.data.firstUsed}
-                  </td>
-                  <td
-                    role="cell"
-                    class="py-3 text-ink-muted max-sm:col-span-3 max-sm:pt-2 max-sm:pb-0"
-                  >
+      <section class="section" aria-labelledby={group} data-group={group}>
+        <div class="section__head">
+          <h2 id={group}>
+            <span class="cloth-key" data-group={group} aria-hidden="true" /> {heading}
+          </h2>
+          <p class="kicker">{entries.length} threads</p>
+        </div>
+        <p class="measure muted stack-definition">{definition}</p>
+        <table class="stack-table">
+          <thead>
+            <tr>
+              <th scope="col">Technology</th>
+              <th scope="col">Category</th>
+              <th scope="col">Since</th>
+              <th scope="col">Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((technology) => (
+              <tr id={technology.id}>
+                <th scope="row">{technology.data.name}</th>
+                <td class="muted">{technology.data.category}</td>
+                <td class="muted">{technology.data.firstUsed}</td>
+                <td>
+                  <span class="muted">
                     {evidence
                       .rolesFor(technology.id)
                       .map((role) => role.data.company)
                       .join(' · ')}
-                    {evidence.projectsFor(technology.id).map((project) => (
-                      <span>
-                        {' '}
-                        · <a href={`/work/${project.id}/`}>{project.data.title}</a>
-                      </span>
-                    ))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </span>
+                  {evidence.projectsFor(technology.id).map((project) => (
+                    <span>
+                      {' '}
+                      · <a href={`/work/${project.id}/`}>{project.data.title}</a>
+                    </span>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
     ))
   }

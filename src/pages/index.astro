@@ -1,5 +1,5 @@
 ---
-import * as onboarding from '../bench/scenarios/queued-bank-onboarding';
+import { loadScenario } from '../bench/scenarios';
 import BenchFrame from '../components/bench/BenchFrame.astro';
 import Base from '../layouts/Base.astro';
 import { buildInfo } from '../lib/build-info';
@@ -9,6 +9,7 @@ import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { selectCaseStudies } from '../lib/projects';
 
 const { roles, projects, practices } = await loadContent();
+const onboarding = await loadScenario('queued-bank-onboarding');
 const caseStudies = selectCaseStudies(projects);
 const latestRole = [...roles].sort(compareByStartDescending)[0];
 const benchNumber = (index: number) => String(index + 1).padStart(2, '0');

@@ -29,7 +29,7 @@ const colorFor = {
 >
   {
     threads.flatMap((thread, column) =>
-      Array.from({ length: rows }, (unusedCell, row) =>
+      [...Array(rows).keys()].map((row) =>
         (column + row) % 2 === 0 ? (
           <rect
             x={column * threadWidth}

@@ -2,14 +2,16 @@
 import Base from '../layouts/Base.astro';
 ---
 
-<Base title="Not found · Rafael Thomazzi" description="There is no page at this address.">
-  <section class="py-16 md:py-24">
-    <p class="font-mono text-xs tracking-label text-ink-muted uppercase">404</p>
-    <h1 class="mt-6 text-fluid-xl font-semibold tracking-tight">
-      There is no page at this address.
-    </h1>
-    <p class="mt-6 font-mono text-sm">
-      <a href="/">Home</a> · <a href="/work/">Work</a> · <a href="/resume.txt">resume.txt</a>
+<Base title="404 · Rafael Thomazzi" description="There is nothing at this address.">
+  <section class="page-head">
+    <p class="kicker">404 · a client fault</p>
+    <h1>Recorded, not retried.</h1>
+    <p class="measure muted">
+      A 4xx is not worth retrying: the address is wrong and asking again will not fix it. It has
+      been noted. The routes that do exist are <a href="/work/">work</a>,
+      <a href="/about/">about</a>, <a href="/stack/">stack</a> and
+      <a href="/colophon/">the colophon</a>, and the <a href="/">home page</a> has the bench that explains
+      why this page says what it says.
     </p>
   </section>
 </Base>
