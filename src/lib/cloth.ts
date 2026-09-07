@@ -38,7 +38,6 @@ export interface Cloth {
   picks: string[];
   cells: Weave[][];
   treadles: number[];
-  rolesByPick: string[][];
 }
 
 export interface ClothInput {
@@ -70,7 +69,7 @@ const spanOf = (period: Period, now: string): [number, number] => [
 
 export const weaveCloth = ({ roles, projects, technologies, now }: ClothInput): Cloth => {
   if (roles.length === 0) {
-    return { threads: [], picks: [], cells: [], treadles: [], rolesByPick: [] };
+    return { threads: [], picks: [], cells: [], treadles: [] };
   }
   const first = Math.min(...roles.map((role) => monthIndex(role.data.period.start)));
   const last = monthIndex(now);
@@ -85,7 +84,6 @@ export const weaveCloth = ({ roles, projects, technologies, now }: ClothInput): 
   const threadIndex = new Map(threads.map((thread, index) => [thread.id, index]));
   const cells: Weave[][] = threads.map(() => picks.map(() => unwoven));
   const treadles = picks.map(() => 0);
-  const rolesByPick: string[][] = picks.map(() => []);
 
   const weave = (stack: readonly Reference[], period: Period, value: Weave): void => {
     const [start, end] = spanOf(period, now);
@@ -110,7 +108,6 @@ export const weaveCloth = ({ roles, projects, technologies, now }: ClothInput): 
     for (let month = Math.max(start, first); month <= Math.min(end, last); month += 1) {
       const column = month - first;
       treadles[column] = (treadles[column] ?? 0) + 1;
-      rolesByPick[column]?.push(role.data.company);
     }
   }
   for (const project of projects) {
@@ -118,5 +115,5 @@ export const weaveCloth = ({ roles, projects, technologies, now }: ClothInput): 
       weave(project.data.stack, project.data.period, wovenByCaseStudy);
     }
   }
-  return { threads, picks, cells, treadles, rolesByPick };
+  return { threads, picks, cells, treadles };
 };

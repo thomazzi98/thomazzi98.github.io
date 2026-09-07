@@ -20,5 +20,3 @@ export const loadContent = async () => {
     project.data.role === undefined ? undefined : companyByRoleId.get(project.data.role.id);
   return { roles, projects, technologies, education, practices, companyOf };
 };
-
-export type SiteContent = Awaited<ReturnType<typeof loadContent>>;

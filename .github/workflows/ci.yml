@@ -12,8 +12,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: .node-version
           cache: npm
@@ -21,14 +21,14 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run verify
       - run: npm run test:e2e
-      - uses: treosh/lighthouse-ci-action@v12
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: dist
+      - uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         with:
           configPath: ./lighthouserc.json
           uploadArtifacts: true
-          temporaryPublicStorage: true
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
+          temporaryPublicStorage: false
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -45,4 +45,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

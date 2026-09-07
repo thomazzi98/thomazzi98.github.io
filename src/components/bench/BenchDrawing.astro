@@ -48,7 +48,7 @@ const hatch = `hatch-${uid}`;
   </defs>
   <g class="drawing__wires">
     {
-      layout.wires.map((placed, index) => {
+      layout.wires.map((placed) => {
         const middle = pointAlong(placed, 0.5);
         const chordX = (placed.x1 + placed.x2) / 2;
         const chordY = (placed.y1 + placed.y2) / 2;
@@ -61,7 +61,6 @@ const hatch = `hatch-${uid}`;
               d={wirePath(placed)}
               data-wire-from={placed.wire.from}
               data-wire-to={placed.wire.to}
-              data-wire-index={index}
               data-x1={placed.x1}
               data-y1={placed.y1}
               data-x2={placed.x2}

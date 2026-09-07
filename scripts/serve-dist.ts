@@ -1,6 +1,6 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { extname, join, normalize, resolve } from 'node:path';
+import { extname, isAbsolute, join, normalize, relative, resolve } from 'node:path';
 
 const root = resolve('dist');
 const port = Number(process.argv[2] ?? '4173');
@@ -21,10 +21,26 @@ const notFound = { path: join(root, '404.html'), status: 404 };
 
 type Resolution = { path: string; status: number } | { redirect: string };
 
+const decodePath = (rawUrl: string): string | undefined => {
+  try {
+    return decodeURIComponent(rawUrl.split('?')[0] ?? '/');
+  } catch {
+    return undefined;
+  }
+};
+
+const isInsideRoot = (candidate: string): boolean => {
+  const relativePath = relative(root, candidate);
+  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath));
+};
+
 const resolveRequest = (rawUrl: string): Resolution => {
-  const pathname = decodeURIComponent(rawUrl.split('?')[0] ?? '/');
+  const pathname = decodePath(rawUrl);
+  if (pathname === undefined) {
+    return notFound;
+  }
   const candidate = join(root, normalize(pathname));
-  if (!candidate.startsWith(root) || !existsSync(candidate)) {
+  if (!isInsideRoot(candidate) || !existsSync(candidate)) {
     return notFound;
   }
   if (!statSync(candidate).isDirectory()) {

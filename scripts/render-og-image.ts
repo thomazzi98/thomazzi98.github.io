@@ -3,6 +3,13 @@ import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 import { identity } from '../src/lib/identity.ts';
 
+const escapeHtml = (text: string): string =>
+  text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+
 const fontUrl = (file: string) => pathToFileURL(resolve('src/assets/fonts', file)).href;
 
 const page = `<!doctype html>
@@ -52,12 +59,12 @@ const page = `<!doctype html>
     </style>
   </head>
   <body>
-    <p class="label">${identity.name} · ${identity.headline}</p>
+    <p class="label">${escapeHtml(identity.name)} · ${escapeHtml(identity.headline)}</p>
     <div>
       <div class="rule"></div>
-      <h1>${identity.positioning}</h1>
+      <h1>${escapeHtml(identity.positioning)}</h1>
     </div>
-    <p class="label">thomazzi98.github.io · ${identity.city}, Brazil · ${identity.timezone} · ${identity.availability}</p>
+    <p class="label">thomazzi98.github.io · ${escapeHtml(identity.city)}, Brazil · ${escapeHtml(identity.timezone)} · ${escapeHtml(identity.availability)}</p>
   </body>
 </html>`;
 

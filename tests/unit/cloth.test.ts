@@ -89,7 +89,6 @@ describe('weaveCloth', () => {
 
   it('counts concurrent roles as a doubled treadle', () => {
     expect(cloth.treadles).toEqual([1, 1, 1, 2, 1, 2, 2, 1]);
-    expect(cloth.rolesByPick[5]).toEqual(['Fintech', 'Game']);
   });
 
   it('returns an empty cloth without roles', () => {

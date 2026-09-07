@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { selectAlsoBuilt, selectCaseStudies, selectFeatured } from '../../src/lib/projects';
+import { selectAlsoBuilt, selectCaseStudies } from '../../src/lib/projects';
 
 type Kind = 'case-study' | 'also-built';
 
@@ -27,12 +27,6 @@ describe('selectCaseStudies', () => {
       'newer-study',
       'old-study',
     ]);
-  });
-});
-
-describe('selectFeatured', () => {
-  it('returns only ranked case studies in rank order', () => {
-    expect(ids(selectFeatured(projects))).toEqual(['first', 'second']);
   });
 });
 

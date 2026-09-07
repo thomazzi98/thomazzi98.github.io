@@ -16,8 +16,5 @@ const compareByFeaturedThenStart = <T extends ProjectLike>(first: T, second: T):
 export const selectCaseStudies = <T extends ProjectLike>(projects: T[]): T[] =>
   projects.filter((project) => project.data.kind === 'case-study').sort(compareByFeaturedThenStart);
 
-export const selectFeatured = <T extends ProjectLike>(projects: T[]): T[] =>
-  selectCaseStudies(projects).filter((project) => project.data.featured !== undefined);
-
 export const selectAlsoBuilt = <T extends ProjectLike>(projects: T[]): T[] =>
   projects.filter((project) => project.data.kind === 'also-built').sort(compareByStartDescending);

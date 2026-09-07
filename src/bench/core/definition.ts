@@ -14,15 +14,15 @@ export interface Wire {
   dashed?: boolean;
 }
 
-export interface LeverOption<Value extends string = string> {
-  value: Value;
+export interface LeverOption {
+  value: string;
   label: string;
 }
 
-export interface LeverDefinition<Value extends string = string> {
+export interface LeverDefinition {
   id: string;
   label: string;
-  options: readonly LeverOption<Value>[];
+  options: readonly LeverOption[];
 }
 
 export interface ActionDefinition {

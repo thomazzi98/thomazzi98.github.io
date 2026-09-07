@@ -22,17 +22,16 @@ export const scenarioIds = [
 
 export type ScenarioId = (typeof scenarioIds)[number];
 
+const erase = <State, Event, Levers extends object>(
+  module: ScenarioModule<State, Event, Levers>,
+): ScenarioModule => module as unknown as ScenarioModule;
+
 const loaders: Record<ScenarioId, () => Promise<ScenarioModule>> = {
-  'queued-bank-onboarding': () =>
-    import('./queued-bank-onboarding').then((module) => module as unknown as ScenarioModule),
-  'design-contest-backend': () =>
-    import('./design-contest-backend').then((module) => module as unknown as ScenarioModule),
-  'ipaas-admin-indicators': () =>
-    import('./ipaas-admin-indicators').then((module) => module as unknown as ScenarioModule),
-  'contract-backend-boundary': () =>
-    import('./contract-backend-boundary').then((module) => module as unknown as ScenarioModule),
-  'multi-network-token-library': () =>
-    import('./multi-network-token-library').then((module) => module as unknown as ScenarioModule),
+  'queued-bank-onboarding': () => import('./queued-bank-onboarding').then(erase),
+  'design-contest-backend': () => import('./design-contest-backend').then(erase),
+  'ipaas-admin-indicators': () => import('./ipaas-admin-indicators').then(erase),
+  'contract-backend-boundary': () => import('./contract-backend-boundary').then(erase),
+  'multi-network-token-library': () => import('./multi-network-token-library').then(erase),
 };
 
 export const isScenarioId = (candidate: string): candidate is ScenarioId =>

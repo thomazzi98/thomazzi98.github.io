@@ -56,6 +56,8 @@ export interface Simulation<State, Event, Levers> {
   subscribe(listener: () => void): () => void;
 }
 
+const logLimit = 400;
+
 export const createSimulation = <State, Event, Levers extends object>(
   scenario: Scenario<State, Event, Levers>,
   options: SimulationOptions<Levers> = {},
@@ -87,6 +89,9 @@ export const createSimulation = <State, Event, Levers extends object>(
     },
     log: (station, tone, message) => {
       log.push({ at: now, station, tone, message });
+      if (log.length > logLimit) {
+        log.splice(0, log.length - logLimit);
+      }
     },
     send: (from, destination, tone, travel) => {
       packets.push({

@@ -109,6 +109,7 @@ export const maxAttempts = 3;
 export const backoffBase = 1000;
 const steadyInterval = 1800;
 const meterWindow = 8;
+const registrationLimit = 80;
 
 const providerLatency = (health: ProviderHealth, context: StepContext<Event>): number => {
   const jitter = context.random.between(0.85, 1.15);
@@ -167,6 +168,7 @@ const startProviderCall = (
 
 const signUpQueued = (state: State, context: StepContext<Event>): State => {
   const id = state.nextId;
+  const queued: Registration = { id, status: 'queued', attempts: 0, createdAt: context.now };
   const apiLatency = Math.round(context.random.between(3, 9));
   context.send('user', 'api', 'neutral', 60);
   context.send('api', 'db', 'neutral', 80);
@@ -179,10 +181,7 @@ const signUpQueued = (state: State, context: StepContext<Event>): State => {
   return {
     ...state,
     nextId: id + 1,
-    registrations: [
-      ...state.registrations,
-      { id, status: 'queued', attempts: 0, createdAt: context.now },
-    ],
+    registrations: [...state.registrations, queued].slice(-registrationLimit),
     queue: [...state.queue, id],
     signupLatencies: pushSample(state.signupLatencies, apiLatency),
   };
