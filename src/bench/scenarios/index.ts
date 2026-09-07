@@ -8,6 +8,7 @@ export interface ScenarioModule<State = unknown, Event = unknown, Levers extends
   definition: BenchDefinition;
   present: Presenter<State, Levers>;
   demonstration: Demonstration<Event, Levers>;
+  invitation: string;
   actionEvent(actionId: string): Event | undefined;
 }
 

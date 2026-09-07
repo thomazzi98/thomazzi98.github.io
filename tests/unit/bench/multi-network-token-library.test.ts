@@ -43,11 +43,11 @@ describe('multi-network token library', () => {
     simulation.dispatch({ type: 'read', reading: 'balance-of' });
     simulation.advance(1000);
     expect(simulation.state.calls[1]?.tone).toBe('ok');
-    expect(simulation.state.coreLinesChanged).toBe(0);
     expect(simulation.state.registered).toHaveLength(4);
     const view = present(simulation.state, simulation.levers);
     expect(view.stations.bnb?.badge).toBe('registered');
-    expect(view.meters[0]?.value).toBe(0);
+    expect(view.meters).toHaveLength(1);
+    expect(view.stations.registry?.badge).toBe('4 networks · core v1');
   });
 
   it('runs its demonstration deterministically', () => {

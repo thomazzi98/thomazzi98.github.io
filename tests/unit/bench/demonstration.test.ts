@@ -39,6 +39,6 @@ describe('the onboarding demonstration', () => {
     expect(view.ledger.rows).toHaveLength(3);
     expect(view.ledger.rows.every((row) => row.cells[1] === 'account created')).toBe(true);
     expect(view.stations.provider?.tone).toBe('ok');
-    expect(view.headline).toMatch(/milliseconds/);
+    expect(view.headline).toMatch(/Sign-up still \d+ ms/);
   });
 });

@@ -6,6 +6,8 @@ import { buildInfo } from '../lib/build-info';
 import { weaveCloth } from '../lib/cloth';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
+import { sortPracticesByTie } from '../lib/practices';
+import { selectCaseStudies } from '../lib/projects';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { createTechnologyNameLookup } from '../lib/technologies';
 
@@ -19,6 +21,7 @@ const renderedRoles = await Promise.all(
 const educationByRecency = [...education].sort(
   (first, second) => second.data.year - first.data.year,
 );
+const orderedPractices = sortPracticesByTie(practices, selectCaseStudies(projects));
 const projectTitle = (id: string) =>
   projects.find((project) => project.id === id)?.data.title ?? id;
 const firstPick = cloth.picks[0] ?? '';
@@ -92,11 +95,11 @@ const wovenMonths = cloth.cells.reduce(
   <section class="section" aria-labelledby="practices-title">
     <div class="section__head">
       <h2 id="practices-title">How I work</h2>
-      <p class="kicker">Each claim names the bench that backs it</p>
+      <p class="kicker">Each claim names the work that backs it</p>
     </div>
     <ol class="practices">
       {
-        practices.map((practice) => (
+        orderedPractices.map((practice) => (
           <li class="practice">
             <p class="practice__claim">{practice.data.claim}</p>
             <p class="practice__backing mono">

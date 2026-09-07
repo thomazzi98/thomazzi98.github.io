@@ -2,7 +2,7 @@
 title: A contest backend that mints the winners
 tagline: Submissions, moderation and public voting on DynamoDB and S3, with winning entries minted as ERC-721 tokens by a single Lambda that holds the only key.
 kind: case-study
-status: in-production
+status: delivered
 period: { start: '2022-07', end: '2022-09' }
 role: ciandt
 featured: 3

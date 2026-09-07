@@ -57,8 +57,8 @@ export const definition: BenchDefinition = {
       id: 'writeMode',
       label: 'Counting a vote',
       options: [
-        { value: 'read-modify-write', label: 'Read, add one, write' },
         { value: 'atomic-increment', label: 'Atomic increment' },
+        { value: 'read-modify-write', label: 'Read, add one, write (the first version)' },
       ],
     },
     {
@@ -200,7 +200,7 @@ const receipt = (
 
 export const scenario: Scenario<State, Event, Levers> = {
   id: 'design-contest-backend',
-  defaultLevers: { writeMode: 'read-modify-write', burst: '50' },
+  defaultLevers: { writeMode: 'atomic-increment', burst: '50' },
   initialState: () => ({
     counter: 0,
     castTotal: 0,
@@ -259,7 +259,7 @@ export const present: Presenter<State, Levers> = (state, levers) => {
       return `${String(lastBurst.cast)} votes in flight, counted by ${modeLabel[lastBurst.mode]}.`;
     }
     return lost > 0
-      ? `${String(lastBurst.cast)} votes cast. The counter says ${String(lastBurst.counted)}. Read-modify-write lost ${String(lost)} of them.`
+      ? `${String(lastBurst.cast)} votes cast. The counter says ${String(lastBurst.counted)}. Read, add one, write lost ${String(lost)} of them.`
       : `${String(lastBurst.cast)} votes cast, ${String(lastBurst.counted)} counted. One atomic operation per vote loses nothing.`;
   })();
   const scale = Math.max(50, state.castTotal);
@@ -315,7 +315,7 @@ export const demonstration: Demonstration<Event, Levers> = {
   steps: [
     { kind: 'dispatch', event: { type: 'cast' } },
     { kind: 'advance', duration: 1000 },
-    { kind: 'lever', name: 'writeMode', value: 'atomic-increment' },
+    { kind: 'lever', name: 'writeMode', value: 'read-modify-write' },
     { kind: 'dispatch', event: { type: 'cast' } },
     { kind: 'advance', duration: 1000 },
     { kind: 'dispatch', event: { type: 'mint-from-api' } },
@@ -330,3 +330,6 @@ export const actionEvent = (actionId: string): Event | undefined => {
   }
   return undefined;
 };
+
+export const invitation =
+  'Cast fifty votes and watch every one land. Then switch to what the first version did, cast again, and count what the race lost.';

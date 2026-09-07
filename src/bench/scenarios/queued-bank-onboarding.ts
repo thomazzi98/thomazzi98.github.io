@@ -447,13 +447,38 @@ const healthBadge: Record<ProviderHealth, string | undefined> = {
 const describeLatency = (samples: readonly number[]): string =>
   samples.length === 0 ? 'no calls yet' : `${String(Math.round(median(samples)))} ms median`;
 
+const healthReadout: Record<ProviderHealth, (provider: number) => string> = {
+  healthy: (provider) => `Provider healthy at ${String(provider)} ms.`,
+  slow: (provider) => `Provider slow at ${String(provider)} ms.`,
+  'server-fault': () => 'Provider answering 503.',
+  'client-fault': () => 'Provider answering 422.',
+};
+
+const countWithStatus = (state: State, statuses: readonly RegistrationStatus[]): number =>
+  state.registrations.filter((registration) => statuses.includes(registration.status)).length;
+
+const headlineFor = (state: State, levers: Levers): string => {
+  if (state.registrations.length === 0) {
+    return levers.mode === 'queued'
+      ? 'Sign-up answers in milliseconds. The provider’s health is the worker’s problem, on purpose.'
+      : 'What it replaced: every sign-up waits for the provider and inherits its failures.';
+  }
+  const created = countWithStatus(state, ['processed']);
+  if (levers.mode === 'synchronous') {
+    const waited = Math.round(median(state.signupLatencies));
+    const lost = countWithStatus(state, ['lost']);
+    return `Every sign-up now waits for the provider: ${String(waited)} ms median. ${String(created)} created, ${String(lost)} lost with nothing recorded.`;
+  }
+  const signup = Math.round(median(state.signupLatencies));
+  const provider = Math.round(median(state.providerLatencies));
+  const inFlight = countWithStatus(state, ['queued', 'processing', 'waiting-retry']);
+  return `${healthReadout[levers.providerHealth](provider)} Sign-up still ${String(signup)} ms. ${String(created)} created, ${String(inFlight)} in flight, ${String(state.supportInbox.length)} with support.`;
+};
+
 export const present: Presenter<State, Levers> = (state, levers) => {
   const signup = median(state.signupLatencies);
   const provider = median(state.providerLatencies);
-  const headline =
-    levers.mode === 'queued'
-      ? 'Sign-up answers in milliseconds. The provider is somebody else’s problem, on purpose.'
-      : 'The synchronous path: every sign-up waits for the provider and inherits its failures.';
+  const headline = headlineFor(state, levers);
   return {
     headline,
     stations: {
@@ -545,3 +570,6 @@ export const actionEvent = (actionId: string): Event | undefined => {
   }
   return undefined;
 };
+
+export const invitation =
+  'Press Sign up, then flip the bank provider to 503 and watch the worker back off while sign-ups keep answering. Flip to 422 and watch the fault get recorded instead of retried. Then switch to what it replaced.';

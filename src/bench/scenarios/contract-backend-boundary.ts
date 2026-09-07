@@ -288,3 +288,6 @@ export const actionEvent = (actionId: string): Event | undefined => {
   const action = actions.find((candidate) => candidate === actionId);
   return action === undefined ? undefined : { type: 'act', action };
 };
+
+export const invitation =
+  'Open the panel’s source and find nothing worth stealing. Move the operator key into the bundle and open it again. Then upgrade a contract in each world.';

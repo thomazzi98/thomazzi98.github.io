@@ -36,8 +36,9 @@ const joinListItems = (lines: string[]): string[] => {
 const renderBlock = (block: string, width: number): string => {
   const lines = block.split('\n');
   const first = lines[0] ?? '';
-  if (first.startsWith('## ')) {
-    return first.slice(3).toUpperCase();
+  const heading = /^#{1,6}\s+/;
+  if (heading.test(first)) {
+    return first.replace(heading, '').toUpperCase();
   }
   if (first.startsWith('- ')) {
     return joinListItems(lines)

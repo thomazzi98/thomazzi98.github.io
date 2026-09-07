@@ -21,7 +21,7 @@ describe('design contest vote race', () => {
   });
 
   it('loses updates under read-modify-write with fifty concurrent votes', () => {
-    const simulation = start();
+    const simulation = start({ writeMode: 'read-modify-write' });
     simulation.dispatch({ type: 'cast' });
     simulation.advance(2000);
     const [burst] = simulation.state.bursts;

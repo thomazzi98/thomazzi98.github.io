@@ -259,6 +259,21 @@ const sourceLabel: Record<Source, string> = {
   'execution-store': 'execution store',
 };
 
+const headlineFor = (levers: Levers, lastQuery: Query | undefined, scanning: boolean): string => {
+  if (lastQuery !== undefined && scanning) {
+    return `Scanning ${String(lastQuery.documents)} documents (${formatBytes(lastQuery.bytes)}) in the execution store. Worker writes slow down while it runs.`;
+  }
+  if (lastQuery?.source === 'reference') {
+    return `The last report read ${String(lastQuery.documents)} reference documents in ${String(lastQuery.duration)} ms. The workers did not notice.`;
+  }
+  if (lastQuery !== undefined) {
+    return `The last scan took ${String(lastQuery.duration)} ms over ${formatBytes(lastQuery.bytes)} and slowed the workers while it ran.`;
+  }
+  return levers.source === 'reference'
+    ? 'Operators and billing read a slim reference collection. Ask for a count and watch the workers keep writing.'
+    : 'Reports scan the collection every worker writes on every run. Ask for a count and watch the workers slow down.';
+};
+
 export const present: Presenter<State, Levers> = (state, levers) => {
   const workers = Number(levers.workers);
   const lastQuery = state.queries.at(-1);
@@ -267,10 +282,7 @@ export const present: Presenter<State, Levers> = (state, levers) => {
   const scanning = state.queries.some(
     (query) => query.writesSlowed && query.finishedAt === undefined,
   );
-  const headline =
-    levers.source === 'reference'
-      ? 'Operators and billing read a slim reference collection. The workers never notice.'
-      : 'Reports scan the collection every worker writes on every run. Every query lands on the replica set the workers depend on.';
+  const headline = headlineFor(levers, lastQuery, scanning);
   return {
     headline,
     stations: {
@@ -280,7 +292,10 @@ export const present: Presenter<State, Levers> = (state, levers) => {
           writesPerSecond < expectedPerSecond * 0.7 && state.executions > 4 ? 'fault' : 'neutral',
       },
       executions: { badge: formatBytes(state.storeBytes), tone: scanning ? 'fault' : 'neutral' },
-      reference: { badge: formatBytes(state.referenceBytes), tone: 'ok' },
+      reference: {
+        badge: formatBytes(state.referenceBytes),
+        tone: lastQuery?.source === 'reference' ? 'ok' : 'neutral',
+      },
       admin: {
         tone: queryTone(lastQuery),
       },
@@ -349,3 +364,6 @@ export const actionEvent = (actionId: string): Event | undefined => {
   }
   return undefined;
 };
+
+export const invitation =
+  'Ask for a count while the workers write. Then point reports at the execution store, ask again, and watch the write rate dip.';

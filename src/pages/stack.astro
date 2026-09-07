@@ -63,16 +63,23 @@ const groups = technologyGroups.map((group) => ({
                 <td class="muted">{technology.data.category}</td>
                 <td class="muted">{technology.data.firstUsed}</td>
                 <td>
-                  <span class="muted">
-                    {evidence
-                      .rolesFor(technology.id)
-                      .map((role) => role.data.company)
-                      .join(' · ')}
-                  </span>
-                  {evidence.projectsFor(technology.id).map((project) => (
+                  {[
+                    ...evidence.rolesFor(technology.id).map((role) => ({
+                      label: role.data.company,
+                      href: undefined,
+                    })),
+                    ...evidence.projectsFor(technology.id).map((project) => ({
+                      label: project.data.title,
+                      href: `/work/${project.id}/`,
+                    })),
+                  ].map((item, index) => (
                     <span>
-                      {' '}
-                      · <a href={`/work/${project.id}/`}>{project.data.title}</a>
+                      {index > 0 && ' · '}
+                      {item.href === undefined ? (
+                        <span class="muted">{item.label}</span>
+                      ) : (
+                        <a href={item.href}>{item.label}</a>
+                      )}
                     </span>
                   ))}
                 </td>

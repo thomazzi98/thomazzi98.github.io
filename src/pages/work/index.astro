@@ -4,6 +4,7 @@ import Base from '../../layouts/Base.astro';
 import { loadContent } from '../../lib/content';
 import { formatPeriod } from '../../lib/period';
 import { selectAlsoBuilt, selectCaseStudies } from '../../lib/projects';
+import { statusLabels } from '../../lib/status';
 import { createTechnologyNameLookup } from '../../lib/technologies';
 
 const { projects, technologies, companyOf } = await loadContent();
@@ -22,8 +23,12 @@ const benched = caseStudies.filter((project) => isScenarioId(project.id)).length
     <h1>Work</h1>
     <p class="measure muted">
       Each case study is a decision record: the constraints, the alternative on the table, what I
-      chose, what it cost, and what happened. {benched} of {caseStudies.length} open on a bench you can
-      operate before you read.
+      chose, what it cost, and what happened.{' '}
+      {
+        benched === caseStudies.length
+          ? 'Every one opens on a bench you can operate before you read.'
+          : `${String(benched)} of ${String(caseStudies.length)} open on a bench you can operate before you read.`
+      }
     </p>
   </section>
 
@@ -47,8 +52,8 @@ const benched = caseStudies.filter((project) => isScenarioId(project.id)).length
               </p>
             </div>
             <div class="work-row__meta mono">
-              <span>{project.data.status.replaceAll('-', ' ')}</span>
-              <span>{formatPeriod(project.data.period)}</span>
+              <span>{statusLabels[project.data.status]}</span>
+              <span>built {formatPeriod(project.data.period)}</span>
               {companyOf(project) !== undefined && <span>{companyOf(project)}</span>}
               {isScenarioId(project.id) && <span class="work-row__bench">bench</span>}
             </div>
@@ -77,8 +82,8 @@ const benched = caseStudies.filter((project) => isScenarioId(project.id)).length
               <p class="muted">{project.data.tagline}</p>
             </div>
             <div class="work-row__meta mono">
-              <span>{project.data.status.replaceAll('-', ' ')}</span>
-              <span>{formatPeriod(project.data.period)}</span>
+              <span>{statusLabels[project.data.status]}</span>
+              <span>built {formatPeriod(project.data.period)}</span>
             </div>
           </li>
         ))

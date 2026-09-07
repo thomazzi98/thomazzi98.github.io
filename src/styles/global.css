@@ -802,22 +802,46 @@
   }
 
   .tie-up__cell a {
-    width: 1.1rem;
-    height: 1.1rem;
-    background: var(--indigo);
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 2.5rem;
     text-decoration: none;
   }
 
-  .tie-up__cell a:hover,
-  .tie-up__cell a:focus-visible {
-    background: var(--madder);
+  .tie-up__mark {
+    display: block;
+    width: 1.1rem;
+    height: 1.1rem;
+    background: var(--indigo);
   }
 
-  .tie-up__cell span {
+  .tie-up__cell a:hover .tie-up__mark,
+  .tie-up__cell a:focus-visible .tie-up__mark {
+    background: var(--ink);
+  }
+
+  .tie-up__empty {
+    display: block;
     width: 4px;
     height: 4px;
     border-radius: 50%;
     background: var(--greige);
+  }
+
+  .tie-up__claim {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .tie-up__backing {
+    font-size: 0.7rem;
+    color: var(--ink-muted);
+  }
+
+  .tie-up__after {
+    margin-top: 1.5rem;
   }
 
   .tie-up__legend {
@@ -866,6 +890,10 @@
   .case__bench {
     display: grid;
     gap: 0.75rem;
+  }
+
+  .case__invite {
+    max-width: var(--measure);
   }
 
   .case__body {
@@ -1049,6 +1077,7 @@
   }
 
   .cloth__cell[data-weave='float'] {
+    fill: color-mix(in srgb, var(--ink) 35%, var(--indigo));
     stroke: var(--ink);
     stroke-width: 1;
   }

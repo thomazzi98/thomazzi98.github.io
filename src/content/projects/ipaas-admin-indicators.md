@@ -5,7 +5,7 @@ kind: case-study
 status: in-production
 period: { start: '2023-09', end: '2024-01' }
 role: sky-one
-featured: 1
+featured: 2
 stack: [nodejs, typescript, express, mongodb, redis, jest, openapi, docker]
 confidentiality: The source is private. Described from memory and my own commit history; no code is reproduced.
 evidence:

@@ -34,3 +34,11 @@ describe('markdownToPlainText', () => {
     expect(markdownToPlainText(markdown, 78)).toBe('Reads the execution-reference collection.');
   });
 });
+
+describe('markdownToPlainText headings', () => {
+  it('renders any heading level as an uppercase label', () => {
+    expect(markdownToPlainText('#### Responsibilities\n\nOwned.')).toBe(
+      'RESPONSIBILITIES\n\nOwned.',
+    );
+  });
+});

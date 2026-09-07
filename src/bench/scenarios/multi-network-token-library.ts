@@ -22,7 +22,6 @@ export interface Call {
 export interface State {
   registered: Network[];
   calls: Call[];
-  coreLinesChanged: number;
   nextId: number;
 }
 
@@ -88,7 +87,7 @@ const networkLatency = (network: Network, context: StepContext<Event>): number =
 const resultFor = (reading: Reading, network: Network, context: StepContext<Event>): string => {
   if (network === 'bitcoin') {
     return reading === 'total-supply'
-      ? '19,7 M issued, read from the chain'
+      ? '19.7 M issued, read from the chain'
       : 'UTXO sum for the address';
   }
   const supply = Math.round(context.random.between(1_000_000, 90_000_000));
@@ -186,7 +185,6 @@ export const scenario: Scenario<State, Event, Levers> = {
   initialState: () => ({
     registered: ['ethereum', 'polygon', 'bitcoin'],
     calls: [],
-    coreLinesChanged: 0,
     nextId: 1,
   }),
   boot: () => undefined,
@@ -200,6 +198,13 @@ export const scenario: Scenario<State, Event, Levers> = {
         return register(state, context);
     }
   },
+};
+
+const libraryTone = (lastCall: Call | undefined): Tone => {
+  if (lastCall === undefined) {
+    return 'neutral';
+  }
+  return lastCall.tone === 'refused' ? 'fault' : 'ok';
 };
 
 const stationTone = (state: State, network: Network): Tone =>
@@ -219,7 +224,7 @@ export const present: Presenter<State, Levers> = (state, levers) => {
   return {
     headline,
     stations: {
-      registry: { badge: `${String(state.registered.length)} networks`, tone: 'ok' },
+      registry: { badge: `${String(state.registered.length)} networks · core v1`, tone: 'ok' },
       ethereum: { tone: stationTone(state, 'ethereum') },
       polygon: { tone: stationTone(state, 'polygon') },
       bitcoin: { tone: stationTone(state, 'bitcoin') },
@@ -227,18 +232,11 @@ export const present: Presenter<State, Levers> = (state, levers) => {
         tone: stationTone(state, 'bnb'),
         badge: state.registered.includes('bnb') ? 'registered' : undefined,
       },
-      library: { tone: lastCall?.tone === 'refused' ? 'fault' : 'ok' },
+      library: {
+        tone: libraryTone(lastCall),
+      },
     },
     meters: [
-      {
-        id: 'core',
-        label: 'Lines changed in the core to add a network',
-        value: state.coreLinesChanged,
-        maximum: 10,
-        unit: 'lines',
-        tone: 'ok',
-        caption: '0, by design',
-      },
       {
         id: 'networks',
         label: 'Networks registered',
@@ -294,3 +292,6 @@ export const actionEvent = (actionId: string): Event | undefined => {
   }
   return undefined;
 };
+
+export const invitation =
+  'Ask totalSupply on Polygon, then on Bitcoin, which has no contracts. Name BNB Chain before it is registered, register it, and ask again.';

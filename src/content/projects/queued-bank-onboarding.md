@@ -5,7 +5,7 @@ kind: case-study
 status: in-production
 period: { start: '2021-05', end: '2021-10' }
 role: eight-assets
-featured: 2
+featured: 1
 stack: [nodejs, typescript, express, sequelize, mysql, bullmq, redis, jest]
 confidentiality: Private repository. Described from my own commits; the provider is not named.
 evidence:
@@ -49,9 +49,10 @@ Persist a registration row (payload, status, provider response, status code) at 
 its id on a BullMQ queue backed by the existing Redis, and process it in a separate worker. The
 worker loads the row, calls the provider and stores the response. It throws only when the provider
 answered with a 5xx, so BullMQ's retry and backoff apply to server faults and never to client
-faults: a 4xx is recorded as processed and surfaced to support. Two admin routes re-queue one
-registration or every pending or failed one. A re-queue of a row already marked processed is
-refused. A queue dashboard is mounted under the admin routes.
+faults: a 4xx is recorded with the provider's answer, not retried, and surfaced to support. Two
+admin routes re-queue one registration or every failed one, for after the cause is fixed. A
+re-queue of a row already marked processed is refused. A queue dashboard is mounted under the
+admin routes.
 
 ## What it cost
 

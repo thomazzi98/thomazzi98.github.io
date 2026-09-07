@@ -46,6 +46,7 @@ export const projectKinds = ['case-study', 'also-built'] as const;
 
 export const projectStatuses = [
   'in-production',
+  'delivered',
   'paused-by-client',
   'never-launched',
   'internal',

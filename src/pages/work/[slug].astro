@@ -7,6 +7,7 @@ import Base from '../../layouts/Base.astro';
 import { loadContent } from '../../lib/content';
 import { formatPeriod } from '../../lib/period';
 import { selectCaseStudies } from '../../lib/projects';
+import { statusLabels } from '../../lib/status';
 import { createTechnologyNameLookup } from '../../lib/technologies';
 
 export const getStaticPaths = (async () => {
@@ -24,7 +25,6 @@ const benchIndex = selectCaseStudies(projects).findIndex(
 );
 const benchNumber = benchIndex === -1 ? undefined : String(benchIndex + 1).padStart(2, '0');
 const scenario = isScenarioId(project.id) ? await loadScenario(project.id) : undefined;
-const statusLabel = project.data.status.replaceAll('-', ' ');
 const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No public artefact' };
 ---
 
@@ -33,8 +33,8 @@ const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No publi
     <header class="case__head">
       <p class="kicker">
         {benchNumber !== undefined && <span>Bench {benchNumber} · </span>}
-        <span>{statusLabel}</span>
-        <span> · {formatPeriod(project.data.period)}</span>
+        <span>{statusLabels[project.data.status]}</span>
+        <span> · built {formatPeriod(project.data.period)}</span>
         {companyOf(project) !== undefined && <span> · {companyOf(project)}</span>}
       </p>
       <h1>{project.data.title}</h1>
@@ -47,6 +47,7 @@ const evidenceLabel = { repo: 'Repository', company: 'Employer', none: 'No publi
           <h2 id="bench-title" class="kicker">
             Pull the lever, then read why
           </h2>
+          <p class="case__invite muted">{scenario.invitation}</p>
           <BenchFrame
             id={project.id}
             module={scenario}

@@ -4,6 +4,7 @@ export type ProjectStatus = (typeof projectStatuses)[number];
 
 export const statusLabels: Record<ProjectStatus, string> = {
   'in-production': 'In production',
+  delivered: 'Delivered',
   'paused-by-client': 'Paused by client',
   'never-launched': 'Never launched',
   internal: 'Internal',
