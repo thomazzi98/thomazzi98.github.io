@@ -1,0 +1,42 @@
+[
+  {
+    "id": "off-the-request-path",
+    "claim": "Slow or unreliable third-party calls do not run inside a request.",
+    "backedBy": ["queued-bank-onboarding"]
+  },
+  {
+    "id": "retry-server-faults",
+    "claim": "Retry server faults. Record client faults.",
+    "backedBy": ["queued-bank-onboarding"]
+  },
+  {
+    "id": "code-off-the-chain",
+    "claim": "Application code stays off the chain.",
+    "backedBy": ["contract-backend-boundary", "design-contest-backend"]
+  },
+  {
+    "id": "read-models",
+    "claim": "Reports read a read model, not the collection the workers write.",
+    "backedBy": ["ipaas-admin-indicators"]
+  },
+  {
+    "id": "atomic-updates",
+    "claim": "Counters change by an atomic update, never read-modify-write.",
+    "backedBy": ["design-contest-backend"]
+  },
+  {
+    "id": "one-core-many-networks",
+    "claim": "A new network plugs into the registry. The core does not change.",
+    "backedBy": ["multi-network-token-library"]
+  },
+  {
+    "id": "real-dependencies",
+    "claim": "Local development runs the real dependencies.",
+    "backedBy": ["design-contest-backend", "mtls-poc"]
+  },
+  {
+    "id": "reproduce-first",
+    "claim": "Reproduce a failure before fixing it.",
+    "backedBy": ["mtls-poc", "mock-endpoint"]
+  }
+]

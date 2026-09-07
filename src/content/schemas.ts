@@ -91,3 +91,9 @@ export const educationSchema = z.object({
   field: z.string().min(1),
   year: z.number().int().min(1990).max(2100),
 });
+
+export const practiceSchema = z.object({
+  id: z.string().min(1),
+  claim: z.string().min(1),
+  backedBy: z.array(reference('projects')).min(1),
+});
