@@ -16,6 +16,7 @@ export const scenarioIds = [
   'design-contest-backend',
   'ipaas-admin-indicators',
   'contract-backend-boundary',
+  'multi-network-token-library',
 ] as const;
 
 export type ScenarioId = (typeof scenarioIds)[number];
@@ -29,6 +30,8 @@ const loaders: Record<ScenarioId, () => Promise<ScenarioModule>> = {
     import('./ipaas-admin-indicators').then((module) => module as unknown as ScenarioModule),
   'contract-backend-boundary': () =>
     import('./contract-backend-boundary').then((module) => module as unknown as ScenarioModule),
+  'multi-network-token-library': () =>
+    import('./multi-network-token-library').then((module) => module as unknown as ScenarioModule),
 };
 
 export const isScenarioId = (candidate: string): candidate is ScenarioId =>
