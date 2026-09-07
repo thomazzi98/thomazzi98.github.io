@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  type HastNode,
-  rehypeDropNestedHeadingIds,
-  rehypeWrapDiagrams,
-} from '../../src/lib/rehype';
+import { type HastNode, rehypeDropNestedHeadingIds } from '../../src/lib/rehype';
 
 const element = (
   tagName: string,
@@ -23,21 +19,5 @@ describe('rehypeDropNestedHeadingIds', () => {
     rehypeDropNestedHeadingIds()(tree);
     expect(tree.children?.[0]?.properties).toEqual({ id: 'context' });
     expect(tree.children?.[1]?.children?.map((child) => child.properties)).toEqual([{}, {}]);
-  });
-});
-
-describe('rehypeWrapDiagrams', () => {
-  it('wraps a Mermaid svg in a figure and leaves other svgs alone', () => {
-    const diagram = element('svg', { ariaRoledescription: 'flowchart-v2' });
-    const icon = element('svg', { className: ['icon'] });
-    const tree: HastNode = { type: 'root', children: [element('p', {}, [icon]), diagram] };
-    rehypeWrapDiagrams()(tree);
-    expect(tree.children?.[1]).toEqual({
-      type: 'element',
-      tagName: 'figure',
-      properties: { className: ['diagram'] },
-      children: [diagram],
-    });
-    expect(tree.children?.[0]?.children?.[0]).toBe(icon);
   });
 });

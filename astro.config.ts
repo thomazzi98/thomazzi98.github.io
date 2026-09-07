@@ -1,15 +1,7 @@
 import { rehypeHeadingIds, unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig, fontProviders, passthroughImageService } from 'astro/config';
-import rehypeMermaid from 'rehype-mermaid';
-import { rehypeDropNestedHeadingIds, rehypeWrapDiagrams } from './src/lib/rehype';
-
-const mermaidConfig = {
-  theme: 'neutral',
-  look: 'classic',
-  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-  flowchart: { htmlLabels: false, curve: 'linear' },
-};
+import { rehypeDropNestedHeadingIds } from './src/lib/rehype';
 
 export default defineConfig({
   site: 'https://thomazzi98.github.io',
@@ -18,14 +10,8 @@ export default defineConfig({
   integrations: [sitemap()],
   markdown: {
     processor: unified(),
-    syntaxHighlight: { type: 'shiki', excludeLangs: ['mermaid'] },
     shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
-    rehypePlugins: [
-      [rehypeMermaid, { strategy: 'inline-svg', mermaidConfig }],
-      rehypeWrapDiagrams,
-      rehypeHeadingIds,
-      rehypeDropNestedHeadingIds,
-    ],
+    rehypePlugins: [rehypeHeadingIds, rehypeDropNestedHeadingIds],
   },
   fonts: [
     {

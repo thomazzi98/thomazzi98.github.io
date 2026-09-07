@@ -24,3 +24,4 @@ the workflow and the latest run; the footer shows the commit and build date.
 - No coverage number or test count is published anywhere.
 - Security software that injects scripts into pages will fail the script budget on a developer
   machine. CI runs on a clean runner, which is where the gate matters.
+- Superseded in part by decision 0005: the script budget is a size, no longer zero.
