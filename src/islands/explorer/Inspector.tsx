@@ -9,6 +9,7 @@ interface InspectorProps {
   readonly edges: readonly SystemEdge[];
   readonly selection: Selection | undefined;
   readonly onSelect: (selection: Selection | undefined) => void;
+  readonly technologyNames?: Readonly<Record<string, string>>;
 }
 
 const EvidenceList = ({
@@ -42,7 +43,14 @@ const Field = ({ label, value }: { label: string; value: string | undefined }) =
   );
 };
 
-export const Inspector = ({ repository, nodes, edges, selection, onSelect }: InspectorProps) => {
+export const Inspector = ({
+  repository,
+  nodes,
+  edges,
+  selection,
+  onSelect,
+  technologyNames = {},
+}: InspectorProps) => {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const nodeLabel = (id: string) => nodeById.get(id)?.label ?? id;
 
@@ -112,7 +120,9 @@ export const Inspector = ({ repository, nodes, edges, selection, onSelect }: Ins
       <h3 class="inspector__title">{node.label}</h3>
       <p>{node.purpose}</p>
       {node.technologies.length > 0 && (
-        <p class="inspector__technologies mono">{node.technologies.join(' · ')}</p>
+        <p class="inspector__technologies mono">
+          {node.technologies.map((id) => technologyNames[id] ?? id).join(' · ')}
+        </p>
       )}
       {node.notes.length > 0 && (
         <ul class="inspector__notes">

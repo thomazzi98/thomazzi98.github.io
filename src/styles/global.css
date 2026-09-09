@@ -341,6 +341,11 @@
 
   .section {
     margin-block: var(--space-8);
+    scroll-margin-top: 4rem;
+  }
+
+  [id] {
+    scroll-margin-top: 4rem;
   }
 
   .section__head {

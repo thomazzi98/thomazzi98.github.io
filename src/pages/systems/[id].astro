@@ -3,6 +3,7 @@ import type { GetStaticPaths } from 'astro';
 import FlowStage from '../../components/FlowStage.astro';
 import FragmentBlock from '../../components/FragmentBlock.astro';
 import { SystemExplorer } from '../../islands/explorer/SystemExplorer';
+import { StateMachineExplorer } from '../../islands/state/StateMachineExplorer';
 import Base from '../../layouts/Base.astro';
 import { loadContent } from '../../lib/content';
 import { createTechnologyNameLookup } from '../../lib/technologies';
@@ -14,7 +15,7 @@ import {
   repositoryUrl,
   shortCommit,
 } from '../../systems/evidence';
-import type { Evidence, Flow, Status } from '../../systems/schema';
+import type { Evidence, Flow } from '../../systems/schema';
 
 export const getStaticPaths = (() =>
   systems.map((system) => ({
@@ -26,6 +27,9 @@ const { system } = Astro.props;
 const { repository } = system;
 const { technologies } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
+const technologyNames = Object.fromEntries(
+  technologies.map((technology) => [technology.id, technology.data.name]),
+);
 const cite = (evidence: Evidence) => ({
   href: evidenceUrl(repository, evidence),
   label: evidenceLabel(evidence),
@@ -38,12 +42,6 @@ const securityFlows = flowsOfKind('security');
 const maturityTone = { validated: 'ok', complete: 'ok', 'in-progress': 'wait' }[
   system.maturity.label
 ];
-const statusTone = (status: Status): 'neutral' | 'ok' | 'wait' => {
-  if (status.terminal) {
-    return 'neutral';
-  }
-  return status.funded === true ? 'ok' : 'wait';
-};
 const sourceSchema = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareSourceCode',
@@ -140,6 +138,7 @@ const sourceSchema = {
       repository={repository}
       nodes={system.nodes}
       edges={system.edges}
+      technologyNames={technologyNames}
     />
     <div class="stack">
       <p class="kicker">Technology in context</p>
@@ -191,37 +190,7 @@ const sourceSchema = {
                 </span>
               </div>
               <div class="panel__body machine__body">
-                <ul class="machine__statuses">
-                  {machine.statuses.map((status) => (
-                    <li class="badge" data-tone={statusTone(status)}>
-                      {status.id}
-                      {status.terminal ? ' · terminal' : ''}
-                    </li>
-                  ))}
-                </ul>
-                <div class="machine__scroll">
-                  <table class="machine__table">
-                    <caption class="sr-only">Transitions of {machine.name}</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">From</th>
-                        <th scope="col">To</th>
-                        <th scope="col">Trigger</th>
-                        <th scope="col">Guard</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {machine.transitions.map((transition) => (
-                        <tr>
-                          <td class="mono">{transition.from}</td>
-                          <td class="mono">{transition.to}</td>
-                          <td class="mono">{transition.trigger}</td>
-                          <td>{transition.guard ?? ''}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <StateMachineExplorer client:visible machine={machine} />
                 {machine.notes.length > 0 && (
                   <ul class="machine__notes">
                     {machine.notes.map((note) => (

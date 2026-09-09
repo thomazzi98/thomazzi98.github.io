@@ -14,6 +14,7 @@ export interface SystemExplorerProps {
   readonly repository: Repository;
   readonly nodes: readonly SystemNode[];
   readonly edges: readonly SystemEdge[];
+  readonly technologyNames?: Readonly<Record<string, string>>;
 }
 
 const narrowQuery = '(max-width: 48rem)';
@@ -25,6 +26,7 @@ export const SystemExplorer = ({
   repository,
   nodes,
   edges,
+  technologyNames = {},
 }: SystemExplorerProps) => {
   const selection = useSignal<Selection | undefined>(undefined);
   const narrow = useMediaQuery(narrowQuery);
@@ -32,6 +34,21 @@ export const SystemExplorer = ({
   const select = (next: Selection | undefined) => {
     selection.value = next;
   };
+
+  useEffect(() => {
+    const match = /^#(node|edge)-(.+)$/.exec(window.location.hash);
+    if (match === null) {
+      return;
+    }
+    const kind = match[1] === 'edge' ? 'edge' : 'node';
+    const id = decodeURIComponent(match[2] ?? '');
+    const exists =
+      kind === 'node' ? nodes.some((node) => node.id === id) : edges.some((edge) => edge.id === id);
+    if (exists) {
+      selection.value = { kind, id };
+    }
+    // The hash is read once, when the island mounts.
+  }, []);
 
   useEffect(() => {
     const dialog = dialogReference.current;
@@ -56,6 +73,7 @@ export const SystemExplorer = ({
       edges={edges}
       selection={selection.value}
       onSelect={select}
+      technologyNames={technologyNames}
     />
   );
 

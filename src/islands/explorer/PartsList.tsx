@@ -13,7 +13,7 @@ export const PartsList = ({ nodes, selection, onSelect }: PartsListProps) => (
     {nodes.map((node, index) => {
       const pressed = selection?.kind === 'node' && selection.id === node.id;
       return (
-        <li key={node.id} class="parts__row">
+        <li key={node.id} id={`node-${node.id}`} class="parts__row">
           <button
             type="button"
             class="parts__item"
