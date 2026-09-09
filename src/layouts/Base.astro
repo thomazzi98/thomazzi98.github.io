@@ -1,5 +1,6 @@
 ---
 import { Font } from 'astro:assets';
+import { CommandPalette } from '../islands/palette/CommandPalette';
 import { buildInfo } from '../lib/build-info';
 import { identity } from '../lib/identity';
 import '../styles/global.css';
@@ -67,6 +68,7 @@ const currentState = (href: string): 'page' | 'true' | undefined => {
             ))
           }
         </nav>
+        <CommandPalette client:idle />
       </div>
     </header>
     <main id="main" tabindex="-1" class="shell">

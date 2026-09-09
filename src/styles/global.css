@@ -8,6 +8,7 @@
 @import './architecture.css';
 @import './decisions.css';
 @import './about.css';
+@import './palette.css';
 
 @layer reset {
   *,
@@ -18,6 +19,11 @@
 
   * {
     margin: 0;
+  }
+
+  /* Components set display on their controls, so the attribute needs to win over them. */
+  [hidden] {
+    display: none !important;
   }
 
   html {
