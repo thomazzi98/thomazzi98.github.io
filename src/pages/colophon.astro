@@ -1,7 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
 import lighthouseConfig from '../../lighthouserc.json';
-import { scenarioIds } from '../bench/scenarios';
 import Base from '../layouts/Base.astro';
 import { readBudgets } from '../lib/budgets';
 import { buildInfo } from '../lib/build-info';
@@ -20,43 +19,13 @@ const workflow = `${repository}/actions/workflows/ci.yml`;
 
 <Base
   title="Colophon · Rafael Thomazzi"
-  description="How this site is built and verified: the bench engine, the content model, the budgets the build enforces, and the decisions behind them."
+  description="How this site is built and verified: the content model, the budgets the build enforces, and the decisions behind them."
 >
   <section class="page-head">
     <h1>How this is made</h1>
     <p class="measure muted">
-      A static site whose interactive parts are a small deterministic simulation engine. Everything
-      below is verifiable from the <a href={repository}>repository</a>.
+      A static site. Everything below is verifiable from the <a href={repository}>repository</a>.
     </p>
-  </section>
-
-  <section class="section" aria-labelledby="engine-title">
-    <div class="section__head">
-      <h2 id="engine-title">The bench engine</h2>
-      <p class="kicker">{scenarioIds.length} scenarios · no runtime dependencies</p>
-    </div>
-    <div class="prose">
-      <p>
-        Each bench is a discrete-event simulation: a seeded random generator, a scheduler that
-        releases events by virtual time and then by insertion order, and a reducer per scenario that
-        turns an event into the next state and schedules what follows. Levers change future
-        behaviour without touching events already queued. The renderer advances virtual time by a
-        fixed amount every 120 ms beat and moves nothing between beats, so motion reads as a loom
-        rather than an animation.
-      </p>
-      <p>
-        The same engine runs at build time: every scenario has a scripted demonstration whose
-        transcript is printed for readers without JavaScript and served as JSON next to the page.
-        Under reduced motion nothing runs until Step is pressed, and every run is reproducible: the
-        console prints the seed, and a <code>?seed=</code> parameter replays it.
-      </p>
-      <p>
-        The drawings are laid out from the scenario graph at build, in both orientations, so a phone
-        gets a vertical schematic rather than a shrunken one. The client code is a custom element
-        that loads its scenario on demand and binds the simulation to markup that already exists,
-        which keeps each page well under the script budget below.
-      </p>
-    </div>
   </section>
 
   <section class="section" aria-labelledby="content-title">
@@ -69,8 +38,8 @@ const workflow = `${repository}/actions/workflows/ci.yml`;
         Roles, projects, education and practices are content collections validated with schemas.
         Technologies are a registry that roles and projects reference by id; a reference to an
         unknown id fails the build, and so does a registry entry that nothing references. A practice
-        must name the projects that back it. The resume, the llms.txt file, the stack page and the
-        cloth on the About page are projections of those files, computed once.
+        must name the projects that back it. The resume and the llms.txt file are projections of
+        those files, computed once.
       </p>
     </div>
   </section>

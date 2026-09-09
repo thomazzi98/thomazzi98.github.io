@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { scenarioIds } from '../bench/scenarios';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { renderLlmsText } from '../lib/llms-text';
@@ -26,7 +25,7 @@ export const GET: APIRoute = async ({ site }) => {
     work: selectCaseStudies(projects).map((project) => ({
       title: project.data.title,
       tagline: project.data.tagline,
-      url: new URL(`/work/${project.id}/`, siteUrl).href,
+      url: new URL(`/about/`, siteUrl).href,
       status: statusLabels[project.data.status],
     })),
     roles: [...roles].sort(compareByStartDescending).map((role) => ({
@@ -35,7 +34,6 @@ export const GET: APIRoute = async ({ site }) => {
       period: role.data.period,
     })),
     technologyGroups: groupTechnologyNames(technologies),
-    benches: scenarioIds.map((id) => ({ id, url: new URL(`/bench/${id}.json`, siteUrl).href })),
   });
 
   return new Response(text, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });

@@ -4,10 +4,7 @@
       "staticDistDir": "./dist",
       "url": [
         "http://localhost/index.html",
-        "http://localhost/work/index.html",
-        "http://localhost/work/queued-bank-onboarding/index.html",
         "http://localhost/about/index.html",
-        "http://localhost/stack/index.html",
         "http://localhost/colophon/index.html"
       ],
       "numberOfRuns": 3,

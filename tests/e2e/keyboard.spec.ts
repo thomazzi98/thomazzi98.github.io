@@ -12,14 +12,14 @@ test('the skip link is the first tab stop and moves focus to the main landmark',
 });
 
 test('primary navigation is reachable by keyboard and marks the current page', async ({ page }) => {
-  await page.goto('/work/');
+  await page.goto('/about/');
   const current = page.locator('nav[aria-label="Primary"] a[aria-current="page"]');
-  await expect(current).toHaveText('Work');
+  await expect(current).toHaveText('About');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Rafael Thomazzi' })).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Work' })).toBeFocused();
+  await expect(page.getByRole('link', { name: 'About' })).toBeFocused();
 });
 
 test('resume.txt and llms.txt are served as plain text', async ({ request }) => {

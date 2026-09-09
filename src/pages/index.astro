@@ -1,34 +1,28 @@
 ---
-import { describeDefinition } from '../bench/render/describe';
-import { loadScenario } from '../bench/scenarios';
-import BenchFrame from '../components/bench/BenchFrame.astro';
 import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
-import { isTiedToCaseStudy, sortPracticesByTie } from '../lib/practices';
-import { selectCaseStudies } from '../lib/projects';
-import { describeStatus } from '../lib/status';
 
-const openingId = 'queued-bank-onboarding';
-const { roles, projects, practices, roleOf } = await loadContent();
-const onboarding = await loadScenario(openingId);
-const caseStudies = selectCaseStudies(projects);
-const opening = caseStudies.find((project) => project.id === openingId);
-const openingIndex = caseStudies.findIndex((project) => project.id === openingId);
+const { roles } = await loadContent();
 const latestRole = [...roles].sort(compareByStartDescending)[0];
-const benchNumber = (index: number) => String(index + 1).padStart(2, '0');
-const orderedPractices = sortPracticesByTie(practices, caseStudies);
-const backs = (practiceId: string, projectId: string) =>
-  practices
-    .find((practice) => practice.id === practiceId)
-    ?.data.backedBy.some((reference) => reference.id === projectId) ?? false;
-const smallerBacking = (practice: (typeof practices)[number]) =>
-  practice.data.backedBy.filter(
-    (reference) => !caseStudies.some((project) => project.id === reference.id),
-  );
-const projectTitle = (id: string) =>
-  projects.find((project) => project.id === id)?.data.title ?? id;
+const repositories = [
+  {
+    name: 'cryptopay',
+    url: 'https://github.com/thomazzi98/cryptopay',
+    summary: 'Crypto payment processor with independent on-chain verification, built for Polygon.',
+  },
+  {
+    name: 'whatsapp-notification-platform',
+    url: 'https://github.com/thomazzi98/whatsapp-notification-platform',
+    summary: 'Multi-tenant WhatsApp notification delivery platform.',
+  },
+  {
+    name: 'mini-payment-gateway',
+    url: 'https://github.com/thomazzi98/mini-payment-gateway',
+    summary: 'API-first multi-tenant payment gateway with provider-agnostic Pix support.',
+  },
+];
 
 const personSchema = {
   '@context': 'https://schema.org',
@@ -69,107 +63,27 @@ const personSchema = {
     </p>
   </section>
 
-  <section class="opening" aria-labelledby="opening-title">
-    <div class="opening__lead">
-      <h2 id="opening-title" class="kicker">
-        Bench {benchNumber(openingIndex)} · {opening?.data.title ?? 'Queued bank onboarding'} · in production
-        from {opening?.data.period.start}
-      </h2>
-      <a href={`/work/${openingId}/`} class="mono">Read the decision →</a>
-    </div>
-    <p class="opening__invite">
-      This is a simulation of a design I shipped in 2021, running in your browser. Flip the bank
-      provider to 503 and watch sign-ups keep answering in milliseconds while the worker backs off.
-      Flip to 422 and watch the fault get recorded instead of retried. Then switch to what it
-      replaced.
-    </p>
-    <BenchFrame
-      id={openingId}
-      module={onboarding}
-      title="Queued bank onboarding"
-      description={describeDefinition(onboarding.definition)}
-      levers={{ traffic: 'steady' }}
-      autorun
-      announce
-    />
-  </section>
-
-  <section class="section" aria-labelledby="tie-up-title">
+  <section class="section" aria-labelledby="systems-title">
     <div class="section__head">
-      <h2 id="tie-up-title">How I work, tied to what backs it</h2>
-      <p class="kicker">Practices down, case studies across</p>
+      <h2 id="systems-title">Systems</h2>
+      <p class="kicker">Three public repositories</p>
     </div>
-    <div
-      class="tie-up"
-      style={`--cases: ${String(caseStudies.length)}`}
-      role="table"
-      aria-labelledby="tie-up-title"
-    >
-      <div role="row" style="display: contents">
-        <div class="tie-up__corner" role="columnheader"><span class="sr-only">Practice</span></div>
-        {
-          caseStudies.map((project, index) => (
-            <div class="tie-up__head" role="columnheader">
-              <a href={`/work/${project.id}/`} title={project.data.title}>
-                {benchNumber(index)}
-                <span class="sr-only"> · {project.data.title}</span>
-              </a>
-            </div>
-          ))
-        }
-      </div>
+    <ul class="repositories">
       {
-        orderedPractices.map((practice) => (
-          <div role="row" style="display: contents">
-            <div class="tie-up__claim" role="rowheader">
-              <span>{practice.data.claim}</span>
-              {smallerBacking(practice).length > 0 && (
-                <span class="tie-up__backing mono">
-                  {isTiedToCaseStudy(practice, caseStudies) ? 'also backed by' : 'backed by'}{' '}
-                  {smallerBacking(practice).map((reference, index) => (
-                    <>
-                      {index > 0 && ', '}
-                      <a href={`/work/${reference.id}/`}>{projectTitle(reference.id)}</a>
-                    </>
-                  ))}
-                </span>
-              )}
-            </div>
-            {caseStudies.map((project) => (
-              <div class="tie-up__cell" role="cell">
-                {backs(practice.id, project.id) ? (
-                  <a
-                    href={`/work/${project.id}/`}
-                    aria-label={`${practice.data.claim} Backed by ${project.data.title}.`}
-                  >
-                    <span class="tie-up__mark" aria-hidden="true" />
-                  </a>
-                ) : (
-                  <span class="tie-up__empty" aria-hidden="true" />
-                )}
-              </div>
-            ))}
-          </div>
-        ))
-      }
-    </div>
-    <ol class="tie-up__legend">
-      {
-        caseStudies.map((project, index) => (
+        repositories.map((repository) => (
           <li>
-            {benchNumber(index)} · <a href={`/work/${project.id}/`}>{project.data.title}</a>
-            <span class="muted">
-              {' · '}
-              {describeStatus(project.data.status, roleOf(project)?.data.period).toLowerCase()}
-            </span>
+            <a href={repository.url} class="mono">
+              thomazzi98/{repository.name}
+            </a>
+            <span class="muted"> · {repository.summary}</span>
           </li>
         ))
       }
-    </ol>
-    <p class="measure muted tie-up__after">
-      The <a href="/about/">whole cloth</a> weaves the career month by month from the same files that
-      generate this page. Reach me at <a href={`mailto:${identity.email}`}>{identity.email}</a>,
-      {identity.timezone}, {identity.availability}.
+    </ul>
+    <p class="measure muted">
+      Each repository carries its own README, decision records and test suites. Reach me at{' '}
+      <a href={`mailto:${identity.email}`}>{identity.email}</a>, {identity.timezone},{' '}
+      {identity.availability}.
     </p>
   </section>
 </Base>

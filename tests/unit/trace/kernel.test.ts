@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createRandom, seedFromText } from '../../../src/bench/core/random';
-import { createScheduler } from '../../../src/bench/core/scheduler';
-import { createSimulation, type Scenario } from '../../../src/bench/core/simulation';
+import { createRandom, seedFromText } from '../../../src/trace/kernel/random';
+import { createScheduler } from '../../../src/trace/kernel/scheduler';
+import { createSimulation, type Scenario } from '../../../src/trace/kernel/simulation';
 
 describe('createRandom', () => {
   it('is deterministic for a seed and different across seeds', () => {

@@ -8,9 +8,7 @@ const routes = readSitemapRoutes();
 
 test('the sitemap lists every page', () => {
   expect(routes).toContain('/');
-  expect(routes).toContain('/work/');
   expect(routes).toContain('/about/');
-  expect(routes).toContain('/stack/');
 });
 
 for (const route of routes) {

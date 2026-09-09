@@ -34,7 +34,7 @@ export const GET: APIRoute = async ({ site }) => {
     projects: selectCaseStudies(projects).map((project) => ({
       title: project.data.title,
       tagline: project.data.tagline,
-      url: new URL(`/work/${project.id}/`, siteUrl).href,
+      url: new URL(`/about/`, siteUrl).href,
     })),
     education: [...education]
       .sort((first, second) => second.data.year - first.data.year)
