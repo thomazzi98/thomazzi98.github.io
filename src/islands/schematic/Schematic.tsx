@@ -35,6 +35,12 @@ export interface SchematicProps {
 const isSelected = (selection: Selection | undefined, kind: Selection['kind'], id: string) =>
   selection?.kind === kind && selection.id === id;
 
+const labelLimit = 20;
+
+// The drawing truncates; the accessible name, the inspector and the parts list keep the full label.
+const drawnLabel = (label: string): string =>
+  label.length > labelLimit ? `${label.slice(0, labelLimit - 1).trimEnd()}…` : label;
+
 const keyToOffset: Readonly<Record<string, number>> = {
   ArrowRight: 1,
   ArrowDown: 1,
@@ -193,7 +199,7 @@ export const Schematic = ({
                 y={placed.y + placed.height / 2 - 3}
                 text-anchor="middle"
               >
-                {node.label}
+                {drawnLabel(node.label)}
               </text>
               <text
                 class="schematic__kind"

@@ -2,6 +2,7 @@
 @import './schematic.css';
 @import './player.css';
 @import './systems.css';
+@import './board.css';
 
 @layer reset, base, shell, primitives, page, utilities;
 

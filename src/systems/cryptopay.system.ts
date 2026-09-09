@@ -3034,4 +3034,5 @@ export const system = defineSystem({
       evidence: [lines(limitations, 138, 146)],
     },
   ],
+  boardFlow: 'detect-credit-notify',
 });

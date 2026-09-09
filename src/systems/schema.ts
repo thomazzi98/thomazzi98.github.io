@@ -214,6 +214,8 @@ export const systemSchema = z.object({
   verification: verificationSchema,
   security: z.array(securityControlSchema).default([]),
   limitations: z.array(limitationSchema).default([]),
+  // The flow the home page board replays for this system; its footprint is the board's drawing.
+  boardFlow: identifier.optional(),
 });
 
 export type Evidence = z.infer<typeof evidenceSchema>;

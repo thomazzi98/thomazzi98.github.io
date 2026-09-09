@@ -3144,4 +3144,5 @@ export const system = defineSystem({
       evidence: [cite('README.md', [245, 247]), cite(sessionRepository, [146, 154])],
     },
   ],
+  boardFlow: 'dispatch-and-send',
 });

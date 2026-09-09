@@ -1,0 +1,124 @@
+@layer page {
+  .board {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+  }
+
+  .board__rail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: var(--hairline) solid var(--rule);
+    background: var(--panel);
+  }
+
+  .board__clock {
+    min-width: 9ch;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .board__buttons {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .board__scrubber {
+    flex: 1 1 12rem;
+    display: flex;
+    align-items: center;
+    min-width: 8rem;
+  }
+
+  .board__scrubber input {
+    width: 100%;
+    height: 1.5rem;
+    margin: 0;
+    accent-color: var(--wait);
+    background: transparent;
+  }
+
+  .board__note {
+    flex-basis: 100%;
+  }
+
+  .board__panels {
+    display: grid;
+    gap: var(--hairline);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--rule);
+    border: var(--hairline) solid var(--rule);
+  }
+
+  @media (max-width: 60rem) {
+    .board__panels {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .board__panel {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-4);
+    background: var(--panel);
+  }
+
+  .board__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .board__name {
+    font-family: var(--font-display);
+    font-size: var(--size-lead);
+    line-height: var(--leading-snug);
+    text-decoration: none;
+  }
+
+  .board__name:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 0.12em;
+  }
+
+  .board__panel .schematic--vertical {
+    display: block;
+    max-width: 24rem;
+    margin-inline: auto;
+  }
+
+  .board__enter {
+    justify-self: start;
+  }
+
+  .board__ledger {
+    min-height: 0;
+  }
+
+  .board__ledger .ledger__lines {
+    max-height: 18rem;
+  }
+
+  .board__facts {
+    display: block;
+    overflow-x: auto;
+    margin-top: var(--space-6);
+  }
+
+  .board__facts tbody,
+  .board__facts thead {
+    min-width: 40rem;
+  }
+
+  .board__facts caption {
+    text-align: left;
+    padding-bottom: var(--space-2);
+  }
+}

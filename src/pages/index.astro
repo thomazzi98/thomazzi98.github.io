@@ -1,12 +1,50 @@
 ---
+import { SystemBoard, type BoardPanel } from '../islands/board/SystemBoard';
 import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { systems } from '../systems';
+import { boardOf } from '../systems/board';
+import { commitUrl, repositoryUrl, shortCommit } from '../systems/evidence';
+import type { Tone } from '../systems/schema';
 
 const { roles } = await loadContent();
 const latestRole = [...roles].sort(compareByStartDescending)[0];
+const maturityTone: Record<string, Tone> = {
+  validated: 'ok',
+  complete: 'ok',
+  'in-progress': 'wait',
+};
+const panels: BoardPanel[] = systems.flatMap((system) => {
+  const board = boardOf(system);
+  if (board === undefined) {
+    return [];
+  }
+  return [
+    {
+      systemId: system.id,
+      name: system.name,
+      shortName: system.shortName,
+      href: `/systems/${system.id}/`,
+      maturity: system.maturity.label.replace('-', ' '),
+      maturityTone: maturityTone[system.maturity.label] ?? 'neutral',
+      nodes: board.nodes.map(({ id, label, kind }) => ({ id, label, kind })),
+      edges: board.edges.map(({ id, from, to, label, protocol }) => ({
+        id,
+        from,
+        to,
+        label,
+        protocol,
+      })),
+      flow: {
+        ...board.flow,
+        assertedBy: [],
+        steps: board.flow.steps.map((step) => ({ ...step, evidence: [] })),
+      },
+    },
+  ];
+});
 
 const personSchema = {
   '@context': 'https://schema.org',
@@ -30,10 +68,10 @@ const personSchema = {
     />
   </Fragment>
 
-  <section class="hero">
+  <section class="hero" aria-labelledby="hero-name">
     <div>
       <p class="kicker">Backend engineer · payments, messaging and chain infrastructure</p>
-      <h1 class="hero__name">{identity.name}</h1>
+      <h1 id="hero-name" class="hero__name">{identity.name}</h1>
       <p class="hero__thesis">Systems that can say what happened, and prove it.</p>
     </div>
     <div class="hero__aside">
@@ -58,10 +96,54 @@ const personSchema = {
     </div>
   </section>
 
+  <section aria-labelledby="board-title">
+    <div class="section__head">
+      <h2 id="board-title">The board</h2>
+      <p class="kicker">
+        One flow per system replayed on one virtual clock · a simulation of the documented flows,
+        not live traffic
+      </p>
+    </div>
+    <SystemBoard client:load panels={panels} />
+    <table class="facts board__facts">
+      <caption class="kicker">Repository facts read from git at the pinned commit</caption>
+      <thead>
+        <tr>
+          <th scope="col">Repository</th>
+          <th scope="col">Pinned</th>
+          <th scope="col">Commits</th>
+          <th scope="col">Written</th>
+          <th scope="col">State</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          systems.map((system) => (
+            <tr>
+              <td>
+                <a href={repositoryUrl(system.repository)}>
+                  {system.repository.owner}/{system.repository.name}
+                </a>
+              </td>
+              <td>
+                <a href={commitUrl(system.repository)}>{shortCommit(system.repository)}</a>
+              </td>
+              <td>{system.repository.commitCount}</td>
+              <td>
+                {system.repository.firstCommitOn} → {system.repository.pinnedOn}
+              </td>
+              <td>{system.maturity.label.replace('-', ' ')}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </section>
+
   <section class="section" aria-labelledby="systems-title">
     <div class="section__head">
       <h2 id="systems-title">Systems</h2>
-      <p class="kicker">Three public repositories</p>
+      <p class="kicker">Three public repositories, each a case study</p>
     </div>
     <ul class="repositories">
       {

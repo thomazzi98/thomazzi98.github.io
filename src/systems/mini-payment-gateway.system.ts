@@ -3072,4 +3072,5 @@ export const system = defineSystem({
       evidence: [cite(rootPackage, [7, 7])],
     },
   ],
+  boardFlow: 'provider-outcome',
 });

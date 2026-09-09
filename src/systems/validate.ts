@@ -84,6 +84,13 @@ export const findSystemProblems = (system: SystemModel): string[] => {
     });
   }
 
+  if (
+    system.boardFlow !== undefined &&
+    !system.flows.some((flow) => flow.id === system.boardFlow)
+  ) {
+    problems.push(`board flow "${system.boardFlow}" is not one of the system's flows`);
+  }
+
   for (const machine of system.stateMachines) {
     const statusIds = new Set(machine.statuses.map((status) => status.id));
     const terminal = new Set(
