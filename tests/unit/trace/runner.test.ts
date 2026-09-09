@@ -6,10 +6,10 @@ import {
   runTranscript,
   selectSteps,
 } from '../../../src/trace/runner';
-import { fixtureSystem } from '../systems/fixture';
+import { firstOf, fixtureSystem } from '../systems/fixture';
 
 const system = defineSystem(fixtureSystem);
-const flow = system.flows[0];
+const flow = firstOf(system.flows);
 const endpoints = new Map(system.edges.map((edge) => [edge.id, { from: edge.from, to: edge.to }]));
 
 describe('selectSteps', () => {

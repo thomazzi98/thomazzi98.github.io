@@ -1,5 +1,6 @@
 @import './tokens.css';
 @import './schematic.css';
+@import './player.css';
 
 @layer reset, base, shell, primitives, page, utilities;
 

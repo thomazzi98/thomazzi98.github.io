@@ -1,7 +1,7 @@
 import { createRandom, type Random } from './random';
 import { createScheduler } from './scheduler';
 
-export type Tone = 'neutral' | 'ok' | 'pending' | 'fault' | 'refused';
+export type Tone = 'neutral' | 'ok' | 'wait' | 'fault' | 'unknown' | 'flight';
 
 export interface LogEntry {
   sequence: number;
