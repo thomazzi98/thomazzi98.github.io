@@ -1,0 +1,338 @@
+@layer page {
+  .schematic {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-sans);
+    overflow: visible;
+  }
+
+  .schematic--vertical {
+    display: none;
+  }
+
+  @media (max-width: 48rem) {
+    .schematic--horizontal {
+      display: none;
+    }
+
+    .schematic--vertical {
+      display: block;
+    }
+  }
+
+  .schematic text {
+    fill: var(--ink);
+    user-select: none;
+  }
+
+  .schematic__frame {
+    fill: var(--panel);
+    stroke: var(--ink);
+    stroke-width: 1.25;
+    transition: stroke var(--duration) ease;
+  }
+
+  .schematic__frame--actor {
+    stroke: none;
+    fill: transparent;
+  }
+
+  .schematic__detail {
+    fill: none;
+    stroke: var(--ink-muted);
+    stroke-width: 1;
+  }
+
+  .schematic__node {
+    cursor: pointer;
+    outline: none;
+  }
+
+  .schematic__node:focus-visible .schematic__frame,
+  .schematic__node:focus-visible .schematic__frame--actor {
+    stroke: var(--focus);
+    stroke-width: 2;
+  }
+
+  .schematic__node:hover .schematic__frame {
+    stroke: var(--ink);
+    stroke-width: 2;
+  }
+
+  .schematic__node[data-tone='ok'] .schematic__frame,
+  .schematic__node[data-tone='wait'] .schematic__frame,
+  .schematic__node[data-tone='fault'] .schematic__frame,
+  .schematic__node[data-tone='unknown'] .schematic__frame,
+  .schematic__node[data-tone='flight'] .schematic__frame {
+    stroke: var(--tone);
+    stroke-width: 2;
+  }
+
+  .schematic__ring {
+    fill: none;
+    stroke: var(--focus);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+  }
+
+  .schematic__label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .schematic__kind {
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    fill: var(--ink-muted);
+  }
+
+  .schematic__balloon circle {
+    fill: var(--ground);
+    stroke: var(--ink-muted);
+    stroke-width: 1;
+    transition: fill var(--duration) ease;
+  }
+
+  .schematic__balloon text {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    fill: var(--ink);
+  }
+
+  .schematic__node[data-tone] .schematic__balloon circle {
+    fill: var(--tone);
+    stroke: var(--tone);
+  }
+
+  .schematic__node[data-tone] .schematic__balloon text {
+    fill: var(--ground-ink);
+  }
+
+  .schematic__edge {
+    cursor: pointer;
+  }
+
+  .schematic__hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 14;
+  }
+
+  .schematic__wire {
+    fill: none;
+    stroke: var(--rule-strong);
+    stroke-width: 1.25;
+    transition:
+      stroke var(--duration) ease,
+      stroke-width var(--duration) ease;
+  }
+
+  .schematic__edge[data-protocol='orchestration'] .schematic__wire {
+    stroke-dasharray: 2 4;
+  }
+
+  .schematic__edge[data-protocol='webhook'] .schematic__wire {
+    stroke-dasharray: 6 3;
+  }
+
+  .schematic__edge[data-protocol='in-process'] .schematic__wire {
+    stroke-width: 0.75;
+  }
+
+  .schematic__edge:hover .schematic__wire,
+  .schematic__edge[data-touched] .schematic__wire {
+    stroke: var(--ink);
+  }
+
+  .schematic__edge[data-selected] .schematic__wire {
+    stroke: var(--focus);
+    stroke-width: 2;
+  }
+
+  .schematic__edge[data-active] .schematic__wire {
+    stroke: var(--flight);
+    stroke-width: 2;
+  }
+
+  .schematic__arrow {
+    fill: var(--rule-strong);
+  }
+
+  .schematic__edge:hover .schematic__arrow,
+  .schematic__edge[data-touched] .schematic__arrow,
+  .schematic__edge[data-selected] .schematic__arrow {
+    fill: var(--ink);
+  }
+
+  .schematic__tag {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    fill: var(--ink-muted);
+    paint-order: stroke;
+    stroke: var(--ground);
+    stroke-width: 4;
+    stroke-linejoin: round;
+    dominant-baseline: middle;
+  }
+
+  .schematic__packet {
+    fill: var(--tone, var(--flight));
+    stroke: var(--ground);
+    stroke-width: 1.5;
+  }
+
+  .explorer {
+    display: grid;
+    gap: var(--space-5) var(--space-6);
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+    grid-template-areas:
+      'drawing inspector'
+      'parts inspector';
+    align-items: start;
+  }
+
+  @media (max-width: 48rem) {
+    .explorer {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        'drawing'
+        'parts';
+    }
+  }
+
+  .explorer__drawing {
+    grid-area: drawing;
+    padding: var(--space-4);
+    border: var(--hairline) solid var(--rule);
+    background: var(--panel);
+  }
+
+  .explorer__inspector {
+    grid-area: inspector;
+    position: sticky;
+    top: var(--space-4);
+    padding: var(--space-4);
+    border: var(--hairline) solid var(--rule);
+    background: var(--panel);
+    font-size: var(--size-small);
+  }
+
+  .explorer__parts {
+    grid-area: parts;
+  }
+
+  .explorer__sheet {
+    width: min(100%, 40rem);
+    max-height: 80dvh;
+    margin: auto auto 0;
+    padding: var(--space-4);
+    border: var(--hairline) solid var(--rule);
+    border-bottom: 0;
+    background: var(--panel);
+    color: var(--ink);
+    font-size: var(--size-small);
+  }
+
+  .explorer__sheet::backdrop {
+    background: rgb(0 0 0 / 55%);
+  }
+
+  .explorer__close {
+    margin-top: var(--space-4);
+  }
+
+  .inspector > * + * {
+    margin-top: var(--space-3);
+  }
+
+  .inspector__title {
+    font-family: var(--font-display);
+    font-size: var(--size-lead);
+    font-weight: 400;
+  }
+
+  .inspector__fields {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .inspector__field dt {
+    font-family: var(--font-mono);
+    font-size: var(--size-micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .inspector__notes {
+    padding-left: 1.1em;
+    list-style: square;
+    color: var(--ink-muted);
+  }
+
+  .inspector__notes li + li,
+  .inspector__connections li + li,
+  .inspector__evidence li + li {
+    margin-top: var(--space-1);
+  }
+
+  .inspector__link {
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 0.18em;
+  }
+
+  .inspector__link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .inspector__technologies {
+    color: var(--ink-muted);
+  }
+
+  .parts {
+    display: grid;
+    gap: var(--hairline);
+    background: var(--rule);
+    border: var(--hairline) solid var(--rule);
+    margin-top: var(--space-2);
+  }
+
+  .parts__row {
+    background: var(--panel);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .parts__item {
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+    align-items: baseline;
+    width: 100%;
+    text-align: left;
+  }
+
+  .parts__item[aria-pressed='true'] .parts__label {
+    text-decoration: underline;
+    text-decoration-color: var(--focus);
+    text-underline-offset: 0.2em;
+  }
+
+  .parts__number {
+    color: var(--ink-muted);
+  }
+
+  .parts__label {
+    font-weight: 500;
+  }
+
+  .parts__purpose {
+    margin: var(--space-1) 0 0 calc(2.5rem + var(--space-3));
+    font-size: var(--size-small);
+  }
+}

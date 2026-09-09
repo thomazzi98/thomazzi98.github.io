@@ -13,6 +13,7 @@ export default getViteConfig({
         test: {
           name: 'component',
           environment: 'jsdom',
+          pool: 'threads',
           include: ['tests/component/**/*.test.tsx'],
         },
       },
