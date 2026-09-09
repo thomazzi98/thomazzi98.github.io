@@ -238,8 +238,29 @@
     "group": "shipped-with"
   },
   {
+    "id": "drizzle",
+    "name": "Drizzle ORM",
+    "category": "database",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "pg-boss",
+    "name": "pg-boss",
+    "category": "messaging",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
     "id": "fastify",
     "name": "Fastify",
+    "category": "framework",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "nestjs",
+    "name": "NestJS",
     "category": "framework",
     "firstUsed": 2026,
     "group": "shipped-with"
@@ -276,6 +297,20 @@
     "id": "playwright",
     "name": "Playwright",
     "category": "testing",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "caddy",
+    "name": "Caddy",
+    "category": "tooling",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "pnpm",
+    "name": "pnpm",
+    "category": "tooling",
     "firstUsed": 2026,
     "group": "shipped-with"
   }
