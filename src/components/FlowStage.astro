@@ -1,6 +1,7 @@
 ---
 import { FlowPlayer } from '../islands/player/FlowPlayer';
 import { formatClock } from '../islands/player/format';
+import { footprintOf } from '../systems/board';
 import { evidenceLabel, evidenceUrl } from '../systems/evidence';
 import type { Flow, SystemModel } from '../systems/schema';
 import { defaultLeverValues, runTranscript } from '../trace/runner';
@@ -13,14 +14,15 @@ interface Props {
 
 const { system, flows, autoplay = false } = Astro.props;
 const { repository } = system;
-const nodes = system.nodes.map(({ id, label, kind }) => ({ id, label, kind }));
-const edges = system.edges.map(({ id, from, to, label, protocol }) => ({
-  id,
-  from,
-  to,
-  label,
-  protocol,
-}));
+// A stage draws the parts its flows touch, not the whole system, so the path stays legible;
+// the architecture section is where the whole system is drawn.
+const footprint = new Set(flows.flatMap((flow) => [...footprintOf(system, flow)]));
+const nodes = system.nodes
+  .filter((node) => footprint.has(node.id))
+  .map(({ id, label, kind }) => ({ id, label, kind }));
+const edges = system.edges
+  .filter((edge) => footprint.has(edge.from) && footprint.has(edge.to))
+  .map(({ id, from, to, label, protocol }) => ({ id, from, to, label, protocol }));
 // The player needs the steps, not the citations behind them; those stay on the page.
 const playerFlows = flows.map((flow) => ({
   ...flow,
