@@ -1,0 +1,33 @@
+---
+import { Code } from 'astro:components';
+import { evidenceLabel, evidenceUrl } from '../systems/evidence';
+import { fragmentSource } from '../systems/fragments';
+import type { Fragment, Repository } from '../systems/schema';
+
+interface Props {
+  systemId: string;
+  repository: Repository;
+  fragment: Fragment;
+}
+
+const { systemId, repository, fragment } = Astro.props;
+const source = fragmentSource(systemId, fragment);
+if (source === undefined) {
+  throw new Error(`Fragment ${fragment.id} of ${systemId} has no source file.`);
+}
+const evidence = { path: fragment.path, lines: fragment.lines };
+const language = fragment.language === 'caddyfile' ? 'text' : fragment.language;
+---
+
+<figure class="fragment" id={`fragment-${fragment.id}`}>
+  <figcaption class="fragment__caption">
+    <span class="fragment__title">{fragment.title}</span>
+    <a class="evidence" href={evidenceUrl(repository, evidence)}>{evidenceLabel(evidence)}</a>
+  </figcaption>
+  <Code
+    code={source.replace(/\n$/, '')}
+    lang={language}
+    themes={{ light: 'github-light', dark: 'github-dark' }}
+  />
+  <p class="fragment__note">{fragment.demonstrates}</p>
+</figure>

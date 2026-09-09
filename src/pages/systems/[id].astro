@@ -1,0 +1,487 @@
+---
+import type { GetStaticPaths } from 'astro';
+import FlowStage from '../../components/FlowStage.astro';
+import FragmentBlock from '../../components/FragmentBlock.astro';
+import { SystemExplorer } from '../../islands/explorer/SystemExplorer';
+import Base from '../../layouts/Base.astro';
+import { loadContent } from '../../lib/content';
+import { createTechnologyNameLookup } from '../../lib/technologies';
+import { systems } from '../../systems';
+import {
+  commitUrl,
+  evidenceLabel,
+  evidenceUrl,
+  repositoryUrl,
+  shortCommit,
+} from '../../systems/evidence';
+import type { Evidence, Flow, Status } from '../../systems/schema';
+
+export const getStaticPaths = (() =>
+  systems.map((system) => ({
+    params: { id: system.id },
+    props: { system },
+  }))) satisfies GetStaticPaths;
+
+const { system } = Astro.props;
+const { repository } = system;
+const { technologies } = await loadContent();
+const technologyName = createTechnologyNameLookup(technologies);
+const cite = (evidence: Evidence) => ({
+  href: evidenceUrl(repository, evidence),
+  label: evidenceLabel(evidence),
+});
+const flowsOfKind = (...kinds: Flow['kind'][]) =>
+  system.flows.filter((flow) => kinds.includes(flow.kind));
+const pathFlows = flowsOfKind('request', 'asynchronous');
+const failureFlows = flowsOfKind('failure', 'recovery');
+const securityFlows = flowsOfKind('security');
+const maturityTone = { validated: 'ok', complete: 'ok', 'in-progress': 'wait' }[
+  system.maturity.label
+];
+const statusTone = (status: Status): 'neutral' | 'ok' | 'wait' => {
+  if (status.terminal) {
+    return 'neutral';
+  }
+  return status.funded === true ? 'ok' : 'wait';
+};
+const sourceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareSourceCode',
+  name: system.name,
+  description: system.tagline,
+  codeRepository: repositoryUrl(repository),
+  programmingLanguage: 'TypeScript',
+  runtimePlatform: repository.runtime,
+  author: { '@type': 'Person', name: 'Rafael Thomazzi' },
+  url: new URL(Astro.url.pathname, Astro.site).href,
+};
+---
+
+<Base title={`${system.name} · Rafael Thomazzi`} description={system.tagline}>
+  <Fragment slot="head">
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify(sourceSchema).replaceAll('<', '\\u003c')}
+    />
+  </Fragment>
+
+  <header class="system-head">
+    <p class="kicker">
+      System · <a href={repositoryUrl(repository)}>{repository.owner}/{repository.name}</a> · pinned{
+        ' '
+      }
+      <a href={commitUrl(repository)} class="mono">{shortCommit(repository)}</a>
+    </p>
+    <h1>{system.name}</h1>
+    <p class="hero__thesis">{system.thesis}</p>
+    <div class="system-head__facts">
+      <span class="badge" data-tone={maturityTone}>{system.maturity.label.replace('-', ' ')}</span>
+      <span class="kicker"
+        >{repository.commitCount} commits · {repository.firstCommitOn} → {repository.pinnedOn}</span
+      >
+      <span class="kicker">{repository.runtime} · {repository.packageManager}</span>
+    </div>
+  </header>
+
+  <nav class="system-nav" aria-label="Sections">
+    <a href="#problem">Problem</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#flows">Flows</a>
+    <a href="#state">State</a>
+    <a href="#failure">Failure handling</a>
+    <a href="#security">Security</a>
+    <a href="#verification">Verification</a>
+    <a href="#decisions">Decisions</a>
+    <a href="#code">Code</a>
+    <a href="#source">Source</a>
+  </nav>
+
+  <section class="section" id="problem" aria-labelledby="problem-title">
+    <div class="section__head">
+      <h2 id="problem-title">The problem</h2>
+      <p class="kicker">Why it exists</p>
+    </div>
+    <div class="prose">
+      {system.problem.map((paragraph) => <p>{paragraph}</p>)}
+    </div>
+    <div class="panel maturity">
+      <div class="panel__head">
+        <strong>Where it stands</strong><span>at {shortCommit(repository)}</span>
+      </div>
+      <div class="panel__body">
+        <p>{system.maturity.statement}</p>
+        <p class="evidence">
+          {
+            system.maturity.evidence.map((entry, index) => (
+              <>
+                {index > 0 && ' · '}
+                <a href={cite(entry).href}>{cite(entry).label}</a>
+              </>
+            ))
+          }
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="architecture" aria-labelledby="architecture-title">
+    <div class="section__head">
+      <h2 id="architecture-title">Architecture</h2>
+      <p class="kicker">
+        {system.nodes.length} parts · {system.edges.length} connections · select any to inspect
+      </p>
+    </div>
+    <SystemExplorer
+      client:visible
+      systemId={system.id}
+      title={`${system.name} architecture`}
+      description={system.tagline}
+      repository={repository}
+      nodes={system.nodes}
+      edges={system.edges}
+    />
+    <div class="stack">
+      <p class="kicker">Technology in context</p>
+      <dl class="stack__list">
+        {
+          system.stack.map((entry) => (
+            <div class="stack__entry">
+              <dt>{technologyName({ id: entry.technology })}</dt>
+              <dd>
+                {entry.role}{' '}
+                <span class="evidence">
+                  {entry.evidence.map((item, index) => (
+                    <>
+                      {index > 0 && ' · '}
+                      <a href={cite(item).href}>{cite(item).label}</a>
+                    </>
+                  ))}
+                </span>
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+  </section>
+
+  <section class="section" id="flows" aria-labelledby="flows-title">
+    <div class="section__head">
+      <h2 id="flows-title">How a request travels</h2>
+      <p class="kicker">Replays of the documented flows · simulation, not live traffic</p>
+    </div>
+    <FlowStage system={system} flows={pathFlows} autoplay />
+  </section>
+
+  {
+    system.stateMachines.length > 0 && (
+      <section class="section" id="state" aria-labelledby="state-title">
+        <div class="section__head">
+          <h2 id="state-title">Data and state</h2>
+          <p class="kicker">Lifecycles copied from the tables the code enforces</p>
+        </div>
+        <div class="machines">
+          {system.stateMachines.map((machine) => (
+            <article class="panel machine" aria-labelledby={`machine-${machine.id}`}>
+              <div class="panel__head">
+                <strong id={`machine-${machine.id}`}>{machine.name}</strong>
+                <span>
+                  {machine.statuses.length} statuses · {machine.transitions.length} transitions
+                </span>
+              </div>
+              <div class="panel__body machine__body">
+                <ul class="machine__statuses">
+                  {machine.statuses.map((status) => (
+                    <li class="badge" data-tone={statusTone(status)}>
+                      {status.id}
+                      {status.terminal ? ' · terminal' : ''}
+                    </li>
+                  ))}
+                </ul>
+                <div class="machine__scroll">
+                  <table class="machine__table">
+                    <caption class="sr-only">Transitions of {machine.name}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">From</th>
+                        <th scope="col">To</th>
+                        <th scope="col">Trigger</th>
+                        <th scope="col">Guard</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {machine.transitions.map((transition) => (
+                        <tr>
+                          <td class="mono">{transition.from}</td>
+                          <td class="mono">{transition.to}</td>
+                          <td class="mono">{transition.trigger}</td>
+                          <td>{transition.guard ?? ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {machine.notes.length > 0 && (
+                  <ul class="machine__notes">
+                    {machine.notes.map((note) => (
+                      <li>{note}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <p class="panel__foot">
+                {machine.evidence.map((entry, index) => (
+                  <>
+                    {index > 0 && ' · '}
+                    <a href={cite(entry).href}>{cite(entry).label}</a>
+                  </>
+                ))}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    failureFlows.length > 0 && (
+      <section class="section" id="failure" aria-labelledby="failure-title">
+        <div class="section__head">
+          <h2 id="failure-title">Failure handling</h2>
+          <p class="kicker">Pull a lever and watch the design answer</p>
+        </div>
+        <FlowStage system={system} flows={failureFlows} />
+      </section>
+    )
+  }
+
+  <section class="section" id="security" aria-labelledby="security-title">
+    <div class="section__head">
+      <h2 id="security-title">Security boundaries</h2>
+      <p class="kicker">Each concern names its control and the code that holds it</p>
+    </div>
+    <dl class="controls">
+      {
+        system.security.map((control) => (
+          <div class="controls__entry">
+            <dt>{control.concern}</dt>
+            <dd>
+              {control.control}{' '}
+              <span class="evidence">
+                {control.evidence.map((entry, index) => (
+                  <>
+                    {index > 0 && ' · '}
+                    <a href={cite(entry).href}>{cite(entry).label}</a>
+                  </>
+                ))}
+              </span>
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+    {securityFlows.length > 0 && <FlowStage system={system} flows={securityFlows} />}
+  </section>
+
+  <section class="section" id="verification" aria-labelledby="verification-title">
+    <div class="section__head">
+      <h2 id="verification-title">How it is verified</h2>
+      <p class="kicker">Tests, checks and the pipeline that runs them</p>
+    </div>
+    <div class="layers">
+      {
+        system.verification.layers.map((layer) => (
+          <article class="panel">
+            <div class="panel__head">
+              <>
+                <strong>{layer.name}</strong>
+                <span>{layer.tool}</span>
+              </>
+            </div>
+            <div class="panel__body">
+              <p>{layer.proves}</p>
+              <ul class="layers__examples">
+                {layer.examples.map((example) => (
+                  <li>
+                    <a class="evidence" href={evidenceUrl(repository, { path: example.path })}>
+                      {example.path}
+                    </a>
+                    <span class="muted"> {example.proves}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+    {
+      system.verification.checks.length > 0 && (
+        <table class="checks">
+          <caption class="kicker">Checks the repository runs on itself</caption>
+          <thead>
+            <tr>
+              <>
+                <th scope="col">Command</th>
+                <th scope="col">Refuses</th>
+              </>
+            </tr>
+          </thead>
+          <tbody>
+            {system.verification.checks.map((check) => (
+              <tr>
+                <td class="mono">{check.command}</td>
+                <td>{check.refuses}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+    {
+      system.verification.pipeline.length > 0 && (
+        <ol class="pipeline">
+          {system.verification.pipeline.map((stage, index) => (
+            <li>
+              <span class="pipeline__number mono">{String(index + 1).padStart(2, '0')}</span>
+              <span>
+                <strong>{stage.name}</strong> <span class="muted">{stage.detail}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )
+    }
+    <p class="evidence">
+      {
+        system.verification.evidence.map((entry, index) => (
+          <>
+            {index > 0 && ' · '}
+            <a href={cite(entry).href}>{cite(entry).label}</a>
+          </>
+        ))
+      }
+    </p>
+  </section>
+
+  <section class="section" id="decisions" aria-labelledby="decisions-title">
+    <div class="section__head">
+      <h2 id="decisions-title">Decisions</h2>
+      <p class="kicker">What was chosen, what was refused, what it costs</p>
+    </div>
+    <div class="decisions">
+      {
+        system.decisions.map((decision) => (
+          <article class="decision" id={`decision-${decision.id}`}>
+            <h3>{decision.title}</h3>
+            <p class="kicker">{decision.themes.join(' · ')}</p>
+            <div class="prose">
+              <p>{decision.decision}</p>
+              {decision.alternatives.length > 0 && (
+                <p>
+                  <span class="muted">Refused:</span> {decision.alternatives.join('; ')}.
+                </p>
+              )}
+              <p>
+                <span class="muted">Cost:</span> {decision.cost}
+              </p>
+            </div>
+            <p class="evidence">
+              {decision.evidence.map((entry, index) => (
+                <>
+                  {index > 0 && ' · '}
+                  <a href={cite(entry).href}>{cite(entry).label}</a>
+                </>
+              ))}
+            </p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section" id="code" aria-labelledby="code-title">
+    <div class="section__head">
+      <h2 id="code-title">Code as evidence</h2>
+      <p class="kicker">Copied from the pinned commit and compared byte for byte in CI</p>
+    </div>
+    <div class="fragments">
+      {
+        system.fragments.map((fragment) => (
+          <FragmentBlock systemId={system.id} repository={repository} fragment={fragment} />
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section" id="source" aria-labelledby="source-title">
+    <div class="section__head">
+      <h2 id="source-title">Source</h2>
+      <p class="kicker">Read it at the commit this page describes</p>
+    </div>
+    <table class="facts">
+      <caption class="sr-only">Repository facts read from git</caption>
+      <tbody>
+        <tr
+          ><th scope="row">Repository</th><td
+            ><a href={repositoryUrl(repository)}>github.com/{repository.owner}/{repository.name}</a
+            ></td
+          ></tr
+        >
+        <tr
+          ><th scope="row">Pinned commit</th><td
+            ><a href={commitUrl(repository)}>{repository.pinnedCommit}</a></td
+          ></tr
+        >
+        <tr
+          ><th scope="row">Commits</th><td
+            >{repository.commitCount}, from {repository.firstCommitOn} to {repository.pinnedOn}</td
+          ></tr
+        >
+        <tr
+          ><th scope="row">Runtime</th><td>{repository.runtime} · {repository.packageManager}</td
+          ></tr
+        >
+        {
+          repository.license !== undefined && (
+            <tr>
+              <>
+                <th scope="row">License</th>
+                <td>{repository.license}</td>
+              </>
+            </tr>
+          )
+        }
+        <tr
+          ><th scope="row">This page as data</th><td
+            ><a href={`/systems/${system.id}.json`} class="mono">/systems/{system.id}.json</a></td
+          ></tr
+        >
+      </tbody>
+    </table>
+    {
+      system.limitations.length > 0 && (
+        <div class="limitations">
+          <p class="kicker">Limits the repository states about itself</p>
+          <ul>
+            {system.limitations.map((limitation) => (
+              <li>
+                {limitation.statement}{' '}
+                <span class="evidence">
+                  {limitation.evidence.map((entry, index) => (
+                    <>
+                      {index > 0 && ' · '}
+                      <a href={cite(entry).href}>{cite(entry).label}</a>
+                    </>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+  </section>
+</Base>

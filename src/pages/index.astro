@@ -3,26 +3,10 @@ import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
+import { systems } from '../systems';
 
 const { roles } = await loadContent();
 const latestRole = [...roles].sort(compareByStartDescending)[0];
-const repositories = [
-  {
-    name: 'cryptopay',
-    url: 'https://github.com/thomazzi98/cryptopay',
-    summary: 'Crypto payment processor with independent on-chain verification, built for Polygon.',
-  },
-  {
-    name: 'whatsapp-notification-platform',
-    url: 'https://github.com/thomazzi98/whatsapp-notification-platform',
-    summary: 'Multi-tenant WhatsApp notification delivery platform.',
-  },
-  {
-    name: 'mini-payment-gateway',
-    url: 'https://github.com/thomazzi98/mini-payment-gateway',
-    summary: 'API-first multi-tenant payment gateway with provider-agnostic Pix support.',
-  },
-];
 
 const personSchema = {
   '@context': 'https://schema.org',
@@ -81,12 +65,10 @@ const personSchema = {
     </div>
     <ul class="repositories">
       {
-        repositories.map((repository) => (
+        systems.map((system) => (
           <li>
-            <a href={repository.url} class="mono">
-              thomazzi98/{repository.name}
-            </a>
-            <span class="muted">{repository.summary}</span>
+            <a href={`/systems/${system.id}/`}>{system.name}</a>
+            <span class="muted">{system.tagline}</span>
           </li>
         ))
       }

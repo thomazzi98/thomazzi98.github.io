@@ -1,0 +1,50 @@
+---
+import Base from '../../layouts/Base.astro';
+import { systems } from '../../systems';
+import { repositoryUrl, shortCommit } from '../../systems/evidence';
+
+const maturityTone = { validated: 'ok', complete: 'ok', 'in-progress': 'wait' } as const;
+---
+
+<Base
+  title="Systems · Rafael Thomazzi"
+  description="Three public systems presented as engineering: what each does, how it is built, how it fails and recovers, and where the code is."
+>
+  <section class="page-head">
+    <p class="kicker">Systems</p>
+    <h1>Three systems, one question</h1>
+    <p class="lead">
+      Each one is built to determine what actually happened under uncertainty and to refuse to
+      guess. They are independent repositories that share an engineering approach, not a runtime.
+    </p>
+  </section>
+
+  <ol class="system-list">
+    {
+      systems.map((system, index) => (
+        <li class="system-card">
+          <a href={`/systems/${system.id}/`} class="system-card__link">
+            <span class="kicker">
+              {String(index + 1).padStart(2, '0')} · {system.repository.owner}/
+              {system.repository.name}
+            </span>
+            <span class="system-card__name">{system.name}</span>
+            <span class="system-card__tagline">{system.tagline}</span>
+          </a>
+          <div class="system-card__facts">
+            <span class="badge" data-tone={maturityTone[system.maturity.label]}>
+              {system.maturity.label.replace('-', ' ')}
+            </span>
+            <span class="kicker">
+              {system.nodes.length} parts · {system.flows.length} flows · {system.decisions.length}{' '}
+              decisions
+            </span>
+            <a class="evidence" href={repositoryUrl(system.repository)}>
+              pinned {shortCommit(system.repository)} · {system.repository.commitCount} commits
+            </a>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</Base>

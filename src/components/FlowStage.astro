@@ -1,0 +1,110 @@
+---
+import { FlowPlayer } from '../islands/player/FlowPlayer';
+import { formatClock } from '../islands/player/format';
+import { evidenceLabel, evidenceUrl } from '../systems/evidence';
+import type { Flow, SystemModel } from '../systems/schema';
+import { defaultLeverValues, runTranscript } from '../trace/runner';
+
+interface Props {
+  system: SystemModel;
+  flows: Flow[];
+  autoplay?: boolean;
+}
+
+const { system, flows, autoplay = false } = Astro.props;
+const { repository } = system;
+const nodes = system.nodes.map(({ id, label, kind }) => ({ id, label, kind }));
+const edges = system.edges.map(({ id, from, to, label, protocol }) => ({
+  id,
+  from,
+  to,
+  label,
+  protocol,
+}));
+// The player needs the steps, not the citations behind them; those stay on the page.
+const playerFlows = flows.map((flow) => ({
+  ...flow,
+  assertedBy: [],
+  steps: flow.steps.map((step) => ({ ...step, evidence: [] })),
+}));
+const endpoints = new Map(system.edges.map((edge) => [edge.id, { from: edge.from, to: edge.to }]));
+const labels = new Map<string, string>([
+  ...system.nodes.map((node) => [node.id, node.label] as const),
+  ...system.edges.map((edge) => [edge.id, edge.label] as const),
+]);
+const transcripts = flows.map((flow) => ({
+  flow,
+  entries: runTranscript(flow, endpoints, { levers: defaultLeverValues(flow.levers) }),
+  defaults: flow.levers.map((lever) => {
+    const option = lever.options.find((candidate) => candidate.value === lever.defaultValue);
+    return `${lever.label}: ${option?.label ?? lever.defaultValue}`;
+  }),
+}));
+---
+
+<div class="stage">
+  <FlowPlayer
+    client:visible
+    systemId={system.id}
+    systemName={system.shortName}
+    nodes={nodes}
+    edges={edges}
+    flows={playerFlows}
+    autoplay={autoplay}
+  />
+  <div class="transcripts">
+    {
+      transcripts.map(({ flow, entries, defaults }) => (
+        <details class="transcript" id={`flow-${flow.id}`} open>
+          <summary>
+            <span class="transcript__name">{flow.name}</span>
+            <span class="kicker">
+              {' '}
+              · transcript{defaults.length > 0 ? ` · ${defaults.join(' · ')}` : ''}
+            </span>
+          </summary>
+          <p class="transcript__summary muted">{flow.summary}</p>
+          <div class="transcript__scroll">
+            <table class="transcript__table">
+              <caption class="sr-only">{flow.name}, replayed with the default levers</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Clock</th>
+                  <th scope="col">Where</th>
+                  <th scope="col">What happened</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry) => (
+                  <tr data-tone={entry.tone}>
+                    <td class="mono">{formatClock(entry.at)}</td>
+                    <td>{labels.get(entry.station) ?? entry.station}</td>
+                    <td>{entry.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {flow.assertedBy.length > 0 && (
+            <p class="transcript__asserted evidence">
+              Asserted by{' '}
+              {flow.assertedBy.map((entry, index) => (
+                <>
+                  {index > 0 && ', '}
+                  <a href={evidenceUrl(repository, entry)}>{evidenceLabel(entry)}</a>
+                </>
+              ))}
+            </p>
+          )}
+        </details>
+      ))
+    }
+  </div>
+  <script is:inline>
+    for (const transcript of document.currentScript.parentElement.querySelectorAll(
+      'details.transcript',
+    )) {
+      transcript.removeAttribute('open');
+    }
+  </script>
+</div>
