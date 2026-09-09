@@ -1,7 +1,8 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Repository, SystemEdge, SystemNode } from '../../systems/schema';
-import { Schematic, type Selection } from '../schematic/Schematic';
+import type { Selection } from '../schematic/Schematic';
+import { SchematicPair } from '../schematic/SchematicPair';
 import { Inspector } from './Inspector';
 import { PartsList } from './PartsList';
 import { useMediaQuery } from './use-media-query';
@@ -61,23 +62,12 @@ export const SystemExplorer = ({
   return (
     <div class="explorer" data-selected={selection.value?.kind}>
       <div class="explorer__drawing">
-        <Schematic
+        <SchematicPair
           systemId={systemId}
           title={title}
           description={description}
           nodes={nodes}
           edges={edges}
-          orientation="horizontal"
-          selected={selection.value}
-          onSelect={select}
-        />
-        <Schematic
-          systemId={systemId}
-          title={title}
-          description={description}
-          nodes={nodes}
-          edges={edges}
-          orientation="vertical"
           selected={selection.value}
           onSelect={select}
         />

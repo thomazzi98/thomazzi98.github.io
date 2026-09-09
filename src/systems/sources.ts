@@ -18,17 +18,37 @@ const git = (repository: Repository, argumentList: string[]): string =>
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-export const readFileAtCommit = (repository: Repository, path: string): string =>
-  git(repository, ['show', `${repository.pinnedCommit}:${path}`]);
+// A model cites the same file many times; one git process per file keeps the check fast.
+const fileCache = new Map<string, string | undefined>();
 
-export const fileExistsAtCommit = (repository: Repository, path: string): boolean => {
-  try {
-    git(repository, ['cat-file', '-e', `${repository.pinnedCommit}:${path}`]);
-    return true;
-  } catch {
-    return false;
+const cacheKey = (repository: Repository, path: string): string =>
+  `${repository.name}@${repository.pinnedCommit}:${path}`;
+
+const readOrUndefined = (repository: Repository, path: string): string | undefined => {
+  const key = cacheKey(repository, path);
+  if (fileCache.has(key)) {
+    return fileCache.get(key);
   }
+  let content: string | undefined;
+  try {
+    content = git(repository, ['show', `${repository.pinnedCommit}:${path}`]);
+  } catch {
+    content = undefined;
+  }
+  fileCache.set(key, content);
+  return content;
 };
+
+export const readFileAtCommit = (repository: Repository, path: string): string => {
+  const content = readOrUndefined(repository, path);
+  if (content === undefined) {
+    throw new Error(`${path} does not exist in ${repository.name} at ${repository.pinnedCommit}`);
+  }
+  return content;
+};
+
+export const fileExistsAtCommit = (repository: Repository, path: string): boolean =>
+  readOrUndefined(repository, path) !== undefined;
 
 export interface RepositoryFacts {
   commitCount: number;

@@ -1,6 +1,6 @@
 import { useSignal } from '@preact/signals';
 import { useEffect, useMemo, useRef } from 'preact/hooks';
-import type { Flow, SystemEdge, SystemNode, Tone } from '../../systems/schema';
+import type { Flow, Tone } from '../../systems/schema';
 import {
   createFlowSimulation,
   defaultLeverValues,
@@ -9,17 +9,17 @@ import {
   type TraceSimulation,
 } from '../../trace/runner';
 import { useMediaQuery } from '../explorer/use-media-query';
-import { Schematic, type Packet } from '../schematic/Schematic';
+import type { Packet, SchematicEdge, SchematicNode } from '../schematic/Schematic';
+import { SchematicPair } from '../schematic/SchematicPair';
 import { formatClock } from './format';
 import { Ledger } from './Ledger';
 
 export interface FlowPlayerProps {
   readonly systemId: string;
-  readonly title: string;
-  readonly description: string;
-  readonly nodes: readonly SystemNode[];
-  readonly edges: readonly SystemEdge[];
-  readonly flow: Flow;
+  readonly systemName: string;
+  readonly nodes: readonly SchematicNode[];
+  readonly edges: readonly SchematicEdge[];
+  readonly flows: readonly Flow[];
   readonly autoplay?: boolean;
 }
 
@@ -32,16 +32,25 @@ const endOf = (flow: Flow, values: LeverValues): number => {
   return (last?.at ?? 0) + tail;
 };
 
+const firstFlow = (flows: readonly Flow[]): Flow => {
+  const flow = flows[0];
+  if (flow === undefined) {
+    throw new Error('A flow player needs at least one flow.');
+  }
+  return flow;
+};
+
 export const FlowPlayer = ({
   systemId,
-  title,
-  description,
+  systemName,
   nodes,
   edges,
-  flow,
+  flows,
   autoplay = false,
 }: FlowPlayerProps) => {
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const flowId = useSignal(firstFlow(flows).id);
+  const flow = flows.find((candidate) => candidate.id === flowId.value) ?? firstFlow(flows);
   const levers = useSignal<LeverValues>(defaultLeverValues(flow.levers));
   const version = useSignal(0);
   const playing = useSignal(false);
@@ -84,29 +93,33 @@ export const FlowPlayer = ({
     lastFrameReference.current = undefined;
   };
 
-  const reset = (nextLevers: LeverValues = levers.value) => {
+  const restart = (nextFlow: Flow, nextLevers: LeverValues) => {
     stop();
-    simulationReference.current = createFlowSimulation(flow, endpoints, { levers: nextLevers });
+    simulationReference.current = createFlowSimulation(nextFlow, endpoints, {
+      levers: nextLevers,
+    });
     announcement.value = '';
     refresh();
   };
 
+  const reset = () => {
+    restart(flow, levers.value);
+  };
+
   const advanceTo = (target: number) => {
-    const current = simulationReference.current;
-    if (target < current.now) {
+    if (target < simulationReference.current.now) {
       reset();
     }
-    const fresh = simulationReference.current;
-    fresh.advance(Math.max(0, target - fresh.now));
+    const current = simulationReference.current;
+    current.advance(Math.max(0, target - current.now));
     refresh();
   };
 
   const frame = (timestamp: number) => {
     const previous = lastFrameReference.current ?? timestamp;
     lastFrameReference.current = timestamp;
-    const delta = Math.min(frameCap, timestamp - previous);
     const current = simulationReference.current;
-    current.advance(delta);
+    current.advance(Math.min(frameCap, timestamp - previous));
     refresh();
     if (current.now >= endOf(flow, levers.value) && current.pending() === 0) {
       stop();
@@ -145,10 +158,21 @@ export const FlowPlayer = ({
     return finished ? 'Replay' : 'Play';
   };
 
+  const selectFlow = (id: string) => {
+    const next = flows.find((candidate) => candidate.id === id);
+    if (next === undefined) {
+      return;
+    }
+    flowId.value = next.id;
+    const nextLevers = defaultLeverValues(next.levers);
+    levers.value = nextLevers;
+    restart(next, nextLevers);
+  };
+
   const setLever = (id: string, value: string) => {
     const next = { ...levers.value, [id]: value };
     levers.value = next;
-    reset(next);
+    restart(flow, next);
   };
 
   useEffect(() => {
@@ -159,18 +183,14 @@ export const FlowPlayer = ({
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
-    if (
-      autoplay &&
-      !reducedMotion &&
-      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
+    if (autoplay && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       play();
     }
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
       stop();
     };
-    // The player starts once; levers and reduced motion are read at that moment.
+    // The player starts once; reduced motion is read at that moment.
   }, []);
 
   const revision = version.value;
@@ -182,18 +202,23 @@ export const FlowPlayer = ({
   }
   const packets: Packet[] = simulation.packets
     .filter((packet) => packet.arrivesAt > simulation.now)
-    .map((packet) => {
+    .flatMap((packet) => {
       const edge = edges.find(
         (candidate) => candidate.from === packet.from && candidate.to === packet.to,
       );
-      return {
-        edge: edge?.id ?? '',
-        progress:
-          (simulation.now - packet.departedAt) / Math.max(1, packet.arrivesAt - packet.departedAt),
-        tone: packet.tone,
-      };
-    })
-    .filter((packet) => packet.edge !== '');
+      if (edge === undefined) {
+        return [];
+      }
+      return [
+        {
+          edge: edge.id,
+          progress:
+            (simulation.now - packet.departedAt) /
+            Math.max(1, packet.arrivesAt - packet.departedAt),
+          tone: packet.tone,
+        },
+      ];
+    });
   const statuses = Object.entries(simulation.state.statuses);
   const labelFor = (station: string) => labels.get(station) ?? station;
 
@@ -205,6 +230,32 @@ export const FlowPlayer = ({
       data-running={playing.value ? 'true' : 'false'}
       data-revision={revision}
     >
+      {flows.length > 1 && (
+        <fieldset class="lever player__flows">
+          <legend class="kicker">Flow</legend>
+          <div class="lever__options">
+            {flows.map((candidate) => (
+              <label key={candidate.id} class="lever__option">
+                <input
+                  type="radio"
+                  name={`${systemId}-flow`}
+                  value={candidate.id}
+                  checked={candidate.id === flow.id}
+                  onChange={() => {
+                    selectFlow(candidate.id);
+                  }}
+                />
+                <span>{candidate.name}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      <p class="player__flow">
+        <strong>{flow.name}.</strong> {flow.summary}
+      </p>
+
       <div class="player__rail" role="group" aria-label={`${flow.name} controls`}>
         <span class="player__lamp badge" data-tone={playing.value ? 'wait' : 'neutral'}>
           simulation
@@ -224,13 +275,7 @@ export const FlowPlayer = ({
           <button type="button" class="control" onClick={step} disabled={finished}>
             Step
           </button>
-          <button
-            type="button"
-            class="control"
-            onClick={() => {
-              reset();
-            }}
-          >
+          <button type="button" class="control" onClick={reset}>
             Reset
           </button>
         </div>
@@ -256,14 +301,14 @@ export const FlowPlayer = ({
       {flow.levers.length > 0 && (
         <div class="player__levers">
           {flow.levers.map((lever) => (
-            <fieldset key={lever.id} class="lever">
+            <fieldset key={`${flow.id}-${lever.id}`} class="lever">
               <legend class="kicker">{lever.label}</legend>
               <div class="lever__options">
                 {lever.options.map((option) => (
                   <label key={option.value} class="lever__option">
                     <input
                       type="radio"
-                      name={`${flow.id}-${lever.id}`}
+                      name={`${systemId}-${flow.id}-${lever.id}`}
                       value={option.value}
                       checked={levers.value[lever.id] === option.value}
                       onChange={() => {
@@ -281,24 +326,12 @@ export const FlowPlayer = ({
 
       <div class="player__stage">
         <div class="player__drawing">
-          <Schematic
-            systemId={`${systemId}-${flow.id}`}
-            title={title}
-            description={description}
+          <SchematicPair
+            systemId={`${systemId}-player`}
+            title={`${systemName} while ${flow.name.toLowerCase()} runs`}
+            description={flow.summary}
             nodes={nodes}
             edges={edges}
-            orientation="horizontal"
-            activity={activity}
-            activeEdge={simulation.state.activeEdge}
-            packets={packets}
-          />
-          <Schematic
-            systemId={`${systemId}-${flow.id}`}
-            title={title}
-            description={description}
-            nodes={nodes}
-            edges={edges}
-            orientation="vertical"
             activity={activity}
             activeEdge={simulation.state.activeEdge}
             packets={packets}

@@ -2,6 +2,9 @@ import { useSignal } from '@preact/signals';
 import type { TargetedKeyboardEvent } from 'preact';
 import { useRef } from 'preact/hooks';
 import type { SystemEdge, SystemNode, Tone } from '../../systems/schema';
+
+export type SchematicNode = Pick<SystemNode, 'id' | 'label' | 'kind'>;
+export type SchematicEdge = Pick<SystemEdge, 'id' | 'from' | 'to' | 'label' | 'protocol'>;
 import { Glyph } from './glyphs';
 import { edgePath, labelPoint, layoutSystem, pointAlong, type Orientation } from './layout';
 import { kindName, protocolTag } from './protocol';
@@ -19,8 +22,8 @@ export interface SchematicProps {
   readonly systemId: string;
   readonly title: string;
   readonly description: string;
-  readonly nodes: readonly SystemNode[];
-  readonly edges: readonly SystemEdge[];
+  readonly nodes: readonly SchematicNode[];
+  readonly edges: readonly SchematicEdge[];
   readonly orientation: Orientation;
   readonly selected?: Selection;
   readonly activity?: Readonly<Record<string, Tone>>;
@@ -141,7 +144,7 @@ export const Schematic = ({
               data-active={activeEdge === edge.id ? 'true' : undefined}
               onClick={() => onSelect?.({ kind: 'edge', id: edge.id })}
             >
-              <path class="schematic__hit" d={edgePath(placed)} />
+              {onSelect !== undefined && <path class="schematic__hit" d={edgePath(placed)} />}
               <path class="schematic__wire" d={edgePath(placed)} marker-end={`url(#${arrowId})`} />
               <text class="schematic__tag" x={label.x} y={label.y} text-anchor="middle">
                 {protocolTag[edge.protocol]}

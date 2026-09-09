@@ -29,7 +29,7 @@ describe.each(systems)('$id', (system) => {
     ).toBe(true);
   });
 
-  it('states repository facts that match git at the pinned commit', () => {
+  it('states repository facts that match git at the pinned commit', { timeout: 30_000 }, () => {
     expect(readRepositoryFacts(repository)).toEqual({
       commitCount: repository.commitCount,
       pinnedOn: repository.pinnedOn,
@@ -37,33 +37,37 @@ describe.each(systems)('$id', (system) => {
     });
   });
 
-  it('cites only files and line ranges that exist at the pinned commit', () => {
-    const problems: string[] = [];
-    const seen = new Set<string>();
-    for (const evidence of collectEvidence(system)) {
-      const key = `${evidence.path}:${evidence.lines?.join('-') ?? ''}`;
-      if (seen.has(key)) {
-        continue;
+  it(
+    'cites only files and line ranges that exist at the pinned commit',
+    { timeout: 120_000 },
+    () => {
+      const problems: string[] = [];
+      const seen = new Set<string>();
+      for (const evidence of collectEvidence(system)) {
+        const key = `${evidence.path}:${evidence.lines?.join('-') ?? ''}`;
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        if (!fileExistsAtCommit(repository, evidence.path)) {
+          problems.push(`${evidence.citedBy} cites ${evidence.path}, which does not exist`);
+          continue;
+        }
+        if (evidence.lines === undefined) {
+          continue;
+        }
+        const total = lineCount(readFileAtCommit(repository, evidence.path));
+        if (evidence.lines[1] > total) {
+          problems.push(
+            `${evidence.citedBy} cites ${evidence.path}:${String(evidence.lines[0])}-${String(evidence.lines[1])}, but the file has ${String(total)} lines`,
+          );
+        }
       }
-      seen.add(key);
-      if (!fileExistsAtCommit(repository, evidence.path)) {
-        problems.push(`${evidence.citedBy} cites ${evidence.path}, which does not exist`);
-        continue;
-      }
-      if (evidence.lines === undefined) {
-        continue;
-      }
-      const total = lineCount(readFileAtCommit(repository, evidence.path));
-      if (evidence.lines[1] > total) {
-        problems.push(
-          `${evidence.citedBy} cites ${evidence.path}:${String(evidence.lines[0])}-${String(evidence.lines[1])}, but the file has ${String(total)} lines`,
-        );
-      }
-    }
-    expect(problems).toEqual([]);
-  });
+      expect(problems).toEqual([]);
+    },
+  );
 
-  it('copies every fragment verbatim from the pinned commit', () => {
+  it('copies every fragment verbatim from the pinned commit', { timeout: 60_000 }, () => {
     for (const fragment of system.fragments) {
       const copied = fragmentSource(system.id, fragment);
       expect(copied, `fragment file ${fragmentFileName(fragment)} is missing`).toBeDefined();

@@ -1,6 +1,18 @@
-import type { SystemEdge, SystemNode } from '../../systems/schema';
+import type { NodeKind } from '../../systems/schema';
 
 export type Orientation = 'horizontal' | 'vertical';
+
+export interface LayoutNode {
+  readonly id: string;
+  readonly label: string;
+  readonly kind: NodeKind;
+}
+
+export interface LayoutEdge {
+  readonly id: string;
+  readonly from: string;
+  readonly to: string;
+}
 
 export interface Point {
   x: number;
@@ -14,25 +26,28 @@ export interface Box {
   height: number;
 }
 
-export interface PlacedNode extends Box {
-  node: SystemNode;
+export interface PlacedNode<Node extends LayoutNode = LayoutNode> extends Box {
+  node: Node;
   rank: number;
   number: number;
 }
 
-export interface PlacedEdge {
-  edge: SystemEdge;
+export interface PlacedEdge<Edge extends LayoutEdge = LayoutEdge> {
+  edge: Edge;
   start: Point;
   end: Point;
   control?: Point;
 }
 
-export interface Layout {
+export interface Layout<
+  Node extends LayoutNode = LayoutNode,
+  Edge extends LayoutEdge = LayoutEdge,
+> {
   orientation: Orientation;
   width: number;
   height: number;
-  nodes: PlacedNode[];
-  edges: PlacedEdge[];
+  nodes: PlacedNode<Node>[];
+  edges: PlacedEdge<Edge>[];
 }
 
 export const nodeWidth = 132;
@@ -41,14 +56,18 @@ const rankGap = 84;
 const laneGap = 30;
 const margin = 16;
 const verticalLaneLimit = 2;
+const orderingSweeps = 3;
 
-const rankNodes = (nodes: readonly SystemNode[], edges: readonly SystemEdge[]) => {
+const entryKinds: ReadonlySet<NodeKind> = new Set(['actor', 'external']);
+
+const rankNodes = (nodes: readonly LayoutNode[], edges: readonly LayoutEdge[]) => {
   const ranks = new Map<string, number>();
   const incoming = new Map(nodes.map((node) => [node.id, 0]));
   for (const edge of edges) {
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
   }
-  const queue = nodes.filter((node) => incoming.get(node.id) === 0).map((node) => node.id);
+  const sources = nodes.filter((node) => incoming.get(node.id) === 0).map((node) => node.id);
+  const queue = [...sources];
   for (const id of queue) {
     ranks.set(id, 0);
   }
@@ -74,14 +93,110 @@ const rankNodes = (nodes: readonly SystemNode[], edges: readonly SystemEdge[]) =
     if (ranks.has(node.id)) {
       continue;
     }
-    const sources = edges
+    const predecessors = edges
       .filter((edge) => edge.to === node.id)
       .map((edge) => ranks.get(edge.from))
       .filter((rank): rank is number => rank !== undefined);
-    ranks.set(node.id, sources.length === 0 ? 0 : Math.max(...sources) + 1);
+    ranks.set(node.id, predecessors.length === 0 ? 0 : Math.max(...predecessors) + 1);
+  }
+  // A process nobody calls, such as a worker that polls, belongs next to what it talks to,
+  // not in the column of entry points.
+  for (const node of nodes) {
+    if (!sources.includes(node.id) || entryKinds.has(node.kind)) {
+      continue;
+    }
+    const targets = edges
+      .filter((edge) => edge.from === node.id)
+      .map((edge) => ranks.get(edge.to))
+      .filter((rank): rank is number => rank !== undefined);
+    if (targets.length === 0) {
+      continue;
+    }
+    ranks.set(node.id, Math.max(0, Math.min(...targets) - 1));
   }
   return ranks;
 };
+
+const groupByRank = (nodes: readonly LayoutNode[], ranks: ReadonlyMap<string, number>) => {
+  const lanes = new Map<number, string[]>();
+  for (const node of nodes) {
+    const rank = ranks.get(node.id) ?? 0;
+    lanes.set(rank, [...(lanes.get(rank) ?? []), node.id]);
+  }
+  return lanes;
+};
+
+const normalisedPositions = (lanes: ReadonlyMap<number, string[]>) => {
+  const positions = new Map<string, number>();
+  for (const lane of lanes.values()) {
+    lane.forEach((id, index) => {
+      positions.set(id, lane.length === 1 ? 0.5 : index / (lane.length - 1));
+    });
+  }
+  return positions;
+};
+
+const otherEndOf = (edge: LayoutEdge, id: string): string | undefined => {
+  if (edge.from === id) {
+    return edge.to;
+  }
+  return edge.to === id ? edge.from : undefined;
+};
+
+// Barycenter ordering: each lane is sorted by the mean position of its neighbours in the
+// lanes already placed, which removes most edge crossings without a full Sugiyama pass.
+const orderLanes = (
+  lanes: Map<number, string[]>,
+  edges: readonly LayoutEdge[],
+  ranks: ReadonlyMap<string, number>,
+) => {
+  const rankCount = Math.max(...lanes.keys()) + 1;
+  const neighboursOf = (id: string, direction: 'before' | 'after'): string[] => {
+    const rank = ranks.get(id) ?? 0;
+    return edges.flatMap((edge) => {
+      const other = otherEndOf(edge, id);
+      if (other === undefined) {
+        return [];
+      }
+      const otherRank = ranks.get(other) ?? 0;
+      const qualifies = direction === 'before' ? otherRank < rank : otherRank > rank;
+      return qualifies ? [other] : [];
+    });
+  };
+  const sortLane = (rank: number, direction: 'before' | 'after') => {
+    const lane = lanes.get(rank);
+    if (lane === undefined || lane.length < 2) {
+      return;
+    }
+    const positions = normalisedPositions(lanes);
+    const keyed = lane.map((id, index) => {
+      const anchors = neighboursOf(id, direction)
+        .map((other) => positions.get(other))
+        .filter((value): value is number => value !== undefined);
+      const own = lane.length === 1 ? 0.5 : index / (lane.length - 1);
+      const key =
+        anchors.length === 0
+          ? own
+          : anchors.reduce((total, value) => total + value, 0) / anchors.length;
+      return { id, key, index };
+    });
+    keyed.sort((first, second) => first.key - second.key || first.index - second.index);
+    lanes.set(
+      rank,
+      keyed.map((entry) => entry.id),
+    );
+  };
+  for (let sweep = 0; sweep < orderingSweeps; sweep += 1) {
+    for (let rank = 1; rank < rankCount; rank += 1) {
+      sortLane(rank, 'before');
+    }
+    for (let rank = rankCount - 2; rank >= 0; rank -= 1) {
+      sortLane(rank, 'after');
+    }
+  }
+};
+
+const tenth = (value: number): number => Math.round(value * 10) / 10;
 
 const bowShare = 0.22;
 const bowLimit = 64;
@@ -92,8 +207,8 @@ const bowOf = (start: Point, end: Point): Point => {
   const length = Math.hypot(deltaX, deltaY) || 1;
   const bow = Math.min(bowLimit, length * bowShare);
   return {
-    x: (start.x + end.x) / 2 - (deltaY / length) * bow,
-    y: (start.y + end.y) / 2 + (deltaX / length) * bow,
+    x: tenth((start.x + end.x) / 2 - (deltaY / length) * bow),
+    y: tenth((start.y + end.y) / 2 + (deltaX / length) * bow),
   };
 };
 
@@ -109,10 +224,10 @@ const boundaryPoint = (box: Box, towards: Point): Point => {
   const scaleX = deltaX === 0 ? Number.POSITIVE_INFINITY : box.width / 2 / Math.abs(deltaX);
   const scaleY = deltaY === 0 ? Number.POSITIVE_INFINITY : box.height / 2 / Math.abs(deltaY);
   const scale = Math.min(scaleX, scaleY);
-  return { x: middle.x + deltaX * scale, y: middle.y + deltaY * scale };
+  return { x: tenth(middle.x + deltaX * scale), y: tenth(middle.y + deltaY * scale) };
 };
 
-const countPairs = (edges: readonly SystemEdge[]): Map<string, number> => {
+const countPairs = (edges: readonly LayoutEdge[]): Map<string, number> => {
   const pairs = new Map<string, number>();
   for (const edge of edges) {
     const key = [edge.from, edge.to].sort().join('|');
@@ -121,17 +236,14 @@ const countPairs = (edges: readonly SystemEdge[]): Map<string, number> => {
   return pairs;
 };
 
-export const layoutSystem = (
-  nodes: readonly SystemNode[],
-  edges: readonly SystemEdge[],
+export const layoutSystem = <Node extends LayoutNode, Edge extends LayoutEdge>(
+  nodes: readonly Node[],
+  edges: readonly Edge[],
   orientation: Orientation,
-): Layout => {
+): Layout<Node, Edge> => {
   const ranks = rankNodes(nodes, edges);
-  const lanes = new Map<number, string[]>();
-  for (const node of nodes) {
-    const rank = ranks.get(node.id) ?? 0;
-    lanes.set(rank, [...(lanes.get(rank) ?? []), node.id]);
-  }
+  const lanes = groupByRank(nodes, ranks);
+  orderLanes(lanes, edges, ranks);
   const rankCount = Math.max(...lanes.keys()) + 1;
   const laneCount = Math.max(...[...lanes.values()].map((lane) => lane.length));
   const verticalLaneCount = Math.min(laneCount, verticalLaneLimit);
@@ -144,11 +256,11 @@ export const layoutSystem = (
   const alongVertical = (rank: number): number =>
     margin + (rowOffsets[rank] ?? 0) * (nodeHeight + laneGap) + rank * rankGap;
   const across = (index: number, count: number): number =>
-    margin + (index + (laneCount - count) / 2) * (nodeHeight + laneGap);
+    Math.round(margin + (index + (laneCount - count) / 2) * (nodeHeight + laneGap));
   const acrossVertical = (index: number, count: number): number =>
-    margin + (index + (verticalLaneCount - count) / 2) * (nodeWidth + laneGap);
+    Math.round(margin + (index + (verticalLaneCount - count) / 2) * (nodeWidth + laneGap));
 
-  const placed: PlacedNode[] = nodes.map((node, number) => {
+  const placed: PlacedNode<Node>[] = nodes.map((node, number) => {
     const rank = ranks.get(node.id) ?? 0;
     const lane = lanes.get(rank) ?? [];
     const index = lane.indexOf(node.id);
@@ -178,7 +290,7 @@ export const layoutSystem = (
 
   const byId = new Map(placed.map((entry) => [entry.node.id, entry]));
   const pairs = countPairs(edges);
-  const placedEdges: PlacedEdge[] = edges.flatMap((edge) => {
+  const placedEdges: PlacedEdge<Edge>[] = edges.flatMap((edge) => {
     const origin = byId.get(edge.from);
     const destination = byId.get(edge.to);
     if (origin === undefined || destination === undefined) {
