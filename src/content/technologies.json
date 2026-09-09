@@ -308,8 +308,29 @@
     "group": "shipped-with"
   },
   {
+    "id": "npm",
+    "name": "npm workspaces",
+    "category": "tooling",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
     "id": "pnpm",
     "name": "pnpm",
+    "category": "tooling",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "eslint",
+    "name": "ESLint",
+    "category": "tooling",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "knip",
+    "name": "knip",
     "category": "tooling",
     "firstUsed": 2026,
     "group": "shipped-with"

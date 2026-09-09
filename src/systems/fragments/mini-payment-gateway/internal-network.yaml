@@ -1,0 +1,10 @@
+networks:
+  # Datastores live here and are unreachable from anything that talks to the
+  # internet. This is the structural half of SSRF defence for merchant-supplied
+  # webhook URLs; the address-pinning egress policy is the other half.
+  internal:
+    internal: true
+  outbound:
+
+volumes:
+  postgres-data:
