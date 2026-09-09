@@ -288,13 +288,16 @@
   }
 
   .site-footer {
-    display: grid;
-    gap: var(--space-5);
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
     padding-block: var(--space-7) var(--space-8);
     margin-top: var(--space-9);
     border-top: var(--hairline) solid var(--rule);
     font-size: var(--size-small);
+  }
+
+  .site-footer__list {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   }
 
   .site-footer dt {
@@ -311,7 +314,7 @@
   }
 
   .site-footer__note {
-    grid-column: 1 / -1;
+    margin-top: var(--space-5);
     font-family: var(--font-mono);
     font-size: var(--size-caption);
     color: var(--ink-muted);

@@ -74,8 +74,8 @@ const currentState = (href: string): 'page' | 'true' | undefined => {
     <main id="main" tabindex="-1" class="shell">
       <slot />
     </main>
-    <footer class="shell">
-      <dl class="site-footer">
+    <footer class="shell site-footer">
+      <dl class="site-footer__list">
         <div>
           <dt>Location</dt>
           <dd>{identity.location}</dd>
@@ -91,11 +91,11 @@ const currentState = (href: string): 'page' | 'true' | undefined => {
           <dd><a href={identity.links.linkedin}>LinkedIn</a></dd>
           <dd><a href="/resume.txt">resume.txt</a></dd>
         </div>
-        <p class="site-footer__note">
-          Build <a href="/colophon/">{buildInfo.commit} · {buildInfo.date}</a>. No analytics, no
-          cookies, no third-party requests.
-        </p>
       </dl>
+      <p class="site-footer__note">
+        Build <a href="/colophon/">{buildInfo.commit} · {buildInfo.date}</a>. No analytics, no
+        cookies, no third-party requests.
+      </p>
     </footer>
     <script>
       import { announceInConsole } from '../lib/console-banner';
