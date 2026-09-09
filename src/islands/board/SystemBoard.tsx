@@ -214,7 +214,12 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
               {playLabel()}
             </button>
           )}
-          <button type="button" class="control" onClick={step} disabled={finished}>
+          <button
+            type="button"
+            class="control"
+            onClick={step}
+            disabled={simulations.every((simulation) => simulation.pending() === 0)}
+          >
             Step
           </button>
           <button type="button" class="control" onClick={reset}>

@@ -272,7 +272,12 @@ export const FlowPlayer = ({
               {playLabel()}
             </button>
           )}
-          <button type="button" class="control" onClick={step} disabled={finished}>
+          <button
+            type="button"
+            class="control"
+            onClick={step}
+            disabled={simulation.pending() === 0}
+          >
             Step
           </button>
           <button type="button" class="control" onClick={reset}>
