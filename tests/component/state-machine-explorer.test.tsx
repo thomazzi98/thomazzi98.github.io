@@ -11,9 +11,9 @@ const machine = defineSystem({
       id: 'entry',
       name: 'Entry lifecycle',
       statuses: [
-        { id: 'pending', terminal: false },
-        { id: 'recorded', terminal: false, funded: true },
-        { id: 'voided', terminal: true, note: 'A voided entry stays voided.' },
+        { id: 'pending', terminal: false, tone: 'wait' },
+        { id: 'recorded', terminal: false, tone: 'ok', funded: true },
+        { id: 'voided', terminal: true, tone: 'fault', note: 'A voided entry stays voided.' },
       ],
       transitions: [
         { from: 'pending', to: 'recorded', trigger: 'INSERTED' },

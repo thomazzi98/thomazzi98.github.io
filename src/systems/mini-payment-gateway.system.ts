@@ -1,3 +1,4 @@
+import { repositoryIdentity } from './repositories';
 import { defineSystem } from './validate';
 
 const cite = (path: string, lines?: [number, number]) => ({ path, lines });
@@ -82,15 +83,12 @@ export const system = defineSystem({
   thesis:
     'A payment system should be able to prove why it says paid, and should refuse to say it otherwise.',
   repository: {
-    owner: 'thomazzi98',
-    name: 'mini-payment-gateway',
-    defaultBranch: 'main',
-    pinnedCommit: 'd34b25199efe3613464505c0bf536fa97d514905',
+    ...repositoryIdentity('mini-payment-gateway'),
     pinnedOn: '2026-09-09',
     firstCommitOn: '2026-09-08',
     commitCount: 25,
     packageManager: 'npm@11.6.2',
-    runtime: 'Node.js 24 (>=24.11.1 <25.0.0)',
+    runtime: 'Node.js 24',
   },
   maturity: {
     label: 'in-progress',
@@ -2122,27 +2120,29 @@ export const system = defineSystem({
       id: 'payment',
       name: 'Payment lifecycle',
       statuses: [
-        { id: 'pending', terminal: false, funded: false },
-        { id: 'processing', terminal: false, funded: false },
+        { id: 'pending', terminal: false, tone: 'wait', funded: false },
+        { id: 'processing', terminal: false, tone: 'flight', funded: false },
         {
           id: 'unknown',
           terminal: false,
+          tone: 'unknown',
           funded: false,
           note: 'A first-class status: whether anything was created is not known, so no failover is permitted until it is resolved.',
         },
-        { id: 'awaiting_payment', terminal: false, funded: false },
-        { id: 'paid', terminal: false, funded: true },
-        { id: 'partially_refunded', terminal: false, funded: true },
-        { id: 'refunded', terminal: true, funded: true },
-        { id: 'chargeback', terminal: false, funded: true },
+        { id: 'awaiting_payment', terminal: false, tone: 'wait', funded: false },
+        { id: 'paid', terminal: false, tone: 'ok', funded: true },
+        { id: 'partially_refunded', terminal: false, tone: 'ok', funded: true },
+        { id: 'refunded', terminal: true, tone: 'neutral', funded: true },
+        { id: 'chargeback', terminal: false, tone: 'fault', funded: true },
         {
           id: 'expired',
           terminal: false,
+          tone: 'neutral',
           funded: false,
           note: 'Deliberately not terminal: a Pix code can be paid moments after it lapses, and the money arrives.',
         },
-        { id: 'failed', terminal: true, funded: false },
-        { id: 'cancelled', terminal: true, funded: false },
+        { id: 'failed', terminal: true, tone: 'fault', funded: false },
+        { id: 'cancelled', terminal: true, tone: 'neutral', funded: false },
       ],
       transitions: [
         {

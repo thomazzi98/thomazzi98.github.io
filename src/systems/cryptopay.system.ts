@@ -1,3 +1,4 @@
+import { repositoryIdentity } from './repositories';
 import { defineSystem } from './validate';
 
 const file = (path: string) => ({ path });
@@ -96,16 +97,13 @@ export const system = defineSystem({
   thesis:
     'Every state change is derived from stored chain observations, and anything the chain has not settled is held rather than guessed.',
   repository: {
-    owner: 'thomazzi98',
-    name: 'cryptopay',
-    defaultBranch: 'main',
-    pinnedCommit: '9f08bb98082b36c00718bf0b7999af7526da5ec0',
+    ...repositoryIdentity('cryptopay'),
     pinnedOn: '2026-09-09',
     firstCommitOn: '2026-09-06',
     commitCount: 89,
     license: 'MIT',
     packageManager: 'npm@11.6.2',
-    runtime: 'Node.js 24.11',
+    runtime: 'Node.js 24',
   },
   maturity: {
     label: 'validated',
@@ -2070,19 +2068,20 @@ export const system = defineSystem({
       id: 'payment',
       name: 'Payment lifecycle',
       statuses: [
-        { id: 'pending', terminal: false, funded: false },
-        { id: 'partially_funded', terminal: false, funded: true },
-        { id: 'confirming', terminal: false, funded: true },
-        { id: 'completed', terminal: true, funded: true },
-        { id: 'overpaid', terminal: true, funded: true },
+        { id: 'pending', terminal: false, tone: 'wait', funded: false },
+        { id: 'partially_funded', terminal: false, tone: 'wait', funded: true },
+        { id: 'confirming', terminal: false, tone: 'wait', funded: true },
+        { id: 'completed', terminal: true, tone: 'ok', funded: true },
+        { id: 'overpaid', terminal: true, tone: 'ok', funded: true },
         {
           id: 'underpaid',
           terminal: true,
+          tone: 'fault',
           funded: true,
           note: 'Money is real and still at the destination; the band was never reached before expiry.',
         },
-        { id: 'expired', terminal: true, funded: false },
-        { id: 'canceled', terminal: true, funded: false },
+        { id: 'expired', terminal: true, tone: 'neutral', funded: false },
+        { id: 'canceled', terminal: true, tone: 'neutral', funded: false },
       ],
       transitions: [
         {
@@ -2169,18 +2168,20 @@ export const system = defineSystem({
       id: 'settlement',
       name: 'Settlement lifecycle',
       statuses: [
-        { id: 'pending', terminal: false },
+        { id: 'pending', terminal: false, tone: 'wait' },
         {
           id: 'funding',
           terminal: false,
+          tone: 'flight',
           note: 'The treasury is sending exactly the estimated fee to the deposit address.',
         },
-        { id: 'sweeping', terminal: false },
-        { id: 'confirming', terminal: false },
-        { id: 'settled', terminal: true, funded: true },
+        { id: 'sweeping', terminal: false, tone: 'flight' },
+        { id: 'confirming', terminal: false, tone: 'wait' },
+        { id: 'settled', terminal: true, tone: 'ok', funded: true },
         {
           id: 'failed',
           terminal: false,
+          tone: 'fault',
           note: 'Deliberately not terminal. Money in an address this system controls must stay reachable; attempts are counted so retrying cannot loop.',
         },
       ],
@@ -2265,21 +2266,29 @@ export const system = defineSystem({
       id: 'webhook-delivery',
       name: 'Webhook delivery',
       statuses: [
-        { id: 'pending', terminal: false },
+        { id: 'pending', terminal: false, tone: 'wait' },
         {
           id: 'in_flight',
           terminal: false,
+          tone: 'flight',
           note: 'At most one per merchant environment, enforced by a partial unique index.',
         },
         {
           id: 'delivered',
           terminal: false,
+          tone: 'ok',
           note: 'Left only by an operator redelivery, which keeps the same webhook-id.',
         },
-        { id: 'failed', terminal: false, note: 'Means a retry is scheduled at next_attempt_at.' },
+        {
+          id: 'failed',
+          terminal: false,
+          tone: 'fault',
+          note: 'Means a retry is scheduled at next_attempt_at.',
+        },
         {
           id: 'abandoned',
           terminal: false,
+          tone: 'fault',
           note: 'The schedule was spent, the age ceiling passed, the answer was permanent, or the destination was refused.',
         },
       ],

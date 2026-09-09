@@ -129,8 +129,8 @@ export const fixtureSystem: SystemInput = {
       id: 'entry',
       name: 'Entry lifecycle',
       statuses: [
-        { id: 'pending', terminal: false },
-        { id: 'recorded', terminal: true },
+        { id: 'pending', terminal: false, tone: 'wait' },
+        { id: 'recorded', terminal: true, tone: 'ok' },
       ],
       transitions: [{ from: 'pending', to: 'recorded', trigger: 'INSERTED' }],
       evidence: [cite('src/entry.ts')],

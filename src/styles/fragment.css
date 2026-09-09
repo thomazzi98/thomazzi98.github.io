@@ -1,0 +1,7 @@
+@layer reset, base, shell, primitives, page, utilities;
+
+@layer page {
+  .fragment {
+    min-width: 0;
+  }
+}

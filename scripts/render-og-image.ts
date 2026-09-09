@@ -1,11 +1,10 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 import { identity } from '../src/lib/identity.ts';
 
 const thesis = 'Systems that can say what happened, and prove it.';
-const presentationOrder = ['cryptopay', 'whatsapp-notification-platform', 'mini-payment-gateway'];
 
 const escapeHtml = (text: string): string =>
   text
@@ -16,26 +15,12 @@ const escapeHtml = (text: string): string =>
 
 const fontUrl = (file: string) => pathToFileURL(resolve('src/assets/fonts', file)).href;
 
-const rank = (id: string): number => {
-  const index = presentationOrder.indexOf(id);
-  return index === -1 ? presentationOrder.length : index;
-};
-
+// The registry lists the systems in presentation order; the image follows it.
 const readSystemNames = (): string[] => {
-  const directory = resolve('src/systems');
-  return readdirSync(directory)
-    .filter((file) => file.endsWith('.system.ts'))
-    .map((file) => {
-      const text = readFileSync(join(directory, file), 'utf-8');
-      const id = /^ {2}id: '([^']+)'/m.exec(text)?.[1];
-      const name = /^ {2}name: '([^']+)'/m.exec(text)?.[1];
-      if (id === undefined || name === undefined) {
-        throw new Error(`${file} does not declare a top-level id and name.`);
-      }
-      return { id, name };
-    })
-    .sort((first, second) => rank(first.id) - rank(second.id) || first.id.localeCompare(second.id))
-    .map((entry) => entry.name);
+  const entries = JSON.parse(readFileSync(resolve('src/systems/repositories.json'), 'utf-8')) as {
+    name: string;
+  }[];
+  return entries.map((entry) => entry.name);
 };
 
 const systemNames = readSystemNames();

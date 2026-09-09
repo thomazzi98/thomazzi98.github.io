@@ -1,8 +1,7 @@
+import { presentationOrder } from './repositories';
 import type { SystemModel } from './schema';
 
 const modules = import.meta.glob<{ system: SystemModel }>('./*.system.ts', { eager: true });
-
-const presentationOrder = ['cryptopay', 'whatsapp-notification-platform', 'mini-payment-gateway'];
 
 const rank = (system: SystemModel): number => {
   const index = presentationOrder.indexOf(system.id);

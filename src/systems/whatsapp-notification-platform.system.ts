@@ -1,3 +1,4 @@
+import { repositoryIdentity } from './repositories';
 import { defineSystem } from './validate';
 
 const cite = (path: string, lines?: [number, number]) => ({ path, lines });
@@ -90,10 +91,7 @@ export const system = defineSystem({
   thesis:
     'Delivery is at-least-once and the platform says so: it records an attempt before the network call, settles an unknown outcome before acting again, and merges receipts by maximum so it never claims more than it knows.',
   repository: {
-    owner: 'thomazzi98',
-    name: 'whatsapp-notification-platform',
-    defaultBranch: 'main',
-    pinnedCommit: 'f0398f70b4150c2f666dabda2cddc26ed0a0ebbf',
+    ...repositoryIdentity('whatsapp-notification-platform'),
     pinnedOn: '2026-09-09',
     firstCommitOn: '2026-09-07',
     commitCount: 46,
@@ -2247,31 +2245,41 @@ export const system = defineSystem({
         {
           id: 'SCHEDULED',
           terminal: false,
+          tone: 'wait',
           note: 'Created with scheduledAt; not a state a worker may dispatch from.',
         },
-        { id: 'QUEUED', terminal: false },
+        { id: 'QUEUED', terminal: false, tone: 'wait' },
         {
           id: 'PROCESSING',
           terminal: false,
+          tone: 'flight',
           note: 'Held under a claim token; the one state a claim cannot be taken from and the one state that cannot be cancelled.',
         },
         {
           id: 'SENT',
           terminal: false,
+          tone: 'ok',
           note: 'Accepted by WhatsApp. Requires provider_message_id by CHECK constraint.',
         },
         {
           id: 'DELIVERED',
           terminal: true,
+          tone: 'ok',
           note: 'Acknowledgement DEVICE or higher. READ and PLAYED set read_at and leave the status alone.',
         },
-        { id: 'RETRYING', terminal: false, note: 'Requires next_attempt_at by CHECK constraint.' },
+        {
+          id: 'RETRYING',
+          terminal: false,
+          tone: 'wait',
+          note: 'Requires next_attempt_at by CHECK constraint.',
+        },
         {
           id: 'FAILED',
           terminal: true,
+          tone: 'fault',
           note: 'No outgoing edge: a retry creates a new row that points back through retry_of_notification_id.',
         },
-        { id: 'CANCELLED', terminal: true },
+        { id: 'CANCELLED', terminal: true, tone: 'neutral' },
       ],
       transitions: [
         {
@@ -2350,17 +2358,20 @@ export const system = defineSystem({
         {
           id: 'UNRESOLVED',
           terminal: false,
+          tone: 'unknown',
           note: 'outcome IS NULL and request_finished_at IS NULL, by CHECK constraint. Committed before the provider is contacted.',
         },
-        { id: 'SUCCEEDED', terminal: true },
+        { id: 'SUCCEEDED', terminal: true, tone: 'ok' },
         {
           id: 'FAILED',
           terminal: true,
+          tone: 'fault',
           note: 'A classified failure whose request was answered or never written.',
         },
         {
           id: 'UNKNOWN',
           terminal: true,
+          tone: 'unknown',
           note: 'Timeout, abort, connection lost, unreadable response, or an attempt found unresolved by a later dispatch.',
         },
       ],
@@ -2390,11 +2401,13 @@ export const system = defineSystem({
         {
           id: 'IN_FLIGHT',
           terminal: false,
+          tone: 'flight',
           note: 'Inserted with ON CONFLICT DO NOTHING; a concurrent request for the same key waits on the speculative insertion lock.',
         },
         {
           id: 'COMPLETED',
           terminal: true,
+          tone: 'ok',
           note: 'Holds responseStatus, responseBody and resourceId for replays.',
         },
       ],
@@ -2424,17 +2437,20 @@ export const system = defineSystem({
         {
           id: 'RECEIVED',
           terminal: false,
+          tone: 'wait',
           note: 'outcome IS NULL and processed_at IS NULL, by CHECK constraint; unique on (whatsapp_session_id, provider_event_id).',
         },
-        { id: 'APPLIED', terminal: true },
+        { id: 'APPLIED', terminal: true, tone: 'ok' },
         {
           id: 'IGNORED',
           terminal: true,
+          tone: 'neutral',
           note: 'Inbound message, an event type with no rule, or an acknowledgement already at that level. A job redelivered after processing logs IGNORED but leaves the row and its first outcome alone.',
         },
         {
           id: 'UNMATCHED',
           terminal: true,
+          tone: 'unknown',
           note: 'No notification carried the identifier after the 60 s grace window.',
         },
       ],

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "cryptopay",
+    "name": "CryptoPay",
+    "repository": {
+      "owner": "thomazzi98",
+      "name": "cryptopay",
+      "defaultBranch": "main",
+      "pinnedCommit": "9f08bb98082b36c00718bf0b7999af7526da5ec0"
+    }
+  },
+  {
+    "id": "whatsapp-notification-platform",
+    "name": "WhatsApp Notification Platform",
+    "repository": {
+      "owner": "thomazzi98",
+      "name": "whatsapp-notification-platform",
+      "defaultBranch": "main",
+      "pinnedCommit": "f0398f70b4150c2f666dabda2cddc26ed0a0ebbf"
+    }
+  },
+  {
+    "id": "mini-payment-gateway",
+    "name": "Mini Payment Gateway",
+    "repository": {
+      "owner": "thomazzi98",
+      "name": "mini-payment-gateway",
+      "defaultBranch": "main",
+      "pinnedCommit": "d34b25199efe3613464505c0bf536fa97d514905"
+    }
+  }
+]

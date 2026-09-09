@@ -54,6 +54,8 @@ export const nodeSchema = z.object({
   id: identifier,
   label: z.string().min(1),
   kind: z.enum(nodeKinds),
+  // A short mark drawn across the part when it is not what its label promises yet: "unused", "no transport".
+  stamp: z.string().min(1).max(24).optional(),
   purpose: z.string().min(1),
   technologies: z.array(identifier).default([]),
   notes: z.array(z.string().min(1)).default([]),
@@ -120,6 +122,7 @@ export const flowSchema = z.object({
 export const statusSchema = z.object({
   id: z.string().min(1),
   terminal: z.boolean(),
+  tone: z.enum(tones),
   funded: z.boolean().optional(),
   note: z.string().min(1).optional(),
 });

@@ -10,6 +10,8 @@
   --ink-faint: #8f8a80;
   --rule: #2b2e33;
   --rule-strong: #454950;
+  /* Wires in a drawing are content, not decoration, so they clear 3:1 on the panel. */
+  --wire: #6f747c;
   --ground-ink: #121416;
 
   /* Colour means state and nothing else. */
@@ -69,6 +71,7 @@
     --ink-faint: #6f6b63;
     --rule: #d6d1c4;
     --rule-strong: #b3ada1;
+    --wire: #8a8478;
     --ground-ink: #f5f2ea;
     --ok: #1f6f38;
     --wait: #7a5200;

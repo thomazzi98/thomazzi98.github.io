@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 interface PinnedSource {
@@ -8,26 +8,25 @@ interface PinnedSource {
   commit: string;
 }
 
-const systemsDirectory = resolve('src/systems');
+const registryPath = resolve('src/systems/repositories.json');
 const vendorDirectory = resolve('vendor');
 const linkRoot = process.argv.includes('--link')
   ? process.argv[process.argv.indexOf('--link') + 1]
   : undefined;
 
-const readPinnedSources = (): PinnedSource[] =>
-  readdirSync(systemsDirectory)
-    .filter((name) => name.endsWith('.system.ts'))
-    .map((name) => readFileSync(join(systemsDirectory, name), 'utf-8'))
-    .map((text) => {
-      const block = /repository:\s*\{([\s\S]*?)\n\s*\}/.exec(text)?.[1] ?? '';
-      const owner = /owner:\s*'([^']+)'/.exec(block)?.[1];
-      const repositoryName = /name:\s*'([^']+)'/.exec(block)?.[1];
-      const commit = /pinnedCommit:\s*'([0-9a-f]{40})'/.exec(block)?.[1];
-      if (owner === undefined || repositoryName === undefined || commit === undefined) {
-        throw new Error('A system file does not declare owner, name and pinnedCommit.');
-      }
-      return { owner, name: repositoryName, commit };
-    });
+interface RegistryEntry {
+  repository: { owner: string; name: string; pinnedCommit: string };
+}
+
+const readPinnedSources = (): PinnedSource[] => {
+  const entries = JSON.parse(readFileSync(registryPath, 'utf-8')) as RegistryEntry[];
+  return entries.map(({ repository }) => {
+    if (!/^[0-9a-f]{40}$/.test(repository.pinnedCommit)) {
+      throw new Error(`${repository.owner}/${repository.name} has no full pinned commit.`);
+    }
+    return { owner: repository.owner, name: repository.name, commit: repository.pinnedCommit };
+  });
+};
 
 const git = (directory: string, argumentList: string[]): string =>
   execFileSync('git', ['-C', directory, ...argumentList], { encoding: 'utf-8' });

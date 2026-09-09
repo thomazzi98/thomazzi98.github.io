@@ -9,6 +9,7 @@
 @import './decisions.css';
 @import './about.css';
 @import './palette.css';
+@import './fragment.css';
 
 @layer reset {
   *,

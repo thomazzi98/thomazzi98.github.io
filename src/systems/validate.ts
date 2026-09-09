@@ -46,6 +46,9 @@ export const findSystemProblems = (system: SystemModel): string[] => {
   }
 
   for (const edge of system.edges) {
+    if (edge.from === edge.to) {
+      problems.push(`edge "${edge.id}" starts and ends at the same node`);
+    }
     if (!nodeIds.has(edge.from)) {
       problems.push(`edge "${edge.id}" starts at unknown node "${edge.from}"`);
     }
@@ -55,6 +58,9 @@ export const findSystemProblems = (system: SystemModel): string[] => {
   }
 
   for (const flow of system.flows) {
+    for (const id of duplicates(flow.levers.map((lever) => lever.id))) {
+      problems.push(`flow "${flow.id}" declares lever "${id}" more than once`);
+    }
     const leverOptions = new Map(
       flow.levers.map((lever) => [lever.id, new Set(lever.options.map((option) => option.value))]),
     );
