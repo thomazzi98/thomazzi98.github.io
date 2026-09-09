@@ -53,7 +53,7 @@
         "resource-summary:font:count": [
           "error",
           {
-            "maxNumericValue": 3
+            "maxNumericValue": 4
           }
         ]
       }

@@ -21,12 +21,6 @@ const currentState = (href: string): 'page' | 'true' | undefined => {
   }
   return Astro.url.pathname.startsWith(href) ? 'true' : undefined;
 };
-const contacts = [
-  { href: `mailto:${identity.email}`, label: identity.email },
-  { href: identity.links.github, label: 'GitHub' },
-  { href: identity.links.linkedin, label: 'LinkedIn' },
-  { href: '/resume.txt', label: 'resume.txt' },
-];
 ---
 
 <!doctype html>
@@ -39,8 +33,8 @@ const contacts = [
     <meta name="author" content={identity.name} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#efe9dd" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#191a1d" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121416" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f2ea" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={identity.name} />
     <meta property="og:title" content={title} />
@@ -51,6 +45,7 @@ const contacts = [
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content={identity.positioning} />
     <meta name="twitter:card" content="summary_large_image" />
+    <Font cssVariable="--font-instrument-serif" preload={[{ style: 'normal' }]} />
     <Font cssVariable="--font-plex-sans" preload />
     <Font cssVariable="--font-plex-mono" preload={[{ weight: 400 }]} />
     <slot name="head" />
@@ -75,22 +70,27 @@ const contacts = [
       <slot />
     </main>
     <footer class="shell">
-      <div class="site-footer">
-        <span>
-          {identity.location} · {identity.timezone} ·{' '}
-          <a href="/colophon/">build {buildInfo.commit} · {buildInfo.date}</a>
-        </span>
-        <span>
-          {
-            contacts.map(({ href, label }, index) => (
-              <>
-                {index > 0 && <span aria-hidden="true"> · </span>}
-                <a href={href}>{label}</a>
-              </>
-            ))
-          }
-        </span>
-      </div>
+      <dl class="site-footer">
+        <div>
+          <dt>Location</dt>
+          <dd>{identity.location}</dd>
+          <dd>{identity.timezone} · {identity.availability}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd><a href={`mailto:${identity.email}`}>{identity.email}</a></dd>
+        </div>
+        <div>
+          <dt>Elsewhere</dt>
+          <dd><a href={identity.links.github}>github.com/thomazzi98</a></dd>
+          <dd><a href={identity.links.linkedin}>LinkedIn</a></dd>
+          <dd><a href="/resume.txt">resume.txt</a></dd>
+        </div>
+        <p class="site-footer__note">
+          Build <a href="/colophon/">{buildInfo.commit} · {buildInfo.date}</a>. No analytics, no
+          cookies, no third-party requests.
+        </p>
+      </dl>
     </footer>
     <script>
       import { announceInConsole } from '../lib/console-banner';

@@ -17,6 +17,28 @@ export default defineConfig({
   fonts: [
     {
       provider: fontProviders.local(),
+      name: 'Instrument Serif',
+      cssVariable: '--font-instrument-serif',
+      weights: [400],
+      styles: ['normal', 'italic'],
+      fallbacks: ['Georgia', 'serif'],
+      options: {
+        variants: [
+          {
+            src: ['./src/assets/fonts/instrument-serif-normal.woff2'],
+            weight: 400,
+            style: 'normal',
+          },
+          {
+            src: ['./src/assets/fonts/instrument-serif-italic.woff2'],
+            weight: 400,
+            style: 'italic',
+          },
+        ],
+      },
+    },
+    {
+      provider: fontProviders.local(),
       name: 'IBM Plex Sans',
       cssVariable: '--font-plex-sans',
       weights: ['100 700'],

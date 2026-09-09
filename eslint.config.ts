@@ -33,7 +33,7 @@ const abbreviatedIdentifiers = [
 ];
 
 export default defineConfig([
-  globalIgnores(['dist/', '.astro/', 'node_modules/']),
+  globalIgnores(['dist/', '.astro/', 'node_modules/', 'vendor/', 'src/systems/fragments/']),
   eslintJs.configs.recommended,
   typescriptEslint.configs.strictTypeChecked,
   typescriptEslint.configs.stylisticTypeChecked,

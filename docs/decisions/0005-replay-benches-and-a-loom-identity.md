@@ -1,6 +1,6 @@
 ---
 title: Replay benches as the experience, a loom as the identity
-status: accepted
+status: superseded
 date: 2026-09-07
 ---
 
@@ -44,3 +44,4 @@ the cases that back them.
 - No command bar, no status-line ornament, no second drawing for phones: one layout function
   places stations vertically or horizontally from the same graph.
 - Every number on a bench is labelled simulated or measured, and the two are never mixed.
+- Superseded by decision 0006: the benches and the loom identity were retired on 2026-09-09 in favour of a systems laboratory built on three public repositories.

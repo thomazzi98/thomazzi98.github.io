@@ -1,58 +1,86 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark light;
 
-  /* Ground and ink, named after the loom: unbleached cotton by day, loom iron by night. */
-  --ground: #efe9dd;
-  --raised: #f7f3ea;
-  --ink: #1b1a17;
-  --ink-muted: #5a5750;
-  --rule: #d9d2c2;
-  --greige: #b9ae95;
-  --greige-strong: #8c826c;
+  /* Graphite ground, ivory ink. Hairlines separate; nothing casts a shadow. */
+  --ground: #121416;
+  --panel: #17191c;
+  --raised: #1d2024;
+  --ink: #ece7dc;
+  --ink-muted: #a8a398;
+  --ink-faint: #8f8a80;
+  --rule: #2b2e33;
+  --rule-strong: #454950;
+  --ground-ink: #121416;
 
-  /* Thread colours. Indigo is the weft in flight; madder is a fault; turmeric waits; moss is done. */
-  --indigo: #24456e;
-  --madder: #a63f2b;
-  --turmeric: #8a5a00;
-  --moss: #3d6b3a;
-  --indigo-ink: #efe9dd;
+  /* Colour means state and nothing else. */
+  --ok: #79c98a;
+  --wait: #e2a93b;
+  --fault: #f07a6e;
+  --unknown: #b9a4f2;
+  --flight: #f6f2e8;
+  --focus: var(--wait);
 
-  /* Technology groups on the cloth and the selvedge: full indigo, a thinner indigo, and greige. */
-  --thread-owned: var(--indigo);
-  --thread-shipped: color-mix(in srgb, var(--indigo) 65%, var(--ground));
-  --thread-familiar: var(--greige-strong);
-
+  --font-display: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   --font-sans: var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
+
+  --size-display: clamp(2.75rem, 1.4rem + 4.6vw, 5.25rem);
+  --size-title: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+  --size-pull: clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+  --size-lead: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  --size-body: 1rem;
+  --size-small: 0.875rem;
+  --size-mono: 0.8125rem;
+  --size-caption: 0.75rem;
+  --size-micro: 0.6875rem;
+
+  --leading-tight: 1.02;
+  --leading-snug: 1.25;
+  --leading-body: 1.55;
+  --leading-mono: 1.5;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
 
   --measure: 62ch;
   --container: 76rem;
   --gutter: clamp(1rem, 4vw, 2.5rem);
+  --hairline: 1px;
 
-  /* One pick per beat. Every state change on a bench lands on this grid; nothing eases. */
+  /* Interface transitions are short; the virtual clock has its own beat. */
+  --duration: 160ms;
   --beat: 120ms;
-  --pick: steps(1, end);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --ground: #191a1d;
-    --raised: #202226;
-    --ink: #e4dccb;
-    --ink-muted: #a39d90;
-    --rule: #33353a;
-    --greige: #5e5a50;
-    --greige-strong: #8f8878;
-    --indigo: #8fb0e0;
-    --madder: #e8846c;
-    --turmeric: #d9a441;
-    --moss: #8cc08a;
-    --indigo-ink: #191a1d;
+    --ground: #f5f2ea;
+    --panel: #faf8f2;
+    --raised: #ffffff;
+    --ink: #1c1b18;
+    --ink-muted: #5b5953;
+    --ink-faint: #6f6b63;
+    --rule: #d6d1c4;
+    --rule-strong: #b3ada1;
+    --ground-ink: #f5f2ea;
+    --ok: #1f6f38;
+    --wait: #7a5200;
+    --fault: #a8231b;
+    --unknown: #5537b0;
+    --flight: #1c1b18;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --duration: 0ms;
     --beat: 0ms;
   }
 }

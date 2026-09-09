@@ -6,3 +6,5 @@ package-lock.json
 test-results/
 playwright-report/
 .lighthouseci/
+vendor
+src/systems/fragments

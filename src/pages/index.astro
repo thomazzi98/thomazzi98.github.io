@@ -46,21 +46,32 @@ const personSchema = {
     />
   </Fragment>
 
-  <section class="identity">
-    <p class="kicker">{identity.headline} · {identity.availability}</p>
-    <h1>{identity.positioning}</h1>
-    <p class="identity__meta">
-      <span>{identity.location}</span>
-      <span>{identity.timezone}</span>
-      {
-        latestRole !== undefined && (
-          <span>
-            last role {latestRole.data.company} · {formatPeriod(latestRole.data.period)}
-          </span>
-        )
-      }
-      <a href="/resume.txt">resume.txt</a>
-    </p>
+  <section class="hero">
+    <div>
+      <p class="kicker">Backend engineer · payments, messaging and chain infrastructure</p>
+      <h1 class="hero__name">{identity.name}</h1>
+      <p class="hero__thesis">Systems that can say what happened, and prove it.</p>
+    </div>
+    <div class="hero__aside">
+      <p>
+        Three self-hosted systems, each built to <strong
+          >determine what actually happened under uncertainty and to refuse to guess</strong
+        >: finality gates and reorg-checked windows, outcomes classified by whether anything was
+        created, acknowledgements merged by maximum, idempotency claims the database serialises.
+      </p>
+      <p class="hero__meta">
+        <span>{identity.location}</span>
+        <span>{identity.timezone}</span>
+        {
+          latestRole !== undefined && (
+            <span>
+              last role {latestRole.data.company} · {formatPeriod(latestRole.data.period)}
+            </span>
+          )
+        }
+        <a href="/resume.txt">resume.txt</a>
+      </p>
+    </div>
   </section>
 
   <section class="section" aria-labelledby="systems-title">
@@ -75,15 +86,10 @@ const personSchema = {
             <a href={repository.url} class="mono">
               thomazzi98/{repository.name}
             </a>
-            <span class="muted"> · {repository.summary}</span>
+            <span class="muted">{repository.summary}</span>
           </li>
         ))
       }
     </ul>
-    <p class="measure muted">
-      Each repository carries its own README, decision records and test suites. Reach me at{' '}
-      <a href={`mailto:${identity.email}`}>{identity.email}</a>, {identity.timezone},{' '}
-      {identity.availability}.
-    </p>
   </section>
 </Base>
