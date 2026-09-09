@@ -6,6 +6,7 @@
 @import './systems.css';
 @import './board.css';
 @import './architecture.css';
+@import './decisions.css';
 @import './about.css';
 
 @layer reset {

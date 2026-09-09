@@ -1,0 +1,147 @@
+---
+import Base from '../layouts/Base.astro';
+import { systems } from '../systems';
+import { evidenceLabel, evidenceUrl } from '../systems/evidence';
+import {
+  decisionThemes,
+  type Decision,
+  type DecisionTheme,
+  type SystemModel,
+} from '../systems/schema';
+
+interface Entry {
+  system: SystemModel;
+  decision: Decision;
+  otherThemes: DecisionTheme[];
+}
+
+const themeNames: Record<DecisionTheme, string> = {
+  durability: 'Durability',
+  correctness: 'Correctness',
+  security: 'Security',
+  boundaries: 'Boundaries',
+  operability: 'Operability',
+  tooling: 'Tooling',
+};
+
+const themeGlosses: Record<DecisionTheme, string> = {
+  durability: 'What survives a crash, and where it is written',
+  correctness: 'How the system knows what happened before it says so',
+  security: 'Who may do what, and what a leak would yield',
+  boundaries: 'Where one part ends and the next begins',
+  operability: 'What running it costs the people on call',
+  tooling: 'What the build refuses on its own',
+};
+
+const entries: Entry[] = systems.flatMap((system) =>
+  system.decisions.map((decision) => ({
+    system,
+    decision,
+    otherThemes: decision.themes.slice(1),
+  })),
+);
+
+const firstTheme = (decision: Decision): DecisionTheme => decision.themes[0] ?? 'correctness';
+
+const groups = decisionThemes
+  .map((theme) => ({
+    theme,
+    entries: entries.filter((entry) => firstTheme(entry.decision) === theme),
+  }))
+  .filter((group) => group.entries.length > 0);
+
+const total = entries.length;
+const decisionHref = (entry: Entry) => `/systems/${entry.system.id}/#decision-${entry.decision.id}`;
+---
+
+<Base
+  title="Decisions · Rafael Thomazzi"
+  description={`${String(total)} engineering decisions across three systems: what was chosen, what was refused, what it costs, and where the code is.`}
+>
+  <section class="page-head">
+    <p class="kicker">Decisions · {total} across {systems.length} systems</p>
+    <h1>Every decision, with its price</h1>
+    <p class="lead">
+      A decision recorded without its cost cannot be revisited: nobody can tell whether the reason
+      still holds or the price is still worth paying. So every entry here names what it refused and
+      what it gave up, and links to the record and the code at the pinned commit.
+    </p>
+  </section>
+
+  <nav class="theme-index" aria-label="Themes">
+    <ol class="theme-index__list">
+      {
+        groups.map((group) => (
+          <li>
+            <a href={`#${group.theme}`}>
+              <span class="theme-index__name">{themeNames[group.theme]}</span>
+              <span class="theme-index__count mono">{group.entries.length}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </nav>
+
+  {
+    groups.map((group) => (
+      <section class="section theme" id={group.theme} aria-labelledby={`${group.theme}-title`}>
+        <div class="section__head">
+          <h2 id={`${group.theme}-title`}>{themeNames[group.theme]}</h2>
+          <p class="kicker">
+            {themeGlosses[group.theme]} · {group.entries.length}
+          </p>
+        </div>
+        <ol class="entries">
+          {group.entries.map((entry) => (
+            <li class="entry" id={`${entry.system.id}-${entry.decision.id}`}>
+              <div class="entry__side">
+                <a class="entry__system" href={decisionHref(entry)}>
+                  {entry.system.name}
+                </a>
+                {entry.otherThemes.length > 0 && (
+                  <p class="entry__also">
+                    also {entry.otherThemes.map((theme) => themeNames[theme]).join(', ')}
+                  </p>
+                )}
+              </div>
+              <div class="entry__main">
+                <h3 class="entry__title">{entry.decision.title}</h3>
+                <dl class="entry__facts">
+                  <div>
+                    <dt>Decision</dt>
+                    <dd>{entry.decision.decision}</dd>
+                  </div>
+                  {entry.decision.alternatives.length > 0 && (
+                    <div>
+                      <dt>Refused</dt>
+                      <dd>
+                        <ul class="entry__refused">
+                          {entry.decision.alternatives.map((alternative) => (
+                            <li>{alternative}</li>
+                          ))}
+                        </ul>
+                      </dd>
+                    </div>
+                  )}
+                  <div class="entry__cost">
+                    <dt>Cost</dt>
+                    <dd>{entry.decision.cost}</dd>
+                  </div>
+                </dl>
+                <p class="evidence">
+                  {entry.decision.evidence.map((item, position) => (
+                    <>
+                      {position > 0 && ' · '}
+                      <a href={evidenceUrl(entry.system.repository, item)}>{evidenceLabel(item)}</a>
+                    </>
+                  ))}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))
+  }
+</Base>
