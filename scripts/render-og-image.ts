@@ -1,7 +1,11 @@
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 import { identity } from '../src/lib/identity.ts';
+
+const thesis = 'Systems that can say what happened, and prove it.';
+const presentationOrder = ['cryptopay', 'whatsapp-notification-platform', 'mini-payment-gateway'];
 
 const escapeHtml = (text: string): string =>
   text
@@ -12,15 +16,53 @@ const escapeHtml = (text: string): string =>
 
 const fontUrl = (file: string) => pathToFileURL(resolve('src/assets/fonts', file)).href;
 
+const rank = (id: string): number => {
+  const index = presentationOrder.indexOf(id);
+  return index === -1 ? presentationOrder.length : index;
+};
+
+const readSystemNames = (): string[] => {
+  const directory = resolve('src/systems');
+  return readdirSync(directory)
+    .filter((file) => file.endsWith('.system.ts'))
+    .map((file) => {
+      const text = readFileSync(join(directory, file), 'utf-8');
+      const id = /^ {2}id: '([^']+)'/m.exec(text)?.[1];
+      const name = /^ {2}name: '([^']+)'/m.exec(text)?.[1];
+      if (id === undefined || name === undefined) {
+        throw new Error(`${file} does not declare a top-level id and name.`);
+      }
+      return { id, name };
+    })
+    .sort((first, second) => rank(first.id) - rank(second.id) || first.id.localeCompare(second.id))
+    .map((entry) => entry.name);
+};
+
+const systemNames = readSystemNames();
+
+const systemsMarkup = systemNames
+  .map(
+    (name, index) =>
+      `<li><span class="number">${String(index + 1).padStart(2, '0')}</span>${escapeHtml(name)}</li>`,
+  )
+  .join('');
+
 const page = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <style>
       @font-face {
-        font-family: 'IBM Plex Sans';
-        src: url('${fontUrl('ibm-plex-sans-variable.woff2')}') format('woff2');
-        font-weight: 100 700;
+        font-family: 'Instrument Serif';
+        src: url('${fontUrl('instrument-serif-normal.woff2')}') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: 'Instrument Serif';
+        src: url('${fontUrl('instrument-serif-italic.woff2')}') format('woff2');
+        font-weight: 400;
+        font-style: italic;
       }
       @font-face {
         font-family: 'IBM Plex Mono';
@@ -32,39 +74,68 @@ const page = `<!doctype html>
         width: 1200px;
         height: 630px;
         box-sizing: border-box;
-        padding: 72px 80px;
+        padding: 64px 80px 60px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        background: #efe9dd;
-        color: #1b1a17;
-        font-family: 'IBM Plex Sans', sans-serif;
+        background: #121416;
+        color: #ece7dc;
+        font-family: 'Instrument Serif', Georgia, serif;
       }
-      .label {
+      .caption {
+        display: flex;
+        justify-content: space-between;
+        margin: 0;
         font-family: 'IBM Plex Mono', monospace;
-        font-size: 22px;
+        font-size: 20px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #5a5750;
+        color: #a8a398;
       }
       h1 {
         margin: 0;
-        max-width: 980px;
-        font-size: 68px;
-        line-height: 1.08;
-        font-weight: 600;
-        letter-spacing: -0.02em;
+        font-size: 108px;
+        line-height: 1;
+        font-weight: 400;
+        letter-spacing: -0.015em;
       }
-      .rule { border-top: 3px solid #24456e; width: 96px; margin-bottom: 28px; }
+      .thesis {
+        margin: 22px 0 0;
+        max-width: 960px;
+        font-size: 50px;
+        line-height: 1.12;
+        font-style: italic;
+        font-weight: 400;
+        color: #ece7dc;
+      }
+      .systems {
+        display: flex;
+        gap: 48px;
+        margin: 0;
+        padding: 26px 0 0;
+        border-top: 1px solid #454950;
+        list-style: none;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 22px;
+        letter-spacing: 0.02em;
+        color: #ece7dc;
+      }
+      .number {
+        margin-right: 14px;
+        color: #a8a398;
+      }
     </style>
   </head>
   <body>
-    <p class="label">${escapeHtml(identity.name)} · ${escapeHtml(identity.headline)}</p>
+    <p class="caption">
+      <span>${escapeHtml(identity.name)}</span>
+      <span>${escapeHtml(identity.headline)}</span>
+    </p>
     <div>
-      <div class="rule"></div>
-      <h1>${escapeHtml(identity.positioning)}</h1>
+      <h1>${escapeHtml(identity.name)}</h1>
+      <p class="thesis">${escapeHtml(thesis)}</p>
     </div>
-    <p class="label">thomazzi98.github.io · ${escapeHtml(identity.city)}, Brazil · ${escapeHtml(identity.timezone)} · ${escapeHtml(identity.availability)}</p>
+    <ol class="systems">${systemsMarkup}</ol>
   </body>
 </html>`;
 
@@ -78,4 +149,4 @@ await tab.setContent(page, { waitUntil: 'load' });
 await tab.evaluate(() => document.fonts.ready);
 await tab.screenshot({ path: 'public/og.png', type: 'png' });
 await browser.close();
-console.log('Wrote public/og.png');
+console.log(`Wrote public/og.png with ${String(systemNames.length)} systems`);
