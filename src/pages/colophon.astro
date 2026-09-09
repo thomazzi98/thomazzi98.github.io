@@ -5,72 +5,130 @@ import Base from '../layouts/Base.astro';
 import { readBudgets } from '../lib/budgets';
 import { buildInfo } from '../lib/build-info';
 import { identity } from '../lib/identity';
+import { systems } from '../systems';
+import { shortCommit } from '../systems/evidence';
 
 const decisions = (await getCollection('decisions')).sort((first, second) =>
-  first.id.localeCompare(second.id),
+  second.id.localeCompare(first.id),
 );
 const renderedDecisions = await Promise.all(
-  decisions.map(async (decision) => ({ decision, Content: (await render(decision)).Content })),
+  decisions.map(async (decision) => ({
+    decision,
+    number: decision.id.slice(0, 4),
+    Content: (await render(decision)).Content,
+  })),
 );
 const budgets = readBudgets(lighthouseConfig);
-const repository = 'https://github.com/thomazzi98/thomazzi98.github.io';
+const budgetGroups = [...new Set(budgets.map((budget) => budget.scope))].map((scope) => ({
+  scope,
+  budgets: budgets.filter((budget) => budget.scope === scope),
+}));
+const repository = buildInfo.repositoryUrl;
 const workflow = `${repository}/actions/workflows/ci.yml`;
+const recordUrl = (id: string) => `${repository}/blob/main/docs/decisions/${id}.md`;
+const pipeline = [
+  {
+    name: 'Check out the sources',
+    detail:
+      'The three repositories are cloned at the commits the models pin; a pinned commit that is not on GitHub stops the build here.',
+  },
+  {
+    name: 'Type check, lint, format, drafts',
+    detail:
+      'astro check over pages, islands and tests; ESLint with no else, no abbreviated identifiers and exhaustive switches; Prettier; a scan for draft markers and control characters.',
+  },
+  {
+    name: 'Unit tests',
+    detail:
+      'Model integrity, evidence against the pinned checkouts, repository facts against git, trace determinism, layout, the text projections and the content integrity rules.',
+  },
+  {
+    name: 'Build and check links',
+    detail:
+      'Static output for every route, then every internal href and fragment in the built HTML is resolved against the files that exist.',
+  },
+  {
+    name: 'End to end with axe',
+    detail:
+      'Playwright over every route in the sitemap, on desktop Chrome, on a Pixel 7 profile and with JavaScript disabled, scanned for WCAG violations.',
+  },
+  {
+    name: 'Lighthouse budgets',
+    detail: 'The budgets below, asserted on the built pages. A failure blocks the deploy.',
+  },
+];
 ---
 
 <Base
   title="Colophon · Rafael Thomazzi"
-  description="How this site is built and verified: the content model, the budgets the build enforces, and the decisions behind them."
+  description="How this site is built and verified: a static Astro site with Preact islands, a deterministic trace kernel, a typed system model whose evidence is checked against pinned commits, the budgets the build enforces and the decisions behind it."
 >
   <section class="page-head">
+    <p class="kicker">Colophon</p>
     <h1>How this is made</h1>
-    <p class="measure muted">
-      A static site. Everything below is verifiable from the <a href={repository}>repository</a>.
+    <p class="lead muted">
+      A static site that shows three systems as engineering. Everything on this page can be checked
+      in the <a href={repository}>repository</a>.
     </p>
   </section>
 
-  <section class="section" aria-labelledby="content-title">
+  <section class="section" aria-labelledby="build-title">
     <div class="section__head">
-      <h2 id="content-title">The content model</h2>
-      <p class="kicker">Typed, referenced, checked at build</p>
+      <h2 id="build-title">How it is built</h2>
+      <p class="kicker">Astro 7 · Preact islands · a virtual clock · evidence at a commit</p>
     </div>
     <div class="prose">
       <p>
-        Roles, projects, education and practices are content collections validated with schemas.
-        Technologies are a registry that roles and projects reference by id; a reference to an
-        unknown id fails the build, and so does a registry entry that nothing references. A practice
-        must name the projects that back it. The resume and the llms.txt file are projections of
-        those files, computed once.
+        Astro 7 renders every page to static HTML at build time and GitHub Pages serves the files.
+        The interactive parts, the schematic with its inspector, the flow player and the board on
+        the home page, are Preact islands with signals for state. They hydrate when they scroll into
+        view, and the schematic, the ledger and the transcript tables are already in the HTML before
+        any script runs, so the pages read the same with JavaScript disabled.
+      </p>
+      <p>
+        Each system is a typed model under <code>src/systems</code>: repository, maturity, stack,
+        nodes, edges, flows, state machines, decisions, code fragments, verification, security
+        controls and limitations, validated by a Zod schema. Every entry carries evidence, a path
+        and a line range at a pinned commit, and the schema does not accept an entry without it. The
+        unit suite checks out the three repositories at those commits, reads every cited file with <code
+          >git show</code
+        >, fails on a file that does not exist or a line range past the end of the file, and
+        compares every code fragment byte for byte with the original. Commit counts and dates are
+        read from git in the same step, never typed.
+      </p>
+      <p>
+        Flows are replayed by a deterministic kernel under <code>src/trace/kernel</code>: a seeded
+        random source, a scheduler and a simulation on a virtual clock. A runner turns a flow and
+        the lever values into scheduled steps; the same runner produces the transcript tables at
+        build time and the <code>/systems/&lt;id&gt;.json</code> files, so the player, the table and the
+        data agree because they are one computation. Under reduced motion nothing moves until Step.
+      </p>
+      <p>
+        The person is content too. Roles, education and practices are collections validated with
+        Zod; technologies are a registry that roles and systems cite by id. A reference to an
+        unknown id fails the build, and so does a registry entry that nothing cites. A practice
+        names the systems and roles that back it, and the build fails if it names one that does not
+        exist. <a href="/resume.txt">resume.txt</a> and <a href="/llms.txt">llms.txt</a> are projections
+        of the same data, computed once.
+      </p>
+      <p>
+        Type is Instrument Serif for the human voice and IBM Plex Sans and IBM Plex Mono for the
+        instruments, four self-hosted files. Colour means state and nothing else: green for
+        committed, amber for waiting and for focus, red for a fault, violet for the outcome nobody
+        knows yet.
       </p>
     </div>
-  </section>
-
-  <section class="section" aria-labelledby="budgets-title">
-    <div class="section__head">
-      <h2 id="budgets-title">What the build refuses</h2>
-      <p class="kicker">Enforced on every push</p>
-    </div>
-    <p class="measure muted">
-      The pipeline type-checks, lints, checks formatting, rejects draft markers, runs the unit
-      tests, builds, and checks every internal link. It then runs Playwright with axe-core against
-      every route in the sitemap, once with JavaScript disabled, and asserts these Lighthouse
-      budgets. A failure blocks the deploy. The latest run is on the{' '}
-      <a href={workflow}>workflow page</a>.
-    </p>
-    <table class="stack-table budgets" role="table">
-      <thead role="rowgroup">
-        <tr role="row">
-          <th role="columnheader" scope="col">Audit</th>
-          <th role="columnheader" scope="col">Budget</th>
-        </tr>
-      </thead>
-      <tbody role="rowgroup">
+    <table class="facts" style="margin-top: var(--space-6); max-width: 44rem">
+      <caption class="kicker">Pinned commits this build describes</caption>
+      <tbody>
         {
-          budgets.map((budget) => (
-            <tr role="row">
-              <th role="rowheader" scope="row">
-                {budget.audit}
-              </th>
-              <td role="cell">{budget.threshold}</td>
+          systems.map((system) => (
+            <tr>
+              <th scope="row">{system.name}</th>
+              <td>
+                <a href={`/systems/${system.id}/`}>{system.repository.name}</a> at{' '}
+                {shortCommit(system.repository)}, {system.repository.pinnedOn}
+              </td>
             </tr>
           ))
         }
@@ -78,22 +136,80 @@ const workflow = `${repository}/actions/workflows/ci.yml`;
     </table>
   </section>
 
-  <section class="section" aria-labelledby="decisions-title">
+  <section class="section" aria-labelledby="refuses-title">
     <div class="section__head">
-      <h2 id="decisions-title">Decisions</h2>
-      <p class="kicker">Recorded as they were made</p>
+      <h2 id="refuses-title">What the build refuses</h2>
+      <p class="kicker">Every push runs the <a href={workflow}>same pipeline</a></p>
     </div>
-    <div class="decisions">
+    <ol class="colophon-pipeline">
       {
-        renderedDecisions.map(({ decision, Content }) => (
-          <article class="decision">
-            <h3>{decision.data.title}</h3>
+        pipeline.map((stage) => (
+          <li>
+            <span>
+              <strong>{stage.name}</strong> <span class="muted">{stage.detail}</span>
+            </span>
+          </li>
+        ))
+      }
+    </ol>
+    {
+      budgetGroups.map((group) => (
+        <table class="facts budgets" style="margin-top: var(--space-6)">
+          <caption class="kicker">Lighthouse budgets · {group.scope}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Audit</th>
+              <th scope="col">Budget</th>
+            </tr>
+          </thead>
+          <tbody>
+            {group.budgets.map((budget) => (
+              <tr>
+                <th scope="row">{budget.audit}</th>
+                <td>{budget.threshold}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ))
+    }
+  </section>
+
+  <section class="section" aria-labelledby="records-title">
+    <div class="section__head">
+      <h2 id="records-title">Decision records</h2>
+      <p class="kicker">Newest first · superseded records kept as written</p>
+    </div>
+    <div class="decisions colophon-records">
+      {
+        renderedDecisions.map(({ decision, number, Content }) => (
+          <article class="decision" id={`decision-${number}`}>
+            <h3>
+              <span class="mono muted">{number}</span> {decision.data.title}
+            </h3>
             <p class="kicker">
-              {decision.data.status} · {decision.data.date.toISOString().slice(0, 10)}
+              <span
+                class="badge"
+                data-tone={decision.data.status === 'accepted' ? 'ok' : 'neutral'}
+              >
+                {decision.data.status}
+              </span>{' '}
+              · {decision.data.date.toISOString().slice(0, 10)} ·{' '}
+              <a href={recordUrl(decision.id)}>source</a>
             </p>
-            <div class="prose">
-              <Content />
-            </div>
+            {decision.data.status === 'accepted' && (
+              <div class="prose">
+                <Content />
+              </div>
+            )}
+            {decision.data.status !== 'accepted' && (
+              <details>
+                <summary>Read the record as it was written</summary>
+                <div class="prose">
+                  <Content />
+                </div>
+              </details>
+            )}
           </article>
         ))
       }
@@ -104,10 +220,23 @@ const workflow = `${repository}/actions/workflows/ci.yml`;
     <div class="section__head">
       <h2 id="stamp-title">This build</h2>
     </div>
-    <p class="mono">
-      commit <a href={`${repository}/commit/${buildInfo.commit}`}>{buildInfo.commit}</a> ·{' '}
-      {buildInfo.date} · type IBM Plex Sans and Mono, self-hosted · no analytics, no cookies, no third-party
-      requests · {identity.name}, {identity.location}
+    <p class="colophon-stamp">
+      <span>
+        commit <a href={`${repository}/commit/${buildInfo.commit}`}>{buildInfo.commit}</a> · {
+          buildInfo.date
+        }
+      </span>
+      {
+        buildInfo.runUrl !== undefined && (
+          <span>
+            <a href={buildInfo.runUrl}>workflow run</a>
+          </span>
+        )
+      }
+      <span>no analytics, no cookies, no third-party requests</span>
+      <span>
+        {identity.name}, {identity.location}
+      </span>
     </p>
   </section>
 </Base>
