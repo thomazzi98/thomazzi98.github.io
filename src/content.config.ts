@@ -4,7 +4,6 @@ import {
   decisionSchema,
   educationSchema,
   practiceSchema,
-  projectSchema,
   roleSchema,
   technologySchema,
 } from './content/schemas';
@@ -12,11 +11,6 @@ import {
 const roles = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/roles' }),
   schema: roleSchema,
-});
-
-const projects = defineCollection({
-  loader: glob({ pattern: '*.md', base: './src/content/projects' }),
-  schema: projectSchema,
 });
 
 const education = defineCollection({
@@ -39,4 +33,4 @@ const decisions = defineCollection({
   schema: decisionSchema,
 });
 
-export const collections = { roles, projects, education, technologies, practices, decisions };
+export const collections = { roles, education, technologies, practices, decisions };

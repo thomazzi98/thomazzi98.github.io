@@ -11,10 +11,11 @@ export interface ResumeRole {
   body: string;
 }
 
-export interface ResumeProject {
-  title: string;
+export interface ResumeSystem {
+  name: string;
   tagline: string;
   url: string;
+  repositoryUrl: string;
 }
 
 export interface ResumeEducation {
@@ -35,7 +36,7 @@ export interface ResumeSource {
   links: string[];
   summary: string;
   roles: ResumeRole[];
-  projects: ResumeProject[];
+  systems: ResumeSystem[];
   education: ResumeEducation[];
   technologyGroups: { label: string; names: string[] }[];
   siteUrl: string;
@@ -53,6 +54,13 @@ const renderRole = (role: ResumeRole): string =>
     paragraph(`Stack: ${role.stack.join(', ')}`),
     '',
     markdownToPlainText(role.body, WIDTH),
+  ].join('\n');
+
+const renderSystem = (system: ResumeSystem): string =>
+  [
+    ...wrapLine(`- ${system.name}: ${system.tagline}`, WIDTH, '  '),
+    `  ${system.url}`,
+    `  ${system.repositoryUrl}`,
   ].join('\n');
 
 const renderEducation = (entry: ResumeEducation): string =>
@@ -73,13 +81,13 @@ export const renderResumeText = (source: ResumeSource): string => {
     ['SUMMARY', paragraph(source.summary)].join('\n'),
     ['EXPERIENCE', '', source.roles.map(renderRole).join('\n\n')].join('\n'),
     [
-      'SELECTED WORK',
+      'SYSTEMS',
       '',
-      source.projects
-        .flatMap((project) =>
-          wrapLine(`- ${project.title}: ${project.tagline} ${project.url}`, WIDTH, '  '),
-        )
-        .join('\n'),
+      paragraph(
+        'Public repositories, each presented on the site with its architecture, flows, decisions and code at a pinned commit.',
+      ),
+      '',
+      source.systems.map(renderSystem).join('\n\n'),
     ].join('\n'),
     ['EDUCATION', '', source.education.map(renderEducation).join('\n')].join('\n'),
     [

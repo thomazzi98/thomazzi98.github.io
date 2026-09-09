@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { periodSchema } from '../../src/content/schemas';
+import { periodSchema, practiceSchema } from '../../src/content/schemas';
 
 describe('periodSchema', () => {
   it('accepts an open-ended period', () => {
@@ -18,5 +18,39 @@ describe('periodSchema', () => {
     for (const start of ['2022', '2022-13', '2022-1', 'Nov 2022']) {
       expect(periodSchema.safeParse({ start, end: null }).success).toBe(false);
     }
+  });
+});
+
+describe('practiceSchema', () => {
+  const practice = {
+    id: 'reproduce-first',
+    claim: 'Reproduce a failure before fixing it.',
+    backing: [
+      { kind: 'role', id: 'sky-one' },
+      { kind: 'system', id: 'whatsapp-notification-platform' },
+    ],
+  };
+
+  it('accepts a claim backed by a role and a system', () => {
+    expect(practiceSchema.safeParse(practice).success).toBe(true);
+  });
+
+  it('rejects a claim with nothing behind it', () => {
+    expect(practiceSchema.safeParse({ ...practice, backing: [] }).success).toBe(false);
+  });
+
+  it('rejects a backing of an unknown kind', () => {
+    expect(
+      practiceSchema.safeParse({ ...practice, backing: [{ kind: 'project', id: 'onboarding' }] })
+        .success,
+    ).toBe(false);
+  });
+
+  it('rejects identifiers that are not kebab-case', () => {
+    expect(practiceSchema.safeParse({ ...practice, id: 'Reproduce First' }).success).toBe(false);
+    expect(
+      practiceSchema.safeParse({ ...practice, backing: [{ kind: 'system', id: 'CryptoPay' }] })
+        .success,
+    ).toBe(false);
   });
 });

@@ -3,7 +3,7 @@ title: Senior Full Stack Developer
 company: Sky.One Solutions
 companyGloss: Brazilian SaaS company; its Integra.Sky product is an integration platform (iPaaS)
 location: Remote, Brazil
-period: { start: '2022-11', end: '2026-01' }
+period: { start: '2022-11', end: '2026-02' }
 stack:
   [nodejs, typescript, express, mongodb, redis, rabbitmq, aws-ses, aws-sns, jest, openapi, docker]
 ---

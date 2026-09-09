@@ -2,9 +2,9 @@ export const identity = {
   name: 'Rafael Thomazzi',
   headline: 'Senior Software Engineer · Backend',
   positioning:
-    'I build the backend between enterprise systems, payment providers, and blockchains.',
+    'I build the backend between products, payment providers and chains, and make it able to say what happened.',
   summary:
-    'Backend engineer with six years in Node.js and TypeScript: integration platforms, payment providers, and smart-contract backends, from first design through production support.',
+    'Backend engineer with seven years in Node.js and TypeScript: payment gateways and provider integrations, enterprise integration platforms, financial applications and smart-contract backends, usually from first design through production support.',
   city: 'Sorocaba',
   location: 'Sorocaba, São Paulo, Brazil',
   timezone: 'UTC−3',

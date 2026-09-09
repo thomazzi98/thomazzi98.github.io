@@ -1,3 +1,5 @@
+import type { PracticeBackingKind } from '../content/schemas';
+
 interface Reference {
   id: string;
 }
@@ -5,11 +7,6 @@ interface Reference {
 interface RoleLike {
   id: string;
   data: { stack: Reference[]; concurrentWith?: Reference | undefined };
-}
-
-interface ProjectLike {
-  id: string;
-  data: { stack: Reference[]; role?: Reference | undefined };
 }
 
 interface TechnologyLike {
@@ -21,11 +18,16 @@ interface SystemLike {
   stack: { technology: string }[];
 }
 
+interface PracticeLike {
+  id: string;
+  data: { backing: { kind: PracticeBackingKind; id: string }[] };
+}
+
 export interface ContentGraph {
   roles: RoleLike[];
-  projects: ProjectLike[];
   technologies: TechnologyLike[];
   systems?: SystemLike[];
+  practices?: PracticeLike[];
 }
 
 export class ContentIntegrityError extends Error {
@@ -41,12 +43,17 @@ export class ContentIntegrityError extends Error {
 
 export const findIntegrityProblems = ({
   roles,
-  projects,
   technologies,
   systems = [],
+  practices = [],
 }: ContentGraph): string[] => {
   const technologyIds = new Set(technologies.map((technology) => technology.id));
   const roleIds = new Set(roles.map((role) => role.id));
+  const systemIds = new Set(systems.map((system) => system.id));
+  const knownBackingIds: Record<PracticeBackingKind, Set<string>> = {
+    system: systemIds,
+    role: roleIds,
+  };
   const referencedTechnologyIds = new Set<string>();
   const problems: string[] = [];
 
@@ -68,14 +75,6 @@ export const findIntegrityProblems = ({
     }
   }
 
-  for (const project of projects) {
-    checkStack(`project "${project.id}"`, project.data.stack);
-    const role = project.data.role;
-    if (role !== undefined && !roleIds.has(role.id)) {
-      problems.push(`project "${project.id}" belongs to unknown role "${role.id}"`);
-    }
-  }
-
   for (const system of systems) {
     checkStack(
       `system "${system.id}"`,
@@ -83,11 +82,20 @@ export const findIntegrityProblems = ({
     );
   }
 
+  for (const practice of practices) {
+    for (const backing of practice.data.backing) {
+      if (knownBackingIds[backing.kind].has(backing.id)) {
+        continue;
+      }
+      problems.push(`practice "${practice.id}" cites unknown ${backing.kind} "${backing.id}"`);
+    }
+  }
+
   for (const technologyId of technologyIds) {
     if (referencedTechnologyIds.has(technologyId)) {
       continue;
     }
-    problems.push(`technology "${technologyId}" is not referenced by any role, project or system`);
+    problems.push(`technology "${technologyId}" is not referenced by any role or system`);
   }
 
   return problems;

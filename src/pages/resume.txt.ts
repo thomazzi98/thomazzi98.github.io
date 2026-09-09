@@ -3,14 +3,15 @@ import { buildInfo } from '../lib/build-info';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending } from '../lib/period';
-import { selectCaseStudies } from '../lib/projects';
 import { renderResumeText } from '../lib/resume-text';
 import { groupTechnologyNames } from '../lib/technology-groups';
 import { createTechnologyNameLookup } from '../lib/technologies';
+import { systems } from '../systems';
+import { repositoryUrl } from '../systems/evidence';
 
 export const GET: APIRoute = async ({ site }) => {
   const siteUrl = site?.href ?? '/';
-  const { roles, projects, education, technologies } = await loadContent();
+  const { roles, education, technologies } = await loadContent();
   const technologyName = createTechnologyNameLookup(technologies);
 
   const text = renderResumeText({
@@ -31,10 +32,11 @@ export const GET: APIRoute = async ({ site }) => {
       stack: role.data.stack.map(technologyName),
       body: role.body ?? '',
     })),
-    projects: selectCaseStudies(projects).map((project) => ({
-      title: project.data.title,
-      tagline: project.data.tagline,
-      url: new URL(`/about/`, siteUrl).href,
+    systems: systems.map((system) => ({
+      name: system.name,
+      tagline: system.tagline,
+      url: new URL(`/systems/${system.id}/`, siteUrl).href,
+      repositoryUrl: repositoryUrl(system.repository),
     })),
     education: [...education]
       .sort((first, second) => second.data.year - first.data.year)

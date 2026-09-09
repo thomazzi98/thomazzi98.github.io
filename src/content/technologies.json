@@ -49,13 +49,6 @@
     "group": "owned-in-production"
   },
   {
-    "id": "astro",
-    "name": "Astro",
-    "category": "framework",
-    "firstUsed": 2026,
-    "group": "familiar"
-  },
-  {
     "id": "react",
     "name": "React",
     "category": "frontend",
@@ -228,7 +221,7 @@
     "name": "PostgreSQL",
     "category": "database",
     "firstUsed": 2026,
-    "group": "shipped-with"
+    "group": "owned-in-production"
   },
   {
     "id": "node-postgres",
@@ -263,7 +256,7 @@
     "name": "NestJS",
     "category": "framework",
     "firstUsed": 2026,
-    "group": "shipped-with"
+    "group": "owned-in-production"
   },
   {
     "id": "zod",

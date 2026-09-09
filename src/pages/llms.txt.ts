@@ -3,13 +3,13 @@ import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { renderLlmsText } from '../lib/llms-text';
 import { compareByStartDescending } from '../lib/period';
-import { selectCaseStudies } from '../lib/projects';
-import { statusLabels } from '../lib/status';
 import { groupTechnologyNames } from '../lib/technology-groups';
+import { systems } from '../systems';
+import { repositoryUrl } from '../systems/evidence';
 
 export const GET: APIRoute = async ({ site }) => {
   const siteUrl = site?.href ?? '/';
-  const { roles, projects, technologies } = await loadContent();
+  const { roles, technologies } = await loadContent();
 
   const text = renderLlmsText({
     name: identity.name,
@@ -22,11 +22,12 @@ export const GET: APIRoute = async ({ site }) => {
       { label: 'GitHub', url: identity.links.github },
       { label: 'LinkedIn', url: identity.links.linkedin },
     ],
-    work: selectCaseStudies(projects).map((project) => ({
-      title: project.data.title,
-      tagline: project.data.tagline,
-      url: new URL(`/about/`, siteUrl).href,
-      status: statusLabels[project.data.status],
+    systems: systems.map((system) => ({
+      name: system.name,
+      tagline: system.tagline,
+      url: new URL(`/systems/${system.id}/`, siteUrl).href,
+      repositoryUrl: repositoryUrl(system.repository),
+      dataUrl: new URL(`/systems/${system.id}.json`, siteUrl).href,
     })),
     roles: [...roles].sort(compareByStartDescending).map((role) => ({
       title: role.data.title,

@@ -1,50 +1,101 @@
 ---
 import { render } from 'astro:content';
+import practiceSource from '../content/practices.json';
+import type { PracticeBacking } from '../content/schemas';
 import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
 import { createTechnologyNameLookup } from '../lib/technologies';
+import { findSystem } from '../systems';
 
-const { roles, projects, technologies, education, practices } = await loadContent();
+const { roles, technologies, education, practices } = await loadContent();
 const technologyName = createTechnologyNameLookup(technologies);
 const rolesByRecency = [...roles].sort(compareByStartDescending);
 const renderedRoles = await Promise.all(
   rolesByRecency.map(async (role) => ({ role, Content: (await render(role)).Content })),
 );
+const practiceRank = new Map(practiceSource.map((practice, index) => [practice.id, index]));
+const practicesInWrittenOrder = [...practices].sort(
+  (first, second) => (practiceRank.get(first.id) ?? 0) - (practiceRank.get(second.id) ?? 0),
+);
 const educationByRecency = [...education].sort(
   (first, second) => second.data.year - first.data.year,
 );
-const projectTitle = (id: string) =>
-  projects.find((project) => project.id === id)?.data.title ?? id;
+const backingLink = (backing: PracticeBacking): { href: string; label: string } => {
+  if (backing.kind === 'system') {
+    const system = findSystem(backing.id);
+    if (system === undefined) {
+      throw new Error(`Practice cites unknown system "${backing.id}"`);
+    }
+    return { href: `/systems/${system.id}/`, label: system.name };
+  }
+  const role = roles.find((candidate) => candidate.id === backing.id);
+  if (role === undefined) {
+    throw new Error(`Practice cites unknown role "${backing.id}"`);
+  }
+  return { href: `#role-${role.id}`, label: role.data.company };
+};
 ---
 
 <Base
   title="About · Rafael Thomazzi"
-  description="The roles in order, the practices I work by and the work that backs them, and where I studied."
+  description="Rafael Thomazzi: seven years of backend work in Node.js and TypeScript, the roles in order, the practices the three systems and the roles back, education, availability and contact."
 >
-  <section class="page-head">
-    <h1>About</h1>
-    <p class="measure muted">{identity.summary}</p>
+  <section class="page-head about-head" aria-labelledby="about-title">
+    <div>
+      <p class="kicker">About · {identity.headline}</p>
+      <h1 id="about-title">{identity.name}</h1>
+      <p class="pull">{identity.positioning}</p>
+      <p class="lead muted">{identity.summary}</p>
+      <p class="about-head__status">
+        <span class="badge" data-tone="ok">{identity.availability}</span>
+      </p>
+    </div>
+    <table class="facts about-facts">
+      <caption class="sr-only">Location, availability and contact</caption>
+      <tbody>
+        <tr><th scope="row">Location</th><td>{identity.location}</td></tr>
+        <tr><th scope="row">Timezone</th><td>{identity.timezone}</td></tr>
+        <tr
+          ><th scope="row">Email</th><td
+            ><a href={`mailto:${identity.email}`}>{identity.email}</a></td
+          ></tr
+        >
+        <tr><th scope="row">GitHub</th><td><a href={identity.links.github}>thomazzi98</a></td></tr>
+        <tr
+          ><th scope="row">LinkedIn</th><td
+            ><a href={identity.links.linkedin}>rafael-thomazzi</a></td
+          ></tr
+        >
+        <tr><th scope="row">Plain text</th><td><a href="/resume.txt">resume.txt</a></td></tr>
+      </tbody>
+    </table>
   </section>
 
-  <section class="section" aria-labelledby="career-title">
+  <nav class="about-nav" aria-label="Sections">
+    <a href="#career">Career</a>
+    <a href="#practices">How I work</a>
+    <a href="#education">Education</a>
+  </nav>
+
+  <section class="section" id="career" aria-labelledby="career-title">
     <div class="section__head">
       <h2 id="career-title">The roles, in order</h2>
-      <p class="kicker">Most recent first</p>
+      <p class="kicker">Most recent first · employers named, clients and providers not</p>
     </div>
     <div class="roles">
       {
         renderedRoles.map(({ role, Content }) => (
-          <article class="role">
-            <header class="role__head mono">
-              <h3>{role.data.company}</h3>
+          <article class="role" id={`role-${role.id}`} aria-labelledby={`role-${role.id}-title`}>
+            <header class="role__head">
+              <h3 id={`role-${role.id}-title`}>{role.data.company}</h3>
               <p class="muted">{role.data.companyGloss}</p>
-              <p>{role.data.title}</p>
-              <p class="muted">
+              <p class="mono">{role.data.title}</p>
+              <p class="mono muted">
                 {formatPeriod(role.data.period)} · {role.data.location}
               </p>
-              <p class="muted role__stack">
+              <p class="mono muted role__stack">
                 {role.data.stack.map((reference, index) => (
                   <>
                     {index > 0 && ' · '}
@@ -62,31 +113,39 @@ const projectTitle = (id: string) =>
     </div>
   </section>
 
-  <section class="section" aria-labelledby="practices-title">
+  <section class="section" id="practices" aria-labelledby="practices-title">
     <div class="section__head">
       <h2 id="practices-title">How I work</h2>
-      <p class="kicker">Each claim names the work that backs it</p>
+      <p class="kicker">Each claim names the system or the role that backs it</p>
     </div>
     <ol class="practices">
       {
-        practices.map((practice) => (
-          <li class="practice">
+        practicesInWrittenOrder.map((practice) => (
+          <li class="practice" id={`practice-${practice.id}`}>
             <p class="practice__claim">{practice.data.claim}</p>
-            <p class="practice__backing mono">
-              {practice.data.backedBy.map((reference, index) => (
-                <>
-                  {index > 0 && <span aria-hidden="true"> · </span>}
-                  {projectTitle(reference.id)}
-                </>
-              ))}
-            </p>
+            <div class="practice__backing">
+              <p class="kicker">Backed by</p>
+              <ul class="backing">
+                {practice.data.backing.map((backing) => {
+                  const link = backingLink(backing);
+                  return (
+                    <li>
+                      <a class="backing__link" href={link.href}>
+                        <span class="backing__kind">{backing.kind}</span>
+                        <span>{link.label}</span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </li>
         ))
       }
     </ol>
   </section>
 
-  <section class="section" aria-labelledby="education-title">
+  <section class="section" id="education" aria-labelledby="education-title">
     <div class="section__head">
       <h2 id="education-title">Education</h2>
       <p class="kicker">Glossed for readers outside Brazil</p>
@@ -108,8 +167,5 @@ const projectTitle = (id: string) =>
         ))
       }
     </ul>
-    <p class="measure muted">
-      {identity.location} · {identity.timezone} · {identity.availability}.
-    </p>
   </section>
 </Base>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { PracticeBackingKind } from '../../src/content/schemas';
 import {
   assertContentIntegrity,
   ContentIntegrityError,
@@ -7,17 +8,22 @@ import {
 
 const technology = (id: string) => ({ id });
 const reference = (id: string) => ({ id });
+const backing = (kind: PracticeBackingKind, id: string) => ({ kind, id });
 
 const validGraph = {
-  technologies: [technology('typescript'), technology('mongodb')],
+  technologies: [technology('typescript'), technology('mongodb'), technology('fastify')],
   roles: [{ id: 'sky-one', data: { stack: [reference('typescript'), reference('mongodb')] } }],
-  projects: [
-    { id: 'indicators', data: { stack: [reference('mongodb')], role: reference('sky-one') } },
+  systems: [{ id: 'gateway', stack: [{ technology: 'fastify' }] }],
+  practices: [
+    {
+      id: 'reproduce-first',
+      data: { backing: [backing('role', 'sky-one'), backing('system', 'gateway')] },
+    },
   ],
 };
 
 describe('findIntegrityProblems', () => {
-  it('accepts a graph where every reference resolves and every technology is used', () => {
+  it('accepts a graph where every reference resolves and every technology is cited', () => {
     expect(findIntegrityProblems(validGraph)).toEqual([]);
   });
 
@@ -28,19 +34,18 @@ describe('findIntegrityProblems', () => {
     };
     expect(findIntegrityProblems(graph)).toEqual([
       'role "sky-one" references unknown technology "kafka"',
+      'technology "mongodb" is not referenced by any role or system',
     ]);
   });
 
-  it('reports a project that belongs to an unknown role', () => {
+  it('reports a system that cites a technology missing from the registry', () => {
     const graph = {
       ...validGraph,
-      projects: [
-        { id: 'indicators', data: { stack: [reference('mongodb')], role: reference('acme') } },
-      ],
+      systems: [{ id: 'gateway', stack: [{ technology: 'fastify' }, { technology: 'redis' }] }],
     };
-    expect(findIntegrityProblems(graph)).toContain(
-      'project "indicators" belongs to unknown role "acme"',
-    );
+    expect(findIntegrityProblems(graph)).toEqual([
+      'system "gateway" references unknown technology "redis"',
+    ]);
   });
 
   it('reports a role that is concurrent with an unknown role', () => {
@@ -61,14 +66,43 @@ describe('findIntegrityProblems', () => {
     );
   });
 
-  it('reports a registry entry that nothing references', () => {
+  it('reports a registry entry that neither a role nor a system cites', () => {
     const graph = {
       ...validGraph,
       technologies: [...validGraph.technologies, technology('kafka')],
     };
     expect(findIntegrityProblems(graph)).toEqual([
-      'technology "kafka" is not referenced by any role, project or system',
+      'technology "kafka" is not referenced by any role or system',
     ]);
+  });
+
+  it('reports a practice that cites a system missing from the registry', () => {
+    const graph = {
+      ...validGraph,
+      practices: [{ id: 'unknown-is-a-result', data: { backing: [backing('system', 'ledger')] } }],
+    };
+    expect(findIntegrityProblems(graph)).toEqual([
+      'practice "unknown-is-a-result" cites unknown system "ledger"',
+    ]);
+  });
+
+  it('reports a practice that cites a role missing from the collection', () => {
+    const graph = {
+      ...validGraph,
+      practices: [{ id: 'read-model', data: { backing: [backing('role', 'acme')] } }],
+    };
+    expect(findIntegrityProblems(graph)).toEqual([
+      'practice "read-model" cites unknown role "acme"',
+    ]);
+  });
+
+  it('treats systems and practices as optional', () => {
+    expect(
+      findIntegrityProblems({
+        technologies: [technology('typescript')],
+        roles: [{ id: 'sky-one', data: { stack: [reference('typescript')] } }],
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -80,33 +114,12 @@ describe('assertContentIntegrity', () => {
     }).toThrow(ContentIntegrityError);
     expect(() => {
       assertContentIntegrity(graph);
-    }).toThrow(/unknown technology "mongodb"/);
+    }).toThrow(/unknown technology "mongodb"[\s\S]*unknown technology "fastify"/);
   });
 
   it('returns silently for a valid graph', () => {
     expect(() => {
       assertContentIntegrity(validGraph);
     }).not.toThrow();
-  });
-});
-
-describe('findIntegrityProblems with systems', () => {
-  it('counts a technology cited by a system as referenced', () => {
-    const graph = {
-      ...validGraph,
-      technologies: [...validGraph.technologies, technology('fastify')],
-      systems: [{ id: 'gateway', stack: [{ technology: 'fastify' }] }],
-    };
-    expect(findIntegrityProblems(graph)).toEqual([]);
-  });
-
-  it('reports a system that cites a technology missing from the registry', () => {
-    const graph = {
-      ...validGraph,
-      systems: [{ id: 'gateway', stack: [{ technology: 'redis' }] }],
-    };
-    expect(findIntegrityProblems(graph)).toEqual([
-      'system "gateway" references unknown technology "redis"',
-    ]);
   });
 });

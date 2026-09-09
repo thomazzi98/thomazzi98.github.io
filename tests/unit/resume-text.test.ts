@@ -12,23 +12,24 @@ const source: ResumeSource = {
     'https://github.com/thomazzi98',
     'https://www.linkedin.com/in/rafael-thomazzi-3524b1179/',
   ],
-  summary: 'Backend engineer with six years in Node.js and TypeScript.',
+  summary: 'Backend engineer with seven years in Node.js and TypeScript.',
   roles: [
     {
-      title: 'Backend Engineer',
-      company: 'Brainrocket',
-      companyGloss: 'payments group',
-      location: 'Remote, Brazil',
+      title: 'Strong Middle Backend Developer',
+      company: 'BrainRocket',
+      companyGloss: 'technology group building products for the iGaming and payments industry',
+      location: 'Limassol, Cyprus (remote from Brazil)',
       period: { start: '2026-02', end: '2026-09' },
-      stack: ['TypeScript', 'Node.js'],
-      body: 'Payment gateway work.\n\n## Outcomes\n\n- Shipped integrations that moved money between the products and the providers behind them, every day of the week.',
+      stack: ['Node.js', 'TypeScript', 'NestJS', 'PostgreSQL'],
+      body: 'Payment gateway work.\n\n#### Outcomes\n\n- Provider integrations delivered end to end: deposits, withdrawals, provider callbacks and transaction status handling.',
     },
   ],
-  projects: [
+  systems: [
     {
-      title: 'Queued onboarding',
-      tagline: 'Bank-account creation as a retryable job.',
-      url: 'https://thomazzi98.github.io/work/queued-bank-onboarding/',
+      name: 'CryptoPay',
+      tagline: 'A crypto payment processor that decides what happened by reading the chain.',
+      url: 'https://thomazzi98.github.io/systems/cryptopay/',
+      repositoryUrl: 'https://github.com/thomazzi98/cryptopay',
     },
   ],
   education: [
@@ -42,7 +43,7 @@ const source: ResumeSource = {
   ],
   technologyGroups: [{ label: 'Owned in production', names: ['TypeScript', 'Node.js'] }],
   siteUrl: 'https://thomazzi98.github.io/',
-  generatedOn: '2026-09-06',
+  generatedOn: '2026-09-09',
 };
 
 describe('renderResumeText', () => {
@@ -59,15 +60,30 @@ describe('renderResumeText', () => {
   });
 
   it('renders a role with its period, gloss, stack and body', () => {
-    expect(output).toContain('2026-02 → 2026-09  Backend Engineer, Brainrocket');
-    expect(output).toContain('payments group · Remote, Brazil');
-    expect(output).toContain('Stack: TypeScript, Node.js');
-    expect(output).toContain('OUTCOMES\n\n- Shipped integrations');
+    expect(output).toContain('2026-02 → 2026-09  Strong Middle Backend Developer, BrainRocket');
+    expect(output).toContain('Limassol, Cyprus (remote from Brazil)');
+    expect(output).toContain('Stack: Node.js, TypeScript, NestJS, PostgreSQL');
+    expect(output).toContain('OUTCOMES\n\n- Provider integrations delivered end to end');
   });
 
-  it('lists selected work with absolute links and closes with the generation line', () => {
-    expect(output).toContain('https://thomazzi98.github.io/work/queued-bank-onboarding/');
-    expect(output.trimEnd().split('\n\n').at(-1)).toContain('Generated 2026-09-06 from');
+  it('lists each system with its tagline, page and repository', () => {
+    expect(output).toContain('SYSTEMS\n');
+    expect(output).toContain(
+      [
+        '- CryptoPay: A crypto payment processor that decides what happened by reading',
+        '  the chain.',
+        '  https://thomazzi98.github.io/systems/cryptopay/',
+        '  https://github.com/thomazzi98/cryptopay',
+      ].join('\n'),
+    );
+  });
+
+  it('keeps the sections in order and closes with the generation line', () => {
+    const headings = ['SUMMARY', 'EXPERIENCE', 'SYSTEMS', 'EDUCATION', 'TECHNOLOGIES'];
+    const positions = headings.map((heading) => lines.indexOf(heading));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect([...positions].sort((first, second) => first - second)).toEqual(positions);
+    expect(output.trimEnd().split('\n\n').at(-1)).toContain('Generated 2026-09-09 from');
     expect(output.endsWith('\n')).toBe(true);
   });
 });

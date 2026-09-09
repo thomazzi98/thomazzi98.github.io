@@ -3,6 +3,8 @@ import { z } from 'astro/zod';
 
 const yearMonth = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Expected a YYYY-MM value');
 
+const identifier = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'Expected a kebab-case identifier');
+
 export const periodSchema = z
   .object({ start: yearMonth, end: yearMonth.nullable() })
   .refine(({ start, end }) => end === null || start <= end, {
@@ -25,7 +27,7 @@ export const technologyCategories = [
 export const technologyGroups = ['owned-in-production', 'shipped-with', 'familiar'] as const;
 
 export const technologySchema = z.object({
-  id: z.string().regex(/^[a-z0-9-]+$/),
+  id: identifier,
   name: z.string().min(1),
   category: z.enum(technologyCategories),
   firstUsed: z.number().int().min(2015).max(2100),
@@ -40,40 +42,6 @@ export const roleSchema = z.object({
   period: periodSchema,
   concurrentWith: reference('roles').optional(),
   stack: z.array(reference('technologies')).min(1),
-});
-
-export const projectKinds = ['case-study', 'also-built'] as const;
-
-export const projectStatuses = [
-  'in-production',
-  'delivered',
-  'paused-by-client',
-  'never-launched',
-  'internal',
-  'personal',
-] as const;
-
-export const evidenceKinds = ['company', 'repo', 'none'] as const;
-
-export const projectSchema = z.object({
-  title: z.string().min(1),
-  tagline: z.string().min(1),
-  kind: z.enum(projectKinds),
-  status: z.enum(projectStatuses),
-  period: periodSchema,
-  role: reference('roles').optional(),
-  featured: z.number().int().positive().optional(),
-  stack: z.array(reference('technologies')).min(1),
-  confidentiality: z.string().optional(),
-  evidence: z
-    .array(
-      z.object({
-        kind: z.enum(evidenceKinds),
-        label: z.string().optional(),
-        url: z.url().optional(),
-      }),
-    )
-    .default([]),
 });
 
 export const decisionStatuses = ['proposed', 'accepted', 'superseded', 'rejected'] as const;
@@ -93,8 +61,18 @@ export const educationSchema = z.object({
   year: z.number().int().min(1990).max(2100),
 });
 
-export const practiceSchema = z.object({
-  id: z.string().min(1),
-  claim: z.string().min(1),
-  backedBy: z.array(reference('projects')).min(1),
+export const practiceBackingKinds = ['system', 'role'] as const;
+
+export const practiceBackingSchema = z.object({
+  kind: z.enum(practiceBackingKinds),
+  id: identifier,
 });
+
+export const practiceSchema = z.object({
+  id: identifier,
+  claim: z.string().min(1),
+  backing: z.array(practiceBackingSchema).min(1),
+});
+
+export type PracticeBackingKind = (typeof practiceBackingKinds)[number];
+export type PracticeBacking = z.infer<typeof practiceBackingSchema>;

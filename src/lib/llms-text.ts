@@ -1,5 +1,13 @@
 import { formatPeriod, type Period } from './period';
 
+export interface LlmsSystem {
+  name: string;
+  tagline: string;
+  url: string;
+  repositoryUrl: string;
+  dataUrl: string;
+}
+
 export interface LlmsSource {
   name: string;
   positioning: string;
@@ -8,10 +16,15 @@ export interface LlmsSource {
   availability: string;
   siteUrl: string;
   links: { label: string; url: string }[];
-  work: { title: string; tagline: string; url: string; status: string }[];
+  systems: LlmsSystem[];
   roles: { title: string; company: string; period: Period }[];
   technologyGroups: { label: string; names: string[] }[];
 }
+
+const renderSystem = (system: LlmsSystem): string[] => [
+  `- [${system.name}](${system.url}): ${system.tagline} Repository: ${system.repositoryUrl}`,
+  `  - Machine-readable model and transcripts: ${system.dataUrl}`,
+];
 
 export const renderLlmsText = (source: LlmsSource): string =>
   [
@@ -21,11 +34,11 @@ export const renderLlmsText = (source: LlmsSource): string =>
     '',
     `${source.summary} Based in ${source.location}. ${source.availability}.`,
     '',
-    '## Work',
+    '## Systems',
     '',
-    ...source.work.map(
-      (item) => `- [${item.title}](${item.url}): ${item.tagline} Status: ${item.status}.`,
-    ),
+    'Three public repositories presented as engineering: architecture, request and failure flows, state machines, decisions and code, every claim linked to a file and line at a pinned commit.',
+    '',
+    ...source.systems.flatMap(renderSystem),
     '',
     '## Roles',
     '',
@@ -38,6 +51,7 @@ export const renderLlmsText = (source: LlmsSource): string =>
     '## Links',
     '',
     `- [Plain-text resume](${source.siteUrl}resume.txt)`,
+    `- [About](${source.siteUrl}about/)`,
     ...source.links.map((link) => `- [${link.label}](${link.url})`),
     '',
   ].join('\n');
