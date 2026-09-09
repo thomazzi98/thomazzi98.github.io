@@ -67,7 +67,7 @@ describe('findIntegrityProblems', () => {
       technologies: [...validGraph.technologies, technology('kafka')],
     };
     expect(findIntegrityProblems(graph)).toEqual([
-      'technology "kafka" is not referenced by any role or project',
+      'technology "kafka" is not referenced by any role, project or system',
     ]);
   });
 });
@@ -87,5 +87,26 @@ describe('assertContentIntegrity', () => {
     expect(() => {
       assertContentIntegrity(validGraph);
     }).not.toThrow();
+  });
+});
+
+describe('findIntegrityProblems with systems', () => {
+  it('counts a technology cited by a system as referenced', () => {
+    const graph = {
+      ...validGraph,
+      technologies: [...validGraph.technologies, technology('fastify')],
+      systems: [{ id: 'gateway', stack: [{ technology: 'fastify' }] }],
+    };
+    expect(findIntegrityProblems(graph)).toEqual([]);
+  });
+
+  it('reports a system that cites a technology missing from the registry', () => {
+    const graph = {
+      ...validGraph,
+      systems: [{ id: 'gateway', stack: [{ technology: 'redis' }] }],
+    };
+    expect(findIntegrityProblems(graph)).toEqual([
+      'system "gateway" references unknown technology "redis"',
+    ]);
   });
 });

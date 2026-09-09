@@ -16,10 +16,16 @@ interface TechnologyLike {
   id: string;
 }
 
+interface SystemLike {
+  id: string;
+  stack: { technology: string }[];
+}
+
 export interface ContentGraph {
   roles: RoleLike[];
   projects: ProjectLike[];
   technologies: TechnologyLike[];
+  systems?: SystemLike[];
 }
 
 export class ContentIntegrityError extends Error {
@@ -37,6 +43,7 @@ export const findIntegrityProblems = ({
   roles,
   projects,
   technologies,
+  systems = [],
 }: ContentGraph): string[] => {
   const technologyIds = new Set(technologies.map((technology) => technology.id));
   const roleIds = new Set(roles.map((role) => role.id));
@@ -69,11 +76,18 @@ export const findIntegrityProblems = ({
     }
   }
 
+  for (const system of systems) {
+    checkStack(
+      `system "${system.id}"`,
+      system.stack.map((entry) => ({ id: entry.technology })),
+    );
+  }
+
   for (const technologyId of technologyIds) {
     if (referencedTechnologyIds.has(technologyId)) {
       continue;
     }
-    problems.push(`technology "${technologyId}" is not referenced by any role or project`);
+    problems.push(`technology "${technologyId}" is not referenced by any role, project or system`);
   }
 
   return problems;
