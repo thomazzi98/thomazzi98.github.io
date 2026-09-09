@@ -3,6 +3,19 @@ import { getViteConfig } from 'astro/config';
 
 export default getViteConfig({
   test: {
-    include: ['tests/unit/**/*.test.ts'],
+    projects: [
+      {
+        extends: true,
+        test: { name: 'unit', environment: 'node', include: ['tests/unit/**/*.test.ts'] },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'component',
+          environment: 'jsdom',
+          include: ['tests/component/**/*.test.tsx'],
+        },
+      },
+    ],
   },
 });

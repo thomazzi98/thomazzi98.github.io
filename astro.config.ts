@@ -1,4 +1,5 @@
 import { rehypeHeadingIds, unified } from '@astrojs/markdown-remark';
+import preact from '@astrojs/preact';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig, fontProviders, passthroughImageService } from 'astro/config';
 import { rehypeDropNestedHeadingIds } from './src/lib/rehype';
@@ -7,7 +8,7 @@ export default defineConfig({
   site: 'https://thomazzi98.github.io',
   trailingSlash: 'always',
   image: { service: passthroughImageService() },
-  integrations: [sitemap()],
+  integrations: [preact(), sitemap()],
   markdown: {
     processor: unified(),
     shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
