@@ -222,5 +222,61 @@
     "category": "blockchain",
     "firstUsed": 2021,
     "group": "shipped-with"
+  },
+  {
+    "id": "postgresql",
+    "name": "PostgreSQL",
+    "category": "database",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "node-postgres",
+    "name": "node-postgres",
+    "category": "database",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "fastify",
+    "name": "Fastify",
+    "category": "framework",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "zod",
+    "name": "Zod",
+    "category": "tooling",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "pino",
+    "name": "pino",
+    "category": "tooling",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "undici",
+    "name": "undici",
+    "category": "tooling",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "viem",
+    "name": "viem",
+    "category": "blockchain",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "playwright",
+    "name": "Playwright",
+    "category": "testing",
+    "firstUsed": 2026,
+    "group": "shipped-with"
   }
 ]
