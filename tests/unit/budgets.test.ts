@@ -32,13 +32,13 @@ describe('readBudgets', () => {
               assertions: { 'resource-summary:font:count': ['error', { maxNumericValue: 4 }] },
             },
             {
-              matchingUrlPattern: '^(?!.*/systems/[^/]+/index\\.html$).*$',
+              matchingUrlPattern: '^(?!.*/systems/[^/]+/$).*$',
               assertions: {
                 'resource-summary:document:size': ['error', { maxNumericValue: 60000 }],
               },
             },
             {
-              matchingUrlPattern: '/systems/[^/]+/index\\.html$',
+              matchingUrlPattern: '/systems/[^/]+/$',
               assertions: {
                 'resource-summary:document:size': ['error', { maxNumericValue: 120000 }],
               },
@@ -77,14 +77,15 @@ describe('readBudgets', () => {
 
   it('audits the home, systems, architecture, decisions, about and colophon pages', () => {
     expect(lighthouseConfig.ci.collect.url).toEqual([
-      'http://localhost/index.html',
-      'http://localhost/systems/index.html',
-      'http://localhost/systems/cryptopay/index.html',
-      'http://localhost/architecture/index.html',
-      'http://localhost/decisions/index.html',
-      'http://localhost/about/index.html',
-      'http://localhost/colophon/index.html',
+      'http://127.0.0.1:4180/',
+      'http://127.0.0.1:4180/systems/',
+      'http://127.0.0.1:4180/systems/cryptopay/',
+      'http://127.0.0.1:4180/architecture/',
+      'http://127.0.0.1:4180/decisions/',
+      'http://127.0.0.1:4180/about/',
+      'http://127.0.0.1:4180/colophon/',
     ]);
+    expect(lighthouseConfig.ci.collect.startServerCommand).toBe('node scripts/serve-dist.ts 4180');
   });
 
   it('rejects a config without assertions', () => {

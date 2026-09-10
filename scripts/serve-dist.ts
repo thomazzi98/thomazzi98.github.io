@@ -1,6 +1,7 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, isAbsolute, join, normalize, relative, resolve } from 'node:path';
+import { createGzip } from 'node:zlib';
 
 const root = resolve('dist');
 const port = Number(process.argv[2] ?? '4173');
@@ -16,6 +17,9 @@ const contentTypes: Record<string, string> = {
   '.png': 'image/png',
   '.woff2': 'font/woff2',
 };
+
+// Pages compresses text on the wire; serving it the same way keeps every local measurement honest.
+const compressible = new Set(['.html', '.css', '.txt', '.js', '.json', '.xml', '.svg']);
 
 const notFound = { path: join(root, '404.html'), status: 404 };
 
@@ -60,9 +64,19 @@ createServer((request, response) => {
     response.end();
     return;
   }
-  response.writeHead(resolution.status, {
-    'Content-Type': contentTypes[extname(resolution.path)] ?? 'application/octet-stream',
-  });
+  const extension = extname(resolution.path);
+  const headers: Record<string, string> = {
+    'Content-Type': contentTypes[extension] ?? 'application/octet-stream',
+    Vary: 'Accept-Encoding',
+  };
+  const acceptsGzip = (request.headers['accept-encoding'] ?? '').includes('gzip');
+  if (acceptsGzip && compressible.has(extension)) {
+    headers['Content-Encoding'] = 'gzip';
+    response.writeHead(resolution.status, headers);
+    createReadStream(resolution.path).pipe(createGzip()).pipe(response);
+    return;
+  }
+  response.writeHead(resolution.status, headers);
   createReadStream(resolution.path).pipe(response);
 }).listen(port, '127.0.0.1', () => {
   console.log(`Serving ${root} at http://127.0.0.1:${String(port)}/`);

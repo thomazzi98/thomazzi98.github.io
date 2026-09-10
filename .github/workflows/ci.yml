@@ -22,7 +22,8 @@ jobs:
       - run: node scripts/checkout-sources.ts
       - run: npm run verify
       - run: npm run test:e2e
-      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+      - if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: dist
       - uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12

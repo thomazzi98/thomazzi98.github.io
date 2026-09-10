@@ -19,8 +19,8 @@ export default defineConfig({
     timeout: 60_000,
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], colorScheme: 'dark' } },
+    { name: 'mobile', use: { ...devices['Pixel 7'], colorScheme: 'light' } },
     {
       name: 'chromium-without-javascript',
       use: { ...devices['Desktop Chrome'], javaScriptEnabled: false },
