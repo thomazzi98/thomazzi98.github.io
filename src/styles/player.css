@@ -15,7 +15,7 @@
   }
 
   .player__clock {
-    min-width: 9ch;
+    min-width: 12ch;
     font-variant-numeric: tabular-nums;
     color: var(--ink);
   }
@@ -23,6 +23,12 @@
   .player__buttons {
     display: flex;
     gap: var(--space-2);
+  }
+
+  .player .control[aria-disabled='true'],
+  .board .control[aria-disabled='true'] {
+    color: var(--ink-faint);
+    cursor: not-allowed;
   }
 
   .player__scrubber {
@@ -40,8 +46,19 @@
     background: transparent;
   }
 
-  .player__note {
+  /* The note is in the markup for everyone and shown only where motion is reduced, so nothing
+     appears or disappears when the island hydrates. */
+  .player__note,
+  .board__note {
+    display: none;
     flex-basis: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .player__note,
+    .board__note {
+      display: block;
+    }
   }
 
   .player__flow {
@@ -55,11 +72,26 @@
   .stage {
     display: grid;
     gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .stage > * {
+    min-width: 0;
+  }
+
+  .stage__note {
+    max-width: var(--measure);
   }
 
   .transcripts {
     display: grid;
     gap: var(--space-2);
+  }
+
+  /* A grid item keeps min-width auto, which lets a wide table widen the page instead of
+     scrolling inside .transcript__scroll. */
+  .transcripts > * {
+    min-width: 0;
   }
 
   .transcript__name {
@@ -133,11 +165,12 @@
   .player__stage {
     display: grid;
     gap: var(--space-4);
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
     align-items: start;
   }
 
-  @media (max-width: 60rem) {
+  /* Below this width the drawing column could not hold the widest flow drawing at its own size. */
+  @media (max-width: 72rem) {
     .player__stage {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -163,10 +196,12 @@
     gap: var(--space-1);
   }
 
+  /* The ledger sizes its columns by its own width, not the viewport's: beside a drawing it is
+     narrow even on a wide screen. */
   .ledger {
+    container-type: inline-size;
     border: var(--hairline) solid var(--rule);
     background: var(--panel);
-    min-height: 12rem;
   }
 
   .ledger__head {
@@ -182,15 +217,23 @@
     font-size: var(--size-small);
   }
 
-  .ledger__lines {
-    max-height: 26rem;
+  /* The box is as tall as it will ever get and paints in isolation, so a new line moves nothing
+     outside it. */
+  .ledger__scroll:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  .ledger__scroll {
+    height: 26rem;
     overflow-y: auto;
+    contain: layout paint;
     font-size: var(--size-small);
   }
 
   .ledger__line {
     display: grid;
-    grid-template-columns: 9ch minmax(6rem, 10rem) minmax(0, 1fr);
+    grid-template-columns: 12ch minmax(6rem, 12rem) minmax(12rem, 1fr);
     gap: var(--space-3);
     align-items: baseline;
     padding: var(--space-2) var(--space-4);
@@ -198,9 +241,15 @@
     border-left: 3px solid var(--tone, transparent);
   }
 
-  @media (max-width: 40rem) {
+  .ledger__line--note {
+    color: var(--ink-muted);
+  }
+
+  /* Below this the message column would starve, so the station shares the clock's line and the
+     message takes the next. */
+  @container (max-width: 40rem) {
     .ledger__line {
-      grid-template-columns: 9ch minmax(0, 1fr);
+      grid-template-columns: 12ch minmax(0, 1fr);
     }
 
     .ledger__message {
@@ -214,9 +263,10 @@
   }
 
   .ledger__station {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--size-caption);
+    color: var(--ink-muted);
+    overflow-wrap: anywhere;
   }
 
   .ledger__message {

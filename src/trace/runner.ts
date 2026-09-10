@@ -1,4 +1,4 @@
-import type { Flow, Lever, Step } from '../systems/schema';
+import type { Flow, Lever, Step, Tone } from '../systems/schema';
 import {
   createSimulation,
   type LogEntry,
@@ -8,7 +8,7 @@ import {
 
 export type LeverValues = Readonly<Record<string, string>>;
 
-export interface TraceState {
+interface TraceState {
   readonly completed: number;
   readonly total: number;
   readonly activeNode?: string;
@@ -16,12 +16,14 @@ export interface TraceState {
   readonly statuses: Readonly<Record<string, string>>;
 }
 
-export interface StepEvent {
+interface StepEvent {
   readonly step: Step;
   readonly travel: number;
 }
 
-export type TraceSimulation = Simulation<TraceState, StepEvent, LeverValues>;
+export type TraceSimulation = Simulation<TraceState>;
+
+type EdgeEndpoints = ReadonlyMap<string, { from: string; to: string }>;
 
 export const defaultLeverValues = (levers: readonly Lever[]): LeverValues =>
   Object.fromEntries(levers.map((lever) => [lever.id, lever.defaultValue]));
@@ -46,11 +48,10 @@ const travelBetween = (current: Step, next: Step | undefined): number => {
 
 const stationFor = (step: Step, flow: Flow): string => step.node ?? step.edge ?? flow.id;
 
-export const createFlowScenario = (
+const createFlowScenario = (
   flow: Flow,
-  edgeEndpoints: ReadonlyMap<string, { from: string; to: string }>,
+  edgeEndpoints: EdgeEndpoints,
 ): Scenario<TraceState, StepEvent, LeverValues> => ({
-  id: flow.id,
   defaultLevers: defaultLeverValues(flow.levers),
   initialState: (values) => ({
     completed: 0,
@@ -68,7 +69,7 @@ export const createFlowScenario = (
     context.log(stationFor(step, flow), step.tone, step.ledger);
     const endpoints = step.edge === undefined ? undefined : edgeEndpoints.get(step.edge);
     if (endpoints !== undefined) {
-      context.send(endpoints.from, endpoints.to, step.tone, travel);
+      context.send(endpoints.from, endpoints.to, step.tone, travel, step.edge);
     }
     const statuses =
       step.status === undefined
@@ -86,22 +87,17 @@ export const createFlowScenario = (
 
 export interface FlowRunOptions {
   readonly levers?: LeverValues;
-  readonly seed?: number;
 }
 
 export const createFlowSimulation = (
   flow: Flow,
-  edgeEndpoints: ReadonlyMap<string, { from: string; to: string }>,
+  edgeEndpoints: EdgeEndpoints,
   options: FlowRunOptions = {},
-): TraceSimulation =>
-  createSimulation(createFlowScenario(flow, edgeEndpoints), {
-    seed: options.seed,
-    levers: options.levers,
-  });
+): TraceSimulation => createSimulation(createFlowScenario(flow, edgeEndpoints), options.levers);
 
 export const runTranscript = (
   flow: Flow,
-  edgeEndpoints: ReadonlyMap<string, { from: string; to: string }>,
+  edgeEndpoints: EdgeEndpoints,
   options: FlowRunOptions = {},
 ): LogEntry[] => {
   const simulation = createFlowSimulation(flow, edgeEndpoints, options);
@@ -110,3 +106,47 @@ export const runTranscript = (
   }
   return [...simulation.log];
 };
+
+export interface PacketOnEdge {
+  readonly edge: string;
+  readonly progress: number;
+  readonly tone: Tone;
+}
+
+interface DrawnEdge {
+  readonly id: string;
+  readonly from: string;
+  readonly to: string;
+}
+
+export interface PacketOptions {
+  // Reduced motion: a packet sits at its origin, then appears at its destination, never between.
+  readonly snap?: boolean;
+}
+
+// The packets still in flight, placed on the edge they travel: by the edge the step named when
+// there is one, by endpoints otherwise.
+export const packetsOn = (
+  simulation: TraceSimulation,
+  edges: readonly DrawnEdge[],
+  options: PacketOptions = {},
+): PacketOnEdge[] =>
+  simulation.packets
+    .filter((packet) => packet.arrivesAt > simulation.now)
+    .flatMap((packet) => {
+      const edge =
+        edges.find((candidate) => candidate.id === packet.via) ??
+        edges.find((candidate) => candidate.from === packet.from && candidate.to === packet.to);
+      if (edge === undefined) {
+        return [];
+      }
+      const progress =
+        (simulation.now - packet.departedAt) / Math.max(1, packet.arrivesAt - packet.departedAt);
+      return [
+        {
+          edge: edge.id,
+          progress: options.snap === true ? Math.round(progress) : progress,
+          tone: packet.tone,
+        },
+      ];
+    });

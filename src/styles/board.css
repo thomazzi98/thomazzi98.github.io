@@ -16,7 +16,7 @@
   }
 
   .board__clock {
-    min-width: 9ch;
+    min-width: 12ch;
     font-variant-numeric: tabular-nums;
   }
 
@@ -40,10 +40,6 @@
     background: transparent;
   }
 
-  .board__note {
-    flex-basis: 100%;
-  }
-
   .board__panels {
     display: grid;
     gap: var(--hairline);
@@ -52,14 +48,19 @@
     border: var(--hairline) solid var(--rule);
   }
 
-  @media (max-width: 60rem) {
+  /* A rail is at most 270 units wide, so three columns hold the drawings at their own size from
+     64rem; below that the panels stack rather than scale their text. */
+  @media (width < 64rem) {
     .board__panels {
       grid-template-columns: minmax(0, 1fr);
     }
   }
 
+  /* The one column track must not grow to the drawing's width: a grid track sizes to its
+     content's minimum, and that would push the header and drawing past the panel's edge. */
   .board__panel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto 1fr auto;
     gap: var(--space-3);
     min-width: 0;
@@ -88,22 +89,17 @@
     text-underline-offset: 0.12em;
   }
 
-  .board__panel .schematic--vertical {
+  .board__panel .schematic--rail {
     display: block;
-    max-width: 24rem;
-    margin-inline: auto;
+    max-width: 100%;
   }
 
   .board__enter {
     justify-self: start;
   }
 
-  .board__ledger {
-    min-height: 0;
-  }
-
-  .board__ledger .ledger__lines {
-    max-height: 18rem;
+  .board__ledger .ledger__scroll {
+    height: 18rem;
   }
 
   .board__facts {
@@ -112,9 +108,10 @@
     margin-top: var(--space-6);
   }
 
-  .board__facts tbody,
-  .board__facts thead {
-    min-width: 40rem;
+  /* Hashes and dates stay whole; the table scrolls inside its wrapper instead of wrapping them. */
+  .board__facts th,
+  .board__facts td {
+    white-space: nowrap;
   }
 
   .board__facts caption {

@@ -1,16 +1,16 @@
-import { useSignal } from '@preact/signals';
-import { useEffect, useMemo, useRef } from 'preact/hooks';
+import { useMemo } from 'preact/hooks';
 import type { Flow, Tone } from '../../systems/schema';
-import type { LogEntry } from '../../trace/kernel/simulation';
-import { createFlowSimulation, selectSteps, type TraceSimulation } from '../../trace/runner';
+import {
+  createFlowSimulation,
+  defaultLeverValues,
+  packetsOn,
+  selectSteps,
+} from '../../trace/runner';
 import { useMediaQuery } from '../explorer/use-media-query';
 import { formatClock } from '../player/format';
-import {
-  Schematic,
-  type Packet,
-  type SchematicEdge,
-  type SchematicNode,
-} from '../schematic/Schematic';
+import { Ledger, type LedgerLine } from '../player/Ledger';
+import { clockOf, usePlayback } from '../player/use-playback';
+import { Schematic, type SchematicEdge, type SchematicNode } from '../schematic/Schematic';
 
 export interface BoardPanel {
   readonly systemId: string;
@@ -28,26 +28,18 @@ export interface SystemBoardProps {
   readonly panels: readonly BoardPanel[];
 }
 
-const frameCap = 100;
+// The clock runs on past the last event so the last packet arrives and the last line can be read.
 const tail = 800;
-const ledgerLines = 9;
 
+// Each replay runs with its flow's default levers, so the end is where that selection ends.
 const endOf = (flow: Flow): number => {
-  const steps = selectSteps(flow, {});
+  const steps = selectSteps(flow, defaultLeverValues(flow.levers));
   const last = steps[steps.length - 1];
   return (last?.at ?? 0) + tail;
 };
 
-interface TaggedEntry extends LogEntry {
-  readonly panel: BoardPanel;
-}
-
 export const SystemBoard = ({ panels }: SystemBoardProps) => {
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const version = useSignal(0);
-  const playing = useSignal(false);
-  const ready = useSignal(false);
-  const announcement = useSignal('');
   const endpointsByPanel = useMemo(
     () =>
       panels.map(
@@ -55,174 +47,118 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
       ),
     [panels],
   );
-  const simulationsReference = useRef<TraceSimulation[]>(
-    panels.map((panel, index) =>
-      createFlowSimulation(panel.flow, endpointsByPanel[index] ?? new Map(), { seed: index + 1 }),
-    ),
-  );
-  const frameReference = useRef<number | undefined>(undefined);
-  const lastFrameReference = useRef<number | undefined>(undefined);
+  const end = useMemo(() => Math.max(0, ...panels.map((panel) => endOf(panel.flow))), [panels]);
+  // Side by side, every rail spreads over as many rows as the longest footprint so the three
+  // drawings end close to one height; stacked, each keeps its natural pitch. The query names the
+  // stacked case so the markup rendered at build is the side-by-side one.
+  const stacked = useMediaQuery('not all and (min-width: 64rem)');
+  const rows = stacked ? 0 : Math.max(0, ...panels.map((panel) => panel.nodes.length));
+  const playback = usePlayback({
+    build: () =>
+      panels.map((panel, index) =>
+        createFlowSimulation(panel.flow, endpointsByPanel[index] ?? new Map()),
+      ),
+    endOf: () => end,
+    autoplay: true,
+    finishedText: (finished) => `Every replay finished at ${formatClock(clockOf(finished))}.`,
+  });
+  const { simulations } = playback;
+  const clock = Math.min(end, playback.now);
+  const stepExhausted = simulations.every((simulation) => simulation.pending() === 0);
 
-  const simulations = simulationsReference.current;
-  const end = Math.max(...panels.map((panel) => endOf(panel.flow)));
-  const clock = Math.max(0, ...simulations.map((simulation) => simulation.now));
-  const finished = simulations.every((simulation) => simulation.pending() === 0) && clock >= end;
-
-  const refresh = () => {
-    version.value += 1;
-  };
-
-  const stop = () => {
-    playing.value = false;
-    if (frameReference.current !== undefined) {
-      cancelAnimationFrame(frameReference.current);
-      frameReference.current = undefined;
-    }
-    lastFrameReference.current = undefined;
-  };
-
-  const reset = () => {
-    stop();
-    simulationsReference.current = panels.map((panel, index) =>
-      createFlowSimulation(panel.flow, endpointsByPanel[index] ?? new Map(), { seed: index + 1 }),
-    );
-    announcement.value = '';
-    refresh();
-  };
-
-  const advanceAll = (duration: number) => {
-    for (const simulation of simulationsReference.current) {
-      simulation.advance(duration);
-    }
-  };
-
-  const advanceTo = (target: number) => {
-    if (target < clock) {
-      reset();
-    }
-    const current = Math.max(
-      0,
-      ...simulationsReference.current.map((simulation) => simulation.now),
-    );
-    advanceAll(Math.max(0, target - current));
-    refresh();
-  };
-
-  const frame = (timestamp: number) => {
-    const previous = lastFrameReference.current ?? timestamp;
-    lastFrameReference.current = timestamp;
-    advanceAll(Math.min(frameCap, timestamp - previous));
-    refresh();
-    const current = simulationsReference.current;
-    const done =
-      current.every((simulation) => simulation.pending() === 0) &&
-      Math.max(0, ...current.map((simulation) => simulation.now)) >= end;
-    if (done) {
-      stop();
-      announcement.value = 'All three replays finished.';
+  const step = () => {
+    if (stepExhausted) {
       return;
     }
-    frameReference.current = requestAnimationFrame(frame);
-  };
-
-  const play = () => {
-    if (playing.value) {
-      stop();
-      return;
-    }
-    if (finished) {
-      reset();
-    }
-    playing.value = true;
-    frameReference.current = requestAnimationFrame(frame);
+    const advanced = playback.step();
+    const messages = advanced.flatMap((simulation) => {
+      const panel = panels[simulations.indexOf(simulation)];
+      const latest = simulation.log[simulation.log.length - 1];
+      if (panel === undefined || latest === undefined) {
+        return [];
+      }
+      return [`${panel.shortName}: ${latest.message}`];
+    });
+    playback.announce(messages.length === 0 ? 'Every replay has finished.' : messages.join('. '));
   };
 
   const playLabel = (): string => {
-    if (playing.value) {
+    if (playback.playing) {
       return 'Pause';
     }
-    return finished ? 'Replay' : 'Play';
+    return playback.finished ? 'Replay' : 'Play';
   };
 
-  const step = () => {
-    stop();
-    const messages: string[] = [];
-    simulationsReference.current.forEach((simulation, index) => {
-      if (!simulation.step()) {
-        return;
-      }
-      const latest = simulation.log[simulation.log.length - 1];
-      if (latest !== undefined) {
-        messages.push(`${panels[index]?.shortName ?? ''}: ${latest.message}`);
-      }
-    });
-    announcement.value = messages.length === 0 ? 'Every replay has finished.' : messages.join('. ');
-    refresh();
-  };
-
-  useEffect(() => {
-    ready.value = true;
-    const onVisibility = () => {
-      if (document.hidden) {
-        stop();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      play();
-    }
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      stop();
-    };
-    // The board starts once when it mounts; reduced motion is read at that moment.
-  }, []);
-
-  const revision = version.value;
-  const ledger: TaggedEntry[] = simulations
-    .flatMap((simulation, index) => {
-      const panel = panels[index];
-      if (panel === undefined) {
-        return [];
-      }
-      return simulation.log.map((entry) => ({ ...entry, panel }));
-    })
-    .sort(
-      (first, second) => first.at - second.at || first.panel.name.localeCompare(second.panel.name),
-    )
-    .slice(-ledgerLines);
   const totalLines = simulations.reduce((sum, simulation) => sum + simulation.state.total, 0);
   const printedLines = simulations.reduce((sum, simulation) => sum + simulation.log.length, 0);
 
+  const ledger = useMemo(() => {
+    const lines: LedgerLine[] = simulations
+      .flatMap((simulation, index) => {
+        const panel = panels[index];
+        if (panel === undefined) {
+          return [];
+        }
+        return simulation.log.map((entry) => ({ entry, panel }));
+      })
+      .sort(
+        (first, second) =>
+          first.entry.at - second.entry.at || first.panel.name.localeCompare(second.panel.name),
+      )
+      .map(({ entry, panel }) => ({
+        key: `${panel.systemId}-${String(entry.sequence)}`,
+        at: entry.at,
+        tone: entry.tone,
+        station: panel.shortName,
+        message: entry.message,
+      }));
+    return (
+      <div class="board__ledger">
+        <Ledger
+          title="Ledger · three systems interleaved"
+          name="Board ledger"
+          lines={lines}
+          total={totalLines}
+        />
+      </div>
+    );
+    // The logs only grow, so their combined length says whether the list changed.
+  }, [simulations, printedLines, panels, totalLines]);
+
   return (
     <div
+      ref={playback.root}
       class="board"
-      data-ready={ready.value ? 'true' : 'false'}
-      data-running={playing.value ? 'true' : 'false'}
-      data-revision={revision}
+      data-ready={playback.ready ? 'true' : 'false'}
+      data-running={playback.playing ? 'true' : 'false'}
+      data-revision={playback.revision}
     >
       <div class="board__rail" role="group" aria-label="Board controls">
-        <span class="badge" data-tone={playing.value ? 'wait' : 'neutral'}>
+        <span class="badge" data-tone="neutral">
           simulation · one virtual clock
         </span>
-        <output class="board__clock mono" aria-label="Virtual clock" data-clock>
-          {formatClock(clock)}
-        </output>
+        <span
+          class="board__clock mono"
+          role="timer"
+          aria-live="off"
+          aria-label="Virtual clock"
+          data-clock
+        >
+          {formatClock(playback.now)}
+        </span>
         <div class="board__buttons">
-          {!reducedMotion && (
-            <button type="button" class="control" onClick={play} aria-pressed={playing.value}>
-              {playLabel()}
-            </button>
-          )}
+          <button type="button" class="control" onClick={playback.toggle}>
+            {playLabel()}
+          </button>
           <button
             type="button"
             class="control"
             onClick={step}
-            disabled={simulations.every((simulation) => simulation.pending() === 0)}
+            aria-disabled={stepExhausted ? 'true' : undefined}
           >
             Step
           </button>
-          <button type="button" class="control" onClick={reset}>
+          <button type="button" class="control" onClick={playback.reset}>
             Reset
           </button>
         </div>
@@ -233,48 +169,30 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
             min={0}
             max={end}
             step={100}
-            value={Math.min(end, clock)}
+            value={clock}
+            aria-valuetext={formatClock(clock)}
             onInput={(event) => {
-              stop();
-              advanceTo(Number(event.currentTarget.value));
+              playback.advanceTo(Number(event.currentTarget.value));
             }}
           />
         </label>
-        {reducedMotion && (
-          <p class="board__note kicker">Reduced motion: nothing moves until you press Step.</p>
-        )}
+        <p class="board__note kicker">
+          Reduced motion: nothing moves until you press Play or Step or move the scrubber.
+        </p>
       </div>
 
       <div class="board__panels">
         {panels.map((panel, index) => {
           const simulation = simulations[index];
+          if (simulation === undefined) {
+            return null;
+          }
           const activity: Record<string, Tone> = {};
-          const latestTone = simulation?.log[simulation.log.length - 1]?.tone ?? 'neutral';
-          const activeNode = simulation?.state.activeNode;
+          const latestTone = simulation.log[simulation.log.length - 1]?.tone ?? 'neutral';
+          const activeNode = simulation.state.activeNode;
           if (activeNode !== undefined) {
             activity[activeNode] = latestTone;
           }
-          const packets: Packet[] = (simulation?.packets ?? [])
-            .filter((packet) => packet.arrivesAt > (simulation?.now ?? 0))
-            .flatMap((packet) => {
-              const edge = panel.edges.find(
-                (candidate) => candidate.from === packet.from && candidate.to === packet.to,
-              );
-              if (edge === undefined || simulation === undefined) {
-                return [];
-              }
-              return [
-                {
-                  edge: edge.id,
-                  progress:
-                    (simulation.now - packet.departedAt) /
-                    Math.max(1, packet.arrivesAt - packet.departedAt),
-                  tone: packet.tone,
-                },
-              ];
-            });
-          const completed = simulation?.state.completed ?? 0;
-          const total = simulation?.state.total ?? 0;
           return (
             <section
               key={panel.systemId}
@@ -290,7 +208,8 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
                 </span>
               </header>
               <p class="board__flow kicker">
-                {panel.flow.name} · {String(completed)} of {String(total)}
+                {panel.flow.name} · {String(simulation.state.completed)} of{' '}
+                {String(simulation.state.total)}
               </p>
               <Schematic
                 systemId={`board-${panel.systemId}`}
@@ -298,10 +217,11 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
                 description={panel.flow.summary}
                 nodes={panel.nodes}
                 edges={panel.edges}
-                orientation="vertical"
+                orientation="rail"
+                rows={rows}
                 activity={activity}
-                activeEdge={simulation?.state.activeEdge}
-                packets={packets}
+                activeEdge={simulation.state.activeEdge}
+                packets={packetsOn(simulation, panel.edges, { snap: reducedMotion })}
               />
               <a class="board__enter control" href={panel.href}>
                 Enter the system
@@ -311,30 +231,9 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
         })}
       </div>
 
-      <div class="ledger board__ledger" data-ledger>
-        <div class="ledger__head">
-          <span class="kicker">Ledger · three systems interleaved</span>
-          <span class="kicker">
-            {String(printedLines)} of {String(totalLines)} lines · simulation
-          </span>
-        </div>
-        {ledger.length === 0 && <p class="ledger__empty muted">Nothing has happened yet.</p>}
-        <ol class="ledger__lines">
-          {ledger.map((entry) => (
-            <li
-              key={`${entry.panel.systemId}-${String(entry.sequence)}`}
-              class="ledger__line"
-              data-tone={entry.tone}
-            >
-              <span class="ledger__time mono">{formatClock(entry.at)}</span>
-              <span class="ledger__station kicker">{entry.panel.shortName}</span>
-              <span class="ledger__message">{entry.message}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
+      {ledger}
       <p class="sr-only" aria-live="polite">
-        {announcement.value}
+        {playback.announcement}
       </p>
     </div>
   );

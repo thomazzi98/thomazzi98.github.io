@@ -2,7 +2,8 @@
 import { FlowPlayer } from '../islands/player/FlowPlayer';
 import { formatClock } from '../islands/player/format';
 import { footprintOf } from '../systems/board';
-import { evidenceLabel, evidenceUrl } from '../systems/evidence';
+import EvidenceLinks from './EvidenceLinks.astro';
+import { edgeEndpoints, toSchematicEdges, toSchematicNodes } from '../systems/presentation';
 import type { Flow, SystemModel } from '../systems/schema';
 import { defaultLeverValues, runTranscript } from '../trace/runner';
 
@@ -14,22 +15,23 @@ interface Props {
 
 const { system, flows, autoplay = false } = Astro.props;
 const { repository } = system;
+// A page mounts one stage per group of flow kinds, so the first kind tells the stages apart;
+// the player needs that to keep its radio groups and drawing ids to itself.
+const stageId = `${system.id}-${flows[0]?.kind ?? 'stage'}`;
 // A stage draws the parts its flows touch, not the whole system, so the path stays legible;
 // the architecture section is where the whole system is drawn.
 const footprint = new Set(flows.flatMap((flow) => [...footprintOf(system, flow)]));
-const nodes = system.nodes
-  .filter((node) => footprint.has(node.id))
-  .map(({ id, label, kind }) => ({ id, label, kind }));
-const edges = system.edges
-  .filter((edge) => footprint.has(edge.from) && footprint.has(edge.to))
-  .map(({ id, from, to, label, protocol }) => ({ id, from, to, label, protocol }));
+const nodes = toSchematicNodes(system.nodes.filter((node) => footprint.has(node.id)));
+const edges = toSchematicEdges(
+  system.edges.filter((edge) => footprint.has(edge.from) && footprint.has(edge.to)),
+);
 // The player needs the steps, not the citations behind them; those stay on the page.
 const playerFlows = flows.map((flow) => ({
   ...flow,
   assertedBy: [],
   steps: flow.steps.map((step) => ({ ...step, evidence: [] })),
 }));
-const endpoints = new Map(system.edges.map((edge) => [edge.id, { from: edge.from, to: edge.to }]));
+const endpoints = edgeEndpoints(system.edges);
 const labels = new Map<string, string>([
   ...system.nodes.map((node) => [node.id, node.label] as const),
   ...system.edges.map((edge) => [edge.id, edge.label] as const),
@@ -47,6 +49,7 @@ const transcripts = flows.map((flow) => ({
 <div class="stage">
   <FlowPlayer
     client:visible
+    stageId={stageId}
     systemId={system.id}
     systemName={system.shortName}
     nodes={nodes}
@@ -54,6 +57,9 @@ const transcripts = flows.map((flow) => ({
     flows={playerFlows}
     autoplay={autoplay}
   />
+  <noscript>
+    <p class="stage__note">The controls need JavaScript; every flow is written out below.</p>
+  </noscript>
   <div class="transcripts">
     {
       transcripts.map(({ flow, entries, defaults }) => (
@@ -89,13 +95,7 @@ const transcripts = flows.map((flow) => ({
           </div>
           {flow.assertedBy.length > 0 && (
             <p class="transcript__asserted evidence">
-              Asserted by{' '}
-              {flow.assertedBy.map((entry, index) => (
-                <>
-                  {index > 0 && ', '}
-                  <a href={evidenceUrl(repository, entry)}>{evidenceLabel(entry)}</a>
-                </>
-              ))}
+              Asserted by <EvidenceLinks repository={repository} evidence={flow.assertedBy} />
             </p>
           )}
         </details>

@@ -5,6 +5,3 @@ export const formatClock = (virtualMilliseconds: number): string => {
   const milliseconds = total % 1000;
   return `T+${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
 };
-
-export const formatSeconds = (virtualMilliseconds: number): string =>
-  `${(Math.max(0, virtualMilliseconds) / 1000).toFixed(1)} s`;

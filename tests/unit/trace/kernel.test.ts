@@ -1,34 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createRandom, seedFromText } from '../../../src/trace/kernel/random';
 import { createScheduler } from '../../../src/trace/kernel/scheduler';
 import { createSimulation, type Scenario } from '../../../src/trace/kernel/simulation';
-
-describe('createRandom', () => {
-  it('is deterministic for a seed and different across seeds', () => {
-    const first = createRandom(7);
-    const second = createRandom(7);
-    const third = createRandom(8);
-    const sequence = [first.next(), first.next(), first.next()];
-    expect([second.next(), second.next(), second.next()]).toEqual(sequence);
-    expect(third.next()).not.toBe(sequence[0]);
-  });
-
-  it('stays inside the requested range and picks from a list', () => {
-    const random = createRandom(3);
-    for (let round = 0; round < 200; round += 1) {
-      const value = random.between(10, 20);
-      expect(value).toBeGreaterThanOrEqual(10);
-      expect(value).toBeLessThan(20);
-    }
-    expect(['a', 'b', 'c']).toContain(random.pick(['a', 'b', 'c']));
-    expect(() => random.pick([])).toThrow(RangeError);
-  });
-
-  it('hashes text to a stable seed', () => {
-    expect(seedFromText('queued-bank-onboarding')).toBe(seedFromText('queued-bank-onboarding'));
-    expect(seedFromText('a')).not.toBe(seedFromText('b'));
-  });
-});
 
 describe('createScheduler', () => {
   it('releases events by time, then by insertion order', () => {
@@ -52,24 +24,22 @@ describe('createScheduler', () => {
 interface CounterState {
   count: number;
 }
-type CounterEvent = { type: 'tick' } | { type: 'reset' };
+interface CounterEvent {
+  type: 'tick';
+}
 interface CounterLevers {
   interval: number;
 }
 
 const counterScenario: Scenario<CounterState, CounterEvent, CounterLevers> = {
-  id: 'counter',
   defaultLevers: { interval: 100 },
   initialState: () => ({ count: 0 }),
   boot: (context, levers) => {
     context.schedule(levers.interval, { type: 'tick' });
   },
   handle: (state, event, context, levers) => {
-    if (event.type === 'reset') {
-      context.log('counter', 'neutral', 'reset');
-      return { count: 0 };
-    }
-    context.send('clock', 'counter', 'ok', 10);
+    context.log('counter', 'ok', event.type);
+    context.send('clock', 'counter', 'ok', 10, 'clock-counter');
     context.schedule(levers.interval, { type: 'tick' });
     return { count: state.count + 1 };
   },
@@ -91,44 +61,40 @@ describe('createSimulation', () => {
     expect(simulation.state.count).toBe(1);
   });
 
-  it('applies lever changes to events scheduled afterwards', () => {
-    const simulation = createSimulation(counterScenario, { levers: { interval: 50 } });
+  it('takes lever overrides at creation', () => {
+    const simulation = createSimulation(counterScenario, { interval: 50 });
     simulation.advance(100);
     expect(simulation.state.count).toBe(2);
-    simulation.setLever('interval', 500);
-    simulation.advance(1000);
-    expect(simulation.state.count).toBe(4);
   });
 
-  it('dispatches external events, logs, tracks packets and notifies subscribers', () => {
+  it('logs with the virtual clock and keeps a packet, with its edge, until it has arrived', () => {
     const simulation = createSimulation(counterScenario);
-    let notifications = 0;
-    const unsubscribe = simulation.subscribe(() => {
-      notifications += 1;
-    });
     simulation.advance(100);
-    expect(simulation.packets).toHaveLength(1);
-    simulation.dispatch({ type: 'reset' });
-    expect(simulation.state.count).toBe(0);
-    expect(simulation.log.at(-1)).toEqual({
-      sequence: 1,
-      at: 100,
-      station: 'counter',
-      tone: 'neutral',
-      message: 'reset',
-    });
-    unsubscribe();
-    simulation.advance(100);
-    expect(notifications).toBe(2);
-    expect(simulation.packets).toHaveLength(1);
+    expect(simulation.log).toEqual([
+      { sequence: 1, at: 100, station: 'counter', tone: 'ok', message: 'tick' },
+    ]);
+    expect(simulation.packets).toEqual([
+      {
+        id: 0,
+        from: 'clock',
+        to: 'counter',
+        via: 'clock-counter',
+        tone: 'ok',
+        departedAt: 100,
+        arrivesAt: 110,
+      },
+    ]);
+    simulation.advance(50);
+    expect(simulation.packets).toHaveLength(0);
   });
 
-  it('produces identical transcripts for the same seed', () => {
-    const transcript = (seed: number) => {
-      const simulation = createSimulation(counterScenario, { seed });
+  it('produces identical transcripts across runs', () => {
+    const transcript = () => {
+      const simulation = createSimulation(counterScenario);
       simulation.advance(1000);
       return simulation.log.map((entry) => `${String(entry.at)}:${entry.message}`);
     };
-    expect(transcript(42)).toEqual(transcript(42));
+    expect(transcript()).toEqual(transcript());
+    expect(transcript()).toHaveLength(10);
   });
 });

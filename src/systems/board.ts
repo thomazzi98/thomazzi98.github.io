@@ -1,6 +1,6 @@
 import type { Flow, SystemEdge, SystemModel, SystemNode } from './schema';
 
-// A board drawing stacks in two lanes on the home page; ten parts is the most that stays legible.
+// A board drawing lays out as a rail on the home page; ten parts is the most that stays legible.
 export const boardLimit = 10;
 
 export interface Board {
