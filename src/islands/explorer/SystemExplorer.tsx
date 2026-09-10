@@ -1,4 +1,5 @@
 import { useSignal } from '@preact/signals';
+import type { TargetedKeyboardEvent, TargetedMouseEvent } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Repository, SystemEdge, SystemNode } from '../../systems/schema';
 import type { Selection } from '../schematic/Schematic';
@@ -19,6 +20,17 @@ export interface SystemExplorerProps {
 
 const narrowQuery = '(max-width: 48rem)';
 
+const selectionFromHash = (hash: string): Selection | undefined => {
+  const match = /^#(node|edge)-(.+)$/.exec(hash);
+  if (match === null) {
+    return undefined;
+  }
+  return {
+    kind: match[1] === 'edge' ? 'edge' : 'node',
+    id: decodeURIComponent(match[2] ?? ''),
+  };
+};
+
 export const SystemExplorer = ({
   systemId,
   title,
@@ -29,30 +41,50 @@ export const SystemExplorer = ({
   technologyNames = {},
 }: SystemExplorerProps) => {
   const selection = useSignal<Selection | undefined>(undefined);
+  // Until the island hydrates the drawing is plain graphics and the parts list is inert, so a
+  // reader without JavaScript never meets a control that does nothing.
+  const ready = useSignal(false);
   const narrow = useMediaQuery(narrowQuery);
   const dialogReference = useRef<HTMLDialogElement>(null);
+  const keepSelectionOnClose = useRef(false);
   const select = (next: Selection | undefined) => {
     selection.value = next;
   };
 
   useEffect(() => {
-    const match = /^#(node|edge)-(.+)$/.exec(window.location.hash);
-    if (match === null) {
-      return;
-    }
-    const kind = match[1] === 'edge' ? 'edge' : 'node';
-    const id = decodeURIComponent(match[2] ?? '');
-    const exists =
-      kind === 'node' ? nodes.some((node) => node.id === id) : edges.some((edge) => edge.id === id);
-    if (exists) {
-      selection.value = { kind, id };
-    }
-    // The hash is read once, when the island mounts.
+    ready.value = true;
+    const applyHash = () => {
+      const next = selectionFromHash(window.location.hash);
+      if (next === undefined) {
+        return;
+      }
+      const exists =
+        next.kind === 'node'
+          ? nodes.some((node) => node.id === next.id)
+          : edges.some((edge) => edge.id === next.id);
+      if (exists) {
+        selection.value = next;
+      }
+    };
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
+    return () => {
+      window.removeEventListener('hashchange', applyHash);
+    };
+    // The parts of a system do not change while the island lives.
   }, []);
 
   useEffect(() => {
     const dialog = dialogReference.current;
-    if (dialog === null || !narrow) {
+    if (dialog === null) {
+      return;
+    }
+    if (!narrow) {
+      // The aside takes over when the viewport widens; the selection survives the hand-over.
+      if (dialog.open) {
+        keepSelectionOnClose.current = true;
+        dialog.close();
+      }
       return;
     }
     if (selection.value === undefined) {
@@ -66,6 +98,26 @@ export const SystemExplorer = ({
     }
   }, [selection.value, narrow]);
 
+  const onExplorerKey = (event: TargetedKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape' && selection.value !== undefined) {
+      select(undefined);
+    }
+  };
+
+  const onSheetClose = () => {
+    if (keepSelectionOnClose.current) {
+      keepSelectionOnClose.current = false;
+      return;
+    }
+    select(undefined);
+  };
+
+  const onBackdropClick = (event: TargetedMouseEvent<HTMLDialogElement>) => {
+    if (event.target === dialogReference.current) {
+      select(undefined);
+    }
+  };
+
   const inspector = (
     <Inspector
       repository={repository}
@@ -78,7 +130,7 @@ export const SystemExplorer = ({
   );
 
   return (
-    <div class="explorer" data-selected={selection.value?.kind}>
+    <div class="explorer" data-selected={selection.value?.kind} onKeyDown={onExplorerKey}>
       <div class="explorer__drawing">
         <SchematicPair
           systemId={systemId}
@@ -87,34 +139,41 @@ export const SystemExplorer = ({
           nodes={nodes}
           edges={edges}
           selected={selection.value}
-          onSelect={select}
+          onSelect={ready.value ? select : undefined}
         />
       </div>
-      <aside class="explorer__inspector" aria-live="polite" hidden={narrow}>
+      <aside class="explorer__inspector" aria-label="Inspector" aria-live="polite">
         {inspector}
       </aside>
       <dialog
         ref={dialogReference}
         class="explorer__sheet"
         aria-label="Inspector"
-        onClose={() => {
-          select(undefined);
-        }}
+        onClose={onSheetClose}
+        onClick={onBackdropClick}
       >
-        {narrow && inspector}
-        <button
-          type="button"
-          class="control explorer__close"
-          onClick={() => {
-            select(undefined);
-          }}
-        >
-          Close
-        </button>
+        <div class="explorer__sheet-head">
+          <span class="kicker">Inspector</span>
+          <button
+            type="button"
+            class="control explorer__close"
+            onClick={() => {
+              select(undefined);
+            }}
+          >
+            Close
+          </button>
+        </div>
+        <div class="explorer__sheet-body">{inspector}</div>
       </dialog>
       <div class="explorer__parts">
         <p class="kicker">Parts list</p>
-        <PartsList nodes={nodes} selection={selection.value} onSelect={select} />
+        <PartsList
+          nodes={nodes}
+          selection={selection.value}
+          onSelect={select}
+          ready={ready.value}
+        />
       </div>
     </div>
   );

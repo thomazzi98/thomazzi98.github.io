@@ -63,7 +63,7 @@ export const Glyph = ({ kind, box }: GlyphProps) => {
         <Frame box={box} />
         <path
           class="schematic__detail"
-          d={`M${String(box.x + 8)},${String(box.y + box.height - 8)} H${String(box.x + box.width - 8)} M${String(box.x + 8)},${String(box.y + box.height - 12)} H${String(box.x + box.width - 8)}`}
+          d={`M${String(box.x + 8)},${String(box.y + 4)} H${String(box.x + box.width - 8)} M${String(box.x + 8)},${String(box.y + 7)} H${String(box.x + box.width - 8)}`}
         />
       </>
     );

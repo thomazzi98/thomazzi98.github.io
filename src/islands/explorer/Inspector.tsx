@@ -21,7 +21,7 @@ const EvidenceList = ({
 }) => (
   <ul class="inspector__evidence">
     {evidence.map((entry) => (
-      <li key={`${entry.path}-${String(entry.lines?.[0] ?? 0)}`} class="evidence">
+      <li key={`${evidenceLabel(entry)}${entry.note ?? ''}`} class="evidence">
         <a href={evidenceUrl(repository, entry)} rel="noopener">
           {evidenceLabel(entry)}
         </a>
@@ -57,7 +57,7 @@ export const Inspector = ({
   if (selection === undefined) {
     return (
       <div class="inspector inspector--empty">
-        <p class="kicker">Inspector</p>
+        <h3 class="kicker">Inspector</h3>
         <p class="muted">
           Select a node or an edge to see what it does, how it talks and where the code is.
         </p>
@@ -118,6 +118,11 @@ export const Inspector = ({
         {String(nodes.indexOf(node) + 1)} · {kindName[node.kind]}
       </p>
       <h3 class="inspector__title">{node.label}</h3>
+      {node.stamp !== undefined && (
+        <p>
+          <span class="stamp">{node.stamp}</span>
+        </p>
+      )}
       <p>{node.purpose}</p>
       {node.technologies.length > 0 && (
         <p class="inspector__technologies mono">
