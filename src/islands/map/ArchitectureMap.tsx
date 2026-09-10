@@ -1,71 +1,152 @@
 import { useSignal } from '@preact/signals';
-import { useEffect } from 'preact/hooks';
+import type { ComponentChildren, TargetedEvent } from 'preact';
+import { useLayoutEffect, useMemo, useRef } from 'preact/hooks';
 import type { Tone } from '../../systems/schema';
-import { presenceTone, type Presence } from '../../systems/shared-patterns';
-import { layoutSystem } from '../schematic/layout';
 import type { SchematicEdge, SchematicNode } from '../schematic/Schematic';
-import { SchematicPair, stackedLimit } from '../schematic/SchematicPair';
+import { SchematicPair } from '../schematic/SchematicPair';
 
 export interface MapPanel {
   readonly systemId: string;
   readonly name: string;
-  readonly shortName: string;
   readonly href: string;
   readonly description: string;
   readonly nodes: readonly SchematicNode[];
   readonly edges: readonly SchematicEdge[];
 }
 
-export interface LensEvidence {
-  readonly href: string;
-  readonly label: string;
-}
-
-export interface LensReading {
-  readonly presence: Presence;
-  readonly note: string;
-  readonly nodes: readonly string[];
-  readonly evidence: readonly LensEvidence[];
-}
-
 export interface Lens {
   readonly id: string;
   readonly name: string;
-  readonly description: string;
-  readonly systems: Readonly<Record<string, LensReading>>;
+  // The parts each system lights under this lens; the prose lives in the readings the page renders.
+  readonly systems: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface ArchitectureMapProps {
   readonly panels: readonly MapPanel[];
   readonly lenses: readonly Lens[];
+  readonly readings?: ComponentChildren;
 }
+
+type Activity = Readonly<Record<string, Tone>>;
 
 const noLens = '';
 const litTone: Tone = 'ok';
+const legendId = 'architecture-lens-legend';
+const selectId = 'architecture-lens-select';
+const noActivity: Activity = {};
 
-const activityFor = (reading: LensReading | undefined): Record<string, Tone> =>
-  Object.fromEntries((reading?.nodes ?? []).map((nodeId) => [nodeId, litTone]));
+const activityFor = (nodeIds: readonly string[]): Activity =>
+  Object.fromEntries(nodeIds.map((nodeId) => [nodeId, litTone]));
 
-const labelsFor = (panel: MapPanel, nodeIds: readonly string[]): string[] =>
-  nodeIds.flatMap((nodeId) => {
-    const node = panel.nodes.find((candidate) => candidate.id === nodeId);
-    return node === undefined ? [] : [node.label];
-  });
+const litCount = (activity: Activity, panel: MapPanel): number =>
+  panel.nodes.filter((node) => node.id in activity).length;
 
-export const ArchitectureMap = ({ panels, lenses }: ArchitectureMapProps) => {
+const headText = (activity: Activity | undefined, panel: MapPanel): string => {
+  if (activity === undefined) {
+    return `${String(panel.nodes.length)} parts · ${String(panel.edges.length)} connections`;
+  }
+  const lit = litCount(activity, panel);
+  if (lit === 0) {
+    return `No part lit of ${String(panel.nodes.length)}`;
+  }
+  return `${String(lit)} of ${String(panel.nodes.length)} parts lit`;
+};
+
+// The notes and evidence of a lens are printed once, in the matrix; a reading borrows them by
+// cloning the row's cells the first time it is shown, so the document carries each sentence once.
+const borrowFromMatrix = (block: HTMLElement) => {
+  for (const slot of block.querySelectorAll<HTMLElement>('[data-copy-of]')) {
+    if (slot.childElementCount > 0 || slot.dataset.copyOf === undefined) {
+      continue;
+    }
+    const source = document.querySelector(slot.dataset.copyOf);
+    if (source === null) {
+      continue;
+    }
+    for (const child of source.children) {
+      slot.append(child.cloneNode(true));
+    }
+  }
+};
+
+// The selector is sticky, so a reading that is not wholly on screen under it is scrolled to sit
+// right below it; aligning to the nearest edge would leave a long reading with its head hidden.
+const bringUnderSelector = (reading: HTMLElement, selector: HTMLElement | null) => {
+  if (typeof reading.scrollIntoView !== 'function') {
+    return;
+  }
+  const selectorBottom = selector?.getBoundingClientRect().bottom ?? 0;
+  const { top, bottom } = reading.getBoundingClientRect();
+  if (top >= selectorBottom && bottom <= window.innerHeight) {
+    return;
+  }
+  const gap = Number.parseFloat(getComputedStyle(reading).marginTop) || 0;
+  reading.style.scrollMarginTop = `${String((selector?.offsetHeight ?? 0) + gap)}px`;
+  reading.scrollIntoView({ block: 'start' });
+};
+
+const revealReading = (region: HTMLElement, lensId: string, selector: HTMLElement | null) => {
+  let shown: HTMLElement | undefined;
+  for (const block of region.querySelectorAll<HTMLElement>('[data-lens-reading]')) {
+    const matches = block.dataset.lensReading === lensId;
+    if (matches) {
+      borrowFromMatrix(block);
+      shown = block;
+    }
+    block.hidden = !matches;
+  }
+  if (shown !== undefined) {
+    bringUnderSelector(shown, selector);
+  }
+};
+
+export const ArchitectureMap = ({ panels, lenses, readings }: ArchitectureMapProps) => {
   const selected = useSignal(noLens);
-  const ready = useSignal(false);
+  const lensesReference = useRef<HTMLFieldSetElement>(null);
+  const readingReference = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    ready.value = true;
-  }, []);
+  const activityByLens = useMemo(
+    () =>
+      new Map(
+        lenses.map((lens) => [
+          lens.id,
+          new Map(
+            panels.map((panel) => [
+              panel.systemId,
+              activityFor(lens.systems[panel.systemId] ?? []),
+            ]),
+          ),
+        ]),
+      ),
+    [lenses, panels],
+  );
 
   const lens = lenses.find((candidate) => candidate.id === selected.value);
+  const activities = lens === undefined ? undefined : activityByLens.get(lens.id);
+
+  // Before paint, so the reading and the lit parts appear in the same frame.
+  useLayoutEffect(() => {
+    const region = readingReference.current;
+    if (region === null) {
+      return;
+    }
+    revealReading(region, selected.value, lensesReference.current);
+  }, [selected.value]);
+
+  const choose = (lensId: string) => {
+    selected.value = lensId;
+  };
+
+  const onSelectChange = (event: TargetedEvent<HTMLSelectElement>) => {
+    choose(event.currentTarget.value);
+  };
 
   return (
-    <div class="map" data-lens={lens?.id ?? 'none'} data-ready={ready.value ? 'true' : 'false'}>
-      <fieldset class="map__lenses" hidden={!ready.value}>
-        <legend class="kicker">Pattern lens</legend>
+    <div class="map" data-lens={lens?.id ?? 'none'}>
+      <fieldset ref={lensesReference} class="map__lenses">
+        <legend id={legendId} class="kicker">
+          Pattern lens
+        </legend>
         <div class="map__options">
           <label class="map__option control">
             <input
@@ -75,7 +156,7 @@ export const ArchitectureMap = ({ panels, lenses }: ArchitectureMapProps) => {
               value={noLens}
               checked={lens === undefined}
               onChange={() => {
-                selected.value = noLens;
+                choose(noLens);
               }}
             />
             <span>No lens</span>
@@ -89,44 +170,55 @@ export const ArchitectureMap = ({ panels, lenses }: ArchitectureMapProps) => {
                 value={candidate.id}
                 checked={lens?.id === candidate.id}
                 onChange={() => {
-                  selected.value = candidate.id;
+                  choose(candidate.id);
                 }}
               />
               <span>{candidate.name}</span>
             </label>
           ))}
         </div>
+        <select
+          id={selectId}
+          class="map__select"
+          aria-labelledby={legendId}
+          value={selected.value}
+          onChange={onSelectChange}
+        >
+          <option value={noLens}>No lens</option>
+          {lenses.map((candidate) => (
+            <option key={candidate.id} value={candidate.id}>
+              {candidate.name}
+            </option>
+          ))}
+        </select>
       </fieldset>
+      {/* Outside the fieldset, because the layout hides the whole fieldset when scripts are off. */}
       <noscript>
         <p class="map__note kicker">
           The lens selector needs JavaScript. The matrix below the map reads without it.
         </p>
       </noscript>
 
+      <div ref={readingReference} class="map__reading" aria-live="polite">
+        {readings}
+      </div>
+
       <div class="map__boards">
         {panels.map((panel) => {
-          const reading = lens?.systems[panel.systemId];
-          const drawingWidth = layoutSystem(panel.nodes, panel.edges, 'horizontal').width;
+          const activity = activities?.get(panel.systemId);
           return (
             <section
               key={panel.systemId}
               class="map__board"
               aria-labelledby={`map-${panel.systemId}`}
-              style={`--drawing-width: ${String(drawingWidth)}px`}
             >
               <header class="map__head">
                 <a id={`map-${panel.systemId}`} class="map__name" href={panel.href}>
                   {panel.name}
                 </a>
-                {reading === undefined ? (
-                  <span class="kicker">
-                    {String(panel.nodes.length)} parts · {String(panel.edges.length)} connections
-                  </span>
-                ) : (
-                  <span class="badge" data-tone={presenceTone[reading.presence]}>
-                    {reading.presence}
-                  </span>
-                )}
+                <span class="kicker" data-lit={activity === undefined ? undefined : 'true'}>
+                  {headText(activity, panel)}
+                </span>
               </header>
               <div class="map__drawing">
                 <SchematicPair
@@ -135,63 +227,13 @@ export const ArchitectureMap = ({ panels, lenses }: ArchitectureMapProps) => {
                   description={panel.description}
                   nodes={panel.nodes}
                   edges={panel.edges}
-                  activity={activityFor(reading)}
+                  activity={activity ?? noActivity}
                 />
               </div>
-              {panel.nodes.length > stackedLimit && (
-                <p class="map__scroll-hint kicker">Full drawing · scrolls sideways</p>
-              )}
             </section>
           );
         })}
       </div>
-
-      {lens !== undefined && (
-        <div class="map__reading panel">
-          <div class="panel__head">
-            <strong>{lens.name}</strong>
-            <span>lens</span>
-          </div>
-          <div class="panel__body">
-            <p class="map__description">{lens.description}</p>
-            <dl class="map__systems">
-              {panels.map((panel) => {
-                const reading = lens.systems[panel.systemId];
-                if (reading === undefined) {
-                  return null;
-                }
-                const lit = labelsFor(panel, reading.nodes);
-                return (
-                  <div key={panel.systemId} class="map__system">
-                    <dt>
-                      <span class="map__system-name">{panel.shortName}</span>
-                      <span class="badge" data-tone={presenceTone[reading.presence]}>
-                        {reading.presence}
-                      </span>
-                    </dt>
-                    <dd>
-                      <p>{reading.note}</p>
-                      <p class="map__lit kicker">
-                        {lit.length === 0
-                          ? 'No part is lit: this lives in scripts and documents'
-                          : `Lit: ${lit.join(', ')}`}
-                      </p>
-                      <p class="evidence">
-                        {reading.evidence.map((entry, index) => (
-                          <span key={entry.href}>
-                            {index > 0 && ' · '}
-                            <a href={entry.href}>{entry.label}</a>
-                          </span>
-                        ))}
-                      </p>
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

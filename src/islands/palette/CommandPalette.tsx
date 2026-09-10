@@ -38,13 +38,37 @@ const optionId = (position: number) => `palette-option-${String(position)}`;
 const groupId = (kind: PaletteKind) => `palette-group-${kind}`;
 
 const applePlatform = /Mac|iPhone|iPad|iPod/;
-const editableTags = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
-const isEditable = (target: EventTarget | null): boolean =>
-  target instanceof HTMLElement && (target.isContentEditable || editableTags.has(target.tagName));
+// Focus follows the choice, as it does after a skip link, so the next Tab starts at the target and
+// the closing dialog does not pull the page back up to the trigger.
+const focusTarget = (element: HTMLElement) => {
+  if (element.tabIndex < 0 && !element.hasAttribute('tabindex')) {
+    element.setAttribute('tabindex', '-1');
+  }
+  element.focus({ preventScroll: true });
+};
 
+// A choice on the page already open only moves the hash; the islands listen for hashchange, so a
+// repeated choice of the same target must still produce one.
 const defaultNavigate = (href: string) => {
-  window.location.assign(href);
+  const target = new URL(href, window.location.href);
+  if (target.pathname !== window.location.pathname || target.hash === '') {
+    window.location.assign(href);
+    return;
+  }
+  const element = document.getElementById(target.hash.slice(1));
+  if (window.location.hash === target.hash) {
+    window.dispatchEvent(
+      new HashChangeEvent('hashchange', { oldURL: target.href, newURL: target.href }),
+    );
+    if (element !== null && typeof element.scrollIntoView === 'function') {
+      element.scrollIntoView();
+    }
+  }
+  window.location.hash = target.hash;
+  if (element !== null) {
+    focusTarget(element);
+  }
 };
 
 const groupResults = (results: readonly PaletteEntry[]): ResultGroup[] => {
@@ -81,11 +105,12 @@ export const CommandPalette = ({
   const open = useSignal(false);
   const query = useSignal('');
   const active = useSignal(0);
-  const mounted = useSignal(false);
   const apple = useSignal(false);
   const dialogReference = useRef<HTMLDialogElement>(null);
   const triggerReference = useRef<HTMLButtonElement>(null);
   const inputReference = useRef<HTMLInputElement>(null);
+  // The close event arrives after the navigation a choice starts, so a dismissal is remembered here.
+  const returnFocus = useRef(true);
 
   const groups = groupResults(searchPalette(entries.value, query.value, limit));
   const ordered = groups.flatMap((group) => group.entries);
@@ -93,10 +118,14 @@ export const CommandPalette = ({
 
   const finishClose = () => {
     open.value = false;
-    triggerReference.current?.focus();
+    if (returnFocus.current) {
+      triggerReference.current?.focus();
+    }
+    returnFocus.current = true;
   };
 
-  const closePalette = () => {
+  const closePalette = (dismissed = true) => {
+    returnFocus.current = dismissed;
     const dialog = dialogReference.current;
     if (dialog !== null && dialog.open && typeof dialog.close === 'function') {
       dialog.close();
@@ -154,23 +183,16 @@ export const CommandPalette = ({
   };
 
   const goTo = (href: string) => {
-    closePalette();
+    closePalette(false);
     navigate(href);
   };
 
   useEffect(() => {
-    mounted.value = true;
     apple.value = applePlatform.test(navigator.userAgent);
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         togglePalette();
-        return;
-      }
-      const plain = !event.ctrlKey && !event.metaKey && !event.altKey;
-      if (event.key === '/' && plain && !open.value && !isEditable(event.target)) {
-        event.preventDefault();
-        openPalette();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -245,7 +267,6 @@ export const CommandPalette = ({
         ref={triggerReference}
         type="button"
         class="control palette__trigger"
-        hidden={!mounted.value}
         aria-haspopup="dialog"
         aria-keyshortcuts={apple.value ? 'Meta+K' : 'Control+K'}
         onClick={togglePalette}
@@ -334,7 +355,13 @@ export const CommandPalette = ({
               Finds pages, the three systems, their parts, flows and decisions. Arrow keys move,
               Enter opens, Escape closes.
             </p>
-            <button type="button" class="control palette__close" onClick={closePalette}>
+            <button
+              type="button"
+              class="control palette__close"
+              onClick={() => {
+                closePalette();
+              }}
+            >
               Close
             </button>
           </div>

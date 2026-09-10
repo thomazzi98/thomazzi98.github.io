@@ -66,6 +66,14 @@ describe('buildPaletteIndex', () => {
     );
   });
 
+  it('names the system once per entry, whatever the spelling', () => {
+    for (const entry of index) {
+      const lowered = entry.keywords.map((keyword) => keyword.toLowerCase());
+      expect(new Set(lowered).size, `${entry.href} repeats a keyword`).toBe(lowered.length);
+    }
+    expect(ofKind('node')[1]?.keywords).toEqual(['api', 'process', 'ledger']);
+  });
+
   it('only produces the kinds the palette groups by', () => {
     for (const entry of index) {
       expect(paletteKinds).toContain(entry.kind);

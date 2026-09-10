@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/preact';
 import axe from 'axe-core';
+import { renderToString } from 'preact-render-to-string';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CommandPalette } from '../../src/islands/palette/CommandPalette';
 import { buildPaletteIndex, parsePaletteIndex } from '../../src/lib/palette-index';
@@ -78,12 +79,50 @@ describe('CommandPalette', () => {
     expect(listbox.getAllByRole('option')).toHaveLength(10);
   });
 
-  it('opens when a slash is typed outside an input and toggles closed with the shortcut', () => {
+  it('ignores a bare slash and toggles closed with the shortcut', () => {
     const { container } = renderPalette();
     fireEvent.keyDown(window, { key: '/' });
+    expect(dialog(container).open).toBe(false);
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
     expect(dialog(container).open).toBe(true);
     fireEvent.keyDown(window, { key: 'k', metaKey: true });
     expect(dialog(container).open).toBe(false);
+  });
+
+  it('renders its trigger visible before hydration', () => {
+    const markup = renderToString(<CommandPalette index={index} />);
+    expect(markup).toMatch(/<button(?![^>]*\bhidden)[^>]*class="control palette__trigger"/);
+    expect(markup).toContain('>Search<');
+  });
+
+  it('moves the hash on the page already open and repeats it when nothing changed', () => {
+    window.history.pushState({}, '', '/systems/ledger/');
+    const target = document.createElement('section');
+    target.id = 'node-api';
+    const scrollIntoView = vi.fn();
+    target.scrollIntoView = scrollIntoView;
+    document.body.append(target);
+    const hashChanges = vi.fn();
+    window.addEventListener('hashchange', hashChanges);
+    try {
+      render(<CommandPalette index={index} />);
+      fireEvent.click(trigger());
+      fireEvent.input(input(), { target: { value: 'api' } });
+      fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /^API/ }));
+      expect(window.location.pathname).toBe('/systems/ledger/');
+      expect(window.location.hash).toBe('#node-api');
+      fireEvent.click(trigger());
+      fireEvent.input(input(), { target: { value: 'api' } });
+      fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /^API/ }));
+      expect(hashChanges).toHaveBeenCalled();
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).toBe(target);
+      expect(target.getAttribute('tabindex')).toBe('-1');
+    } finally {
+      window.removeEventListener('hashchange', hashChanges);
+      target.remove();
+      window.history.pushState({}, '', '/');
+    }
   });
 
   it('filters the results as the query changes and says when nothing matches', () => {
@@ -136,6 +175,27 @@ describe('CommandPalette', () => {
       within(screen.getByRole('listbox')).getByRole('option', { name: /^Decisions/ }),
     );
     expect(navigate).toHaveBeenLastCalledWith('/decisions/');
+  });
+
+  it('leaves focus at the chosen target instead of pulling it back to the trigger', () => {
+    window.history.pushState({}, '', '/systems/ledger/');
+    const target = document.createElement('section');
+    target.id = 'node-api';
+    document.body.append(target);
+    try {
+      render(<CommandPalette index={index} />);
+      trigger().focus();
+      fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+      fireEvent.input(input(), { target: { value: 'api' } });
+      fireEvent.keyDown(input(), { key: 'Enter' });
+      expect(document.activeElement).toBe(target);
+      fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+      fireEvent.keyDown(input(), { key: 'Escape' });
+      expect(document.activeElement).toBe(trigger());
+    } finally {
+      target.remove();
+      window.history.pushState({}, '', '/');
+    }
   });
 
   it('closes with Escape and returns focus to the trigger', () => {

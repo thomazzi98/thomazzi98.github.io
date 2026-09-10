@@ -4,4 +4,26 @@
   .fragment {
     min-width: 0;
   }
+
+  /* Shiki writes the light colours inline and the dark ones as custom properties, and every font
+     style as a custom property; the panel token paints the code ground in both schemes so the
+     fragment matches the figure around it. */
+  .fragment .astro-code {
+    background: var(--panel) !important;
+  }
+
+  .fragment .astro-code span {
+    font-style: var(--shiki-light-font-style);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .fragment .astro-code,
+    .fragment .astro-code span {
+      color: var(--shiki-dark) !important;
+    }
+
+    .fragment .astro-code span {
+      font-style: var(--shiki-dark-font-style);
+    }
+  }
 }

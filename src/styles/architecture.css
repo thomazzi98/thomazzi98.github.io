@@ -1,29 +1,39 @@
 @layer page {
-  .map {
-    display: grid;
-    gap: var(--space-5);
-  }
-
   .map__lenses {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     margin: 0;
     padding: var(--space-3) var(--space-4) var(--space-4);
     border: var(--hairline) solid var(--rule);
     background: var(--panel);
   }
 
+  /* A floated legend sits inside the box instead of on its top rule, so the sticky panel paints
+     behind the whole selector and nothing scrolling under it shows through beside the legend. */
   .map__lenses legend {
-    padding-inline: var(--space-2);
+    float: left;
+    width: 100%;
+    padding: 0;
+  }
+
+  .map__options,
+  .map__select {
+    clear: both;
   }
 
   .map__options {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2);
+    gap: var(--space-1) var(--space-2);
     margin-top: var(--space-2);
   }
 
+  /* Fourteen chips stay sticky above the drawings, so each one is a line, not a button-sized block. */
   .map__option {
     position: relative;
+    min-height: 1.75rem;
+    padding-block: 0;
     cursor: pointer;
     text-align: left;
     text-transform: none;
@@ -53,28 +63,70 @@
     outline-offset: 2px;
   }
 
+  @media (forced-colors: active) {
+    .map__option:has(.map__radio:checked) {
+      outline: 2px solid;
+      outline-offset: -2px;
+      text-decoration: underline;
+    }
+
+    .map__option:has(.map__radio:focus-visible) {
+      outline-style: dashed;
+    }
+  }
+
+  /* One control on a phone: the chips become a select, the radios stay for wider screens. */
+  .map__select {
+    display: none;
+    width: 100%;
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: var(--hairline) solid var(--rule-strong);
+    background: var(--ground);
+    color: var(--ink);
+  }
+
+  .map__select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 48rem) {
+    .map__options {
+      display: none;
+    }
+
+    .map__select {
+      display: block;
+    }
+  }
+
   .map__note {
+    margin-top: var(--space-3);
     padding: var(--space-3) var(--space-4);
     border: var(--hairline) solid var(--rule);
+  }
+
+  /* The live region stays in the flow, empty and flat, so that a reading appearing in it is heard. */
+  .map__reading-block {
+    margin-top: var(--space-5);
+    scroll-margin-top: var(--space-4);
+    border: var(--hairline) solid var(--rule);
+    background: var(--panel);
   }
 
   .map__boards {
     display: grid;
     gap: var(--hairline);
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: var(--space-5);
     background: var(--rule);
     border: var(--hairline) solid var(--rule);
   }
 
-  @media (max-width: 64rem) {
-    .map__boards {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
   .map__board {
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr;
     gap: var(--space-3);
     min-width: 0;
     padding: var(--space-4);
@@ -87,6 +139,10 @@
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-2) var(--space-3);
+  }
+
+  .map__head [data-lit] {
+    color: var(--ink);
   }
 
   .map__name {
@@ -104,15 +160,6 @@
 
   .map__drawing {
     min-width: 0;
-  }
-
-  /* Each full drawing keeps its natural scale and scrolls sideways inside its column. */
-  .map__drawing .schematic-scroll .schematic {
-    min-width: var(--drawing-width);
-  }
-
-  .map__scroll-hint {
-    align-self: end;
   }
 
   .map__description {
@@ -155,8 +202,17 @@
     line-height: var(--leading-snug);
   }
 
-  .map__system dd > * + * {
+  .map__system dd > * + *,
+  .map__system [data-copy-of] > * + * {
     margin-top: var(--space-3);
+  }
+
+  /* A reading borrows the matrix row's description and cells; here they read as prose, not as a table. */
+  .map__reading-block .matrix__description {
+    max-width: var(--measure);
+    margin-top: 0;
+    font-size: var(--size-body);
+    color: var(--ink);
   }
 
   .map__lit {
@@ -167,6 +223,11 @@
   .matrix__scroll {
     overflow-x: auto;
     scrollbar-width: thin;
+  }
+
+  .matrix__scroll:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .matrix {
@@ -245,8 +306,29 @@
     font-size: var(--size-small);
   }
 
-  .divergence dd .evidence {
+  .divergence__systems {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+
+  .divergence__system {
+    display: grid;
+    gap: var(--space-1) var(--space-4);
+    grid-template-columns: 6rem minmax(0, 1fr);
+    padding-top: var(--space-3);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .divergence__system dt {
+    font-family: var(--font-mono);
+    font-size: var(--size-caption);
+    font-weight: 400;
+    color: var(--ink-muted);
+  }
+
+  .divergence__system .evidence {
     display: block;
-    margin-top: var(--space-2);
+    margin-top: var(--space-1);
   }
 }

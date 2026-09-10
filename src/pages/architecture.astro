@@ -1,8 +1,10 @@
 ---
 import { ArchitectureMap, type Lens, type MapPanel } from '../islands/map/ArchitectureMap';
 import Base from '../layouts/Base.astro';
-import { findSystem, systems } from '../systems';
+import { systems } from '../systems';
+import { divergences } from '../systems/divergences';
 import { commitUrl, evidenceLabel, evidenceUrl, shortCommit } from '../systems/evidence';
+import { toSchematicEdges, toSchematicNodes } from '../systems/presentation';
 import type { Evidence, SystemModel } from '../systems/schema';
 import {
   patternSystemIds,
@@ -14,49 +16,42 @@ import {
 const isPatternSystemId = (id: string): id is PatternSystemId =>
   (patternSystemIds as readonly string[]).includes(id);
 
+const patternSystems = systems.filter((system) => isPatternSystemId(system.id));
+
 const cite = (system: SystemModel, evidence: Evidence) => ({
   href: evidenceUrl(system.repository, evidence),
   label: evidenceLabel(evidence),
 });
 
+const labelsFor = (system: SystemModel, nodeIds: readonly string[]): string[] =>
+  nodeIds.flatMap((nodeId) => {
+    const node = system.nodes.find((candidate) => candidate.id === nodeId);
+    return node === undefined ? [] : [node.label];
+  });
+
+const litText = (system: SystemModel, nodeIds: readonly string[]): string => {
+  const lit = labelsFor(system, nodeIds);
+  return lit.length === 0
+    ? 'No part is lit: this lives in scripts and documents'
+    : `Lit: ${lit.join(', ')}`;
+};
+
 const panels: MapPanel[] = systems.map((system) => ({
   systemId: system.id,
   name: system.name,
-  shortName: system.shortName,
   href: `/systems/${system.id}/`,
   description: system.tagline,
-  nodes: system.nodes.map(({ id, label, kind }) => ({ id, label, kind })),
-  edges: system.edges.map(({ id, from, to, label, protocol }) => ({
-    id,
-    from,
-    to,
-    label,
-    protocol,
-  })),
+  nodes: toSchematicNodes(system.nodes),
+  edges: toSchematicEdges(system.edges),
 }));
 
 const lenses: Lens[] = sharedPatterns.map((pattern) => ({
   id: pattern.id,
   name: pattern.name,
-  description: pattern.description,
   systems: Object.fromEntries(
-    systems.flatMap((system) => {
-      if (!isPatternSystemId(system.id)) {
-        return [];
-      }
-      const reading = pattern.systems[system.id];
-      return [
-        [
-          system.id,
-          {
-            presence: reading.presence,
-            note: reading.note,
-            nodes: reading.nodes,
-            evidence: reading.evidence.map((entry) => cite(system, entry)),
-          },
-        ],
-      ];
-    }),
+    patternSystems.flatMap((system) =>
+      isPatternSystemId(system.id) ? [[system.id, pattern.systems[system.id].nodes]] : [],
+    ),
   ),
 }));
 
@@ -67,62 +62,6 @@ const readingFor = (patternId: string, systemId: string) => {
   }
   return pattern.systems[systemId];
 };
-
-const cryptopay = findSystem('cryptopay');
-const platform = findSystem('whatsapp-notification-platform');
-const gateway = findSystem('mini-payment-gateway');
-if (cryptopay === undefined || platform === undefined || gateway === undefined) {
-  throw new Error('The architecture page expects the three systems in the registry');
-}
-
-const divergences = [
-  {
-    topic: 'Workspace tooling',
-    detail: `CryptoPay and the gateway are npm workspaces (${cryptopay.repository.packageManager} and ${gateway.repository.packageManager}). The notification platform is a pnpm workspace (${platform.repository.packageManager}) with a single version catalog and Turborepo running the pipeline.`,
-    evidence: [
-      cite(cryptopay, { path: 'package.json', lines: [12, 20] }),
-      cite(gateway, { path: 'package.json', lines: [13, 21] }),
-      cite(platform, { path: 'pnpm-workspace.yaml', lines: [1, 4] }),
-      cite(platform, { path: 'docs/adr/0001-monorepo-with-pnpm-and-turborepo.md' }),
-    ],
-  },
-  {
-    topic: 'Composition',
-    detail:
-      'CryptoPay and the gateway construct everything in a hand-written composition root, in dependency order, with no container. The notification platform uses NestJS dependency injection over Fastify, and its worker builds the same module graph without an HTTP server.',
-    evidence: [
-      cite(cryptopay, { path: 'docs/adr/0008-no-dependency-injection-framework.md' }),
-      cite(gateway, { path: 'apps/api/src/composition-root.ts', lines: [15, 33] }),
-      cite(platform, { path: 'apps/api/src/bootstrap.ts', lines: [40, 52] }),
-      cite(platform, { path: 'apps/worker/src/bootstrap.ts', lines: [8, 29] }),
-    ],
-  },
-  {
-    topic: 'Data access',
-    detail:
-      'CryptoPay and the gateway use raw node-postgres with hand-written SQL migrations (17 and 4). The notification platform uses Drizzle as a query builder over pg, with nine hand-written SQL migrations that carry the trigger, the policies and the composite keys.',
-    evidence: [
-      cite(cryptopay, { path: 'apps/api/src/infrastructure/persistence/database.ts' }),
-      cite(gateway, {
-        path: 'apps/api/src/infrastructure/persistence/database.ts',
-        lines: [51, 62],
-      }),
-      cite(platform, { path: 'docs/adr/0004-drizzle-with-hand-written-sql.md' }),
-      cite(platform, { path: 'packages/database/src/connection.ts', lines: [1, 6] }),
-    ],
-  },
-  {
-    topic: 'Frontend',
-    detail:
-      'CryptoPay ships a Next 16 App Router dashboard and hosted checkout with a server-side BFF that keeps the API key in an httpOnly cookie. The notification platform ships a Vite single page application served by Caddy on the same origin as the API. The gateway has no frontend at the pinned commit.',
-    evidence: [
-      cite(cryptopay, { path: 'apps/web/src/app/api/bff/[...path]/route.ts', lines: [1, 44] }),
-      cite(platform, { path: 'docs/adr/0015-a-vite-single-page-application.md' }),
-      cite(platform, { path: 'docker/caddy/Caddyfile', lines: [13, 59] }),
-      cite(gateway, { path: '.env.example', lines: [27, 29] }),
-    ],
-  },
-];
 ---
 
 <Base
@@ -144,10 +83,55 @@ const divergences = [
     <div class="section__head">
       <h2 id="map-title">The map</h2>
       <p class="kicker">
-        Every part and connection of all three · wide drawings scroll sideways · pick a lens
+        Every part and connection of all three, one system per row · pick a lens to light what
+        carries it
       </p>
     </div>
-    <ArchitectureMap client:visible panels={panels} lenses={lenses} />
+    <ArchitectureMap client:visible panels={panels} lenses={lenses}>
+      <Fragment slot="readings">
+        {
+          sharedPatterns.map((pattern) => (
+            <section
+              class="map__reading-block"
+              data-lens-reading={pattern.id}
+              aria-labelledby={`lens-${pattern.id}-title`}
+              hidden
+            >
+              <div class="panel__head">
+                <strong id={`lens-${pattern.id}-title`}>{pattern.name}</strong>
+                <a class="kicker" href={`#pattern-${pattern.id}`}>
+                  lens · in the matrix
+                </a>
+              </div>
+              <div class="panel__body">
+                <div data-copy-of={`#pattern-${pattern.id} [data-description]`} />
+                <dl class="map__systems">
+                  {patternSystems.map((system) => {
+                    const reading = readingFor(pattern.id, system.id);
+                    if (reading === undefined) {
+                      return null;
+                    }
+                    return (
+                      <div class="map__system">
+                        <dt>
+                          <span class="map__system-name">{system.shortName}</span>
+                        </dt>
+                        <dd>
+                          <div
+                            data-copy-of={`#pattern-${pattern.id} [data-system="${system.id}"]`}
+                          />
+                          <p class="map__lit kicker">{litText(system, reading.nodes)}</p>
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              </div>
+            </section>
+          ))
+        }
+      </Fragment>
+    </ArchitectureMap>
   </section>
 
   <section class="section" aria-labelledby="matrix-title">
@@ -157,7 +141,12 @@ const divergences = [
         {sharedPatterns.length} patterns across three repositories · verified at the pinned commits
       </p>
     </div>
-    <div class="matrix__scroll">
+    <div
+      class="matrix__scroll"
+      role="region"
+      tabindex="0"
+      aria-label="Pattern matrix, scrolls sideways"
+    >
       <table class="matrix">
         <caption class="sr-only">
           Presence of each shared pattern in each system, with a note and evidence at the pinned
@@ -184,7 +173,9 @@ const divergences = [
               <tr id={`pattern-${pattern.id}`}>
                 <th scope="row">
                   {pattern.name}
-                  <p class="matrix__description">{pattern.description}</p>
+                  <div data-description>
+                    <p class="matrix__description">{pattern.description}</p>
+                  </div>
                 </th>
                 {systems.map((system) => {
                   const reading = readingFor(pattern.id, system.id);
@@ -192,7 +183,7 @@ const divergences = [
                     return <td />;
                   }
                   return (
-                    <td>
+                    <td data-system={system.id}>
                       <span class="badge" data-tone={presenceTone[reading.presence]}>
                         {reading.presence}
                       </span>
@@ -224,18 +215,34 @@ const divergences = [
     <dl class="divergences">
       {
         divergences.map((divergence) => (
-          <div class="divergence">
+          <div class="divergence" id={`divergence-${divergence.id}`}>
             <dt>{divergence.topic}</dt>
             <dd>
-              {divergence.detail}
-              <span class="evidence">
-                {divergence.evidence.map((entry, index) => (
-                  <>
-                    {index > 0 && ' · '}
-                    <a href={entry.href}>{entry.label}</a>
-                  </>
-                ))}
-              </span>
+              <p>{divergence.detail}</p>
+              <dl class="divergence__systems">
+                {patternSystems.map((system) => {
+                  if (!isPatternSystemId(system.id)) {
+                    return null;
+                  }
+                  const reading = divergence.systems[system.id];
+                  return (
+                    <div class="divergence__system">
+                      <dt>{system.shortName}</dt>
+                      <dd>
+                        {reading.note}
+                        <span class="evidence">
+                          {reading.evidence.map((entry, index) => (
+                            <>
+                              {index > 0 && ' · '}
+                              <a href={cite(system, entry).href}>{cite(system, entry).label}</a>
+                            </>
+                          ))}
+                        </span>
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
             </dd>
           </div>
         ))

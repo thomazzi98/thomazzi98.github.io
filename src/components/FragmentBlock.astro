@@ -1,5 +1,6 @@
 ---
 import { Code } from 'astro:components';
+import { fragmentThemes } from '../lib/fragment-themes';
 import { evidenceLabel, evidenceUrl } from '../systems/evidence';
 import { fragmentSource } from '../systems/fragments';
 import type { Fragment, Repository } from '../systems/schema';
@@ -24,10 +25,6 @@ const language = fragment.language === 'caddyfile' ? 'text' : fragment.language;
     <span class="fragment__title">{fragment.title}</span>
     <a class="evidence" href={evidenceUrl(repository, evidence)}>{evidenceLabel(evidence)}</a>
   </figcaption>
-  <Code
-    code={source.replace(/\n$/, '')}
-    lang={language}
-    themes={{ light: 'github-light-high-contrast', dark: 'github-dark' }}
-  />
+  <Code code={source.replace(/\n$/, '')} lang={language} themes={fragmentThemes} />
   <p class="fragment__note">{fragment.demonstrates}</p>
 </figure>

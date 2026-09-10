@@ -65,6 +65,19 @@ const staticPages: readonly PaletteEntry[] = [
   },
 ];
 
+// Search lowercases every keyword, so two spellings of one word would only pad the index.
+const uniqueKeywords = (keywords: readonly string[]): string[] => {
+  const seen = new Set<string>();
+  return keywords.filter((keyword) => {
+    const key = keyword.toLowerCase();
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+};
+
 const systemEntries = (system: SystemModel): PaletteEntry[] => {
   const systemHref = `/systems/${system.id}/`;
   const systemKeywords = [system.id, system.shortName, system.repository.name];
@@ -74,28 +87,28 @@ const systemEntries = (system: SystemModel): PaletteEntry[] => {
       title: system.name,
       subtitle: system.tagline,
       href: systemHref,
-      keywords: [...systemKeywords, system.maturity.label, 'system'],
+      keywords: uniqueKeywords([...systemKeywords, system.maturity.label, 'system']),
     },
     ...system.nodes.map((node): PaletteEntry => ({
       kind: 'node',
       title: node.label,
       subtitle: system.name,
       href: `${systemHref}#node-${node.id}`,
-      keywords: [node.id, node.kind, ...node.technologies, ...systemKeywords],
+      keywords: uniqueKeywords([node.id, node.kind, ...node.technologies, ...systemKeywords]),
     })),
     ...system.flows.map((flow): PaletteEntry => ({
       kind: 'flow',
       title: flow.name,
       subtitle: `${system.name} · ${flow.kind} flow`,
       href: `${systemHref}#flow-${flow.id}`,
-      keywords: [flow.id, flow.kind, ...systemKeywords],
+      keywords: uniqueKeywords([flow.id, flow.kind, ...systemKeywords]),
     })),
     ...system.decisions.map((decision): PaletteEntry => ({
       kind: 'decision',
       title: decision.title,
       subtitle: `${system.name} · ${decision.themes.join(', ')}`,
       href: `${systemHref}#decision-${decision.id}`,
-      keywords: [decision.id, ...decision.themes, ...systemKeywords],
+      keywords: uniqueKeywords([decision.id, ...decision.themes, ...systemKeywords]),
     })),
   ];
 };
