@@ -40,6 +40,12 @@
     border: var(--hairline) solid var(--rule-strong);
     background: var(--panel);
     color: var(--ink);
+    overscroll-behavior: contain;
+  }
+
+  /* A wheel or a swipe past the end of the results must not move the page behind the backdrop. */
+  body:has(dialog.palette[open]) {
+    overflow: hidden;
   }
 
   .palette::backdrop {

@@ -209,6 +209,17 @@ describe('CommandPalette', () => {
     expect(document.activeElement).toBe(trigger());
   });
 
+  it('carries the open attribute the body lock keys on, and drops it on close', () => {
+    const { container } = renderPalette();
+    const locked = () => document.body.matches('body:has(dialog.palette[open])');
+    expect(locked()).toBe(false);
+    fireEvent.click(trigger());
+    expect(dialog(container).open).toBe(true);
+    expect(locked()).toBe(true);
+    fireEvent.keyDown(input(), { key: 'Escape' });
+    expect(locked()).toBe(false);
+  });
+
   it('closes from its Close button', () => {
     const { container } = renderPalette();
     fireEvent.click(trigger());

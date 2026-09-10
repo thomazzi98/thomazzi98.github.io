@@ -107,6 +107,12 @@
     border: var(--hairline) solid var(--rule);
   }
 
+  /* The second clause of the section head, as a sentence under the heading instead of a long kicker. */
+  .map__intro {
+    flex-basis: 100%;
+    margin: 0;
+  }
+
   /* The live region stays in the flow, empty and flat, so that a reading appearing in it is heard. */
   .map__reading-block {
     margin-top: var(--space-5);
@@ -162,62 +168,189 @@
     min-width: 0;
   }
 
+  /* Under 320px on a phone and under 260px on a desktop, so the first lit drawing follows within
+     the viewport: the description beside the lit lines when there is room, the notes and evidence
+     behind a closed summary in the foot. */
+  .map__reading-head {
+    margin: 0;
+    padding: var(--space-3) var(--space-4) 0;
+    font-size: var(--size-small);
+    line-height: 1.4;
+  }
+
+  .map__reading-head strong {
+    font-weight: 600;
+  }
+
+  .map__reading-body {
+    display: grid;
+    gap: var(--space-3) var(--space-6);
+    padding: var(--space-2) var(--space-4) var(--space-3);
+  }
+
+  @media (min-width: 64rem) {
+    .map__reading-body {
+      grid-template-columns: minmax(0, var(--measure)) minmax(0, 1fr);
+    }
+  }
+
   .map__description {
     max-width: var(--measure);
   }
 
-  .map__systems {
+  /* A reading borrows the matrix row's description and cells; here they read as prose, not as a table. */
+  .map__description .matrix__description {
+    margin-top: 0;
+    font-size: var(--size-small);
+    line-height: 1.4;
+    color: var(--ink);
+  }
+
+  .map__lit {
+    align-self: start;
+    font-size: var(--size-small);
+    line-height: 1.4;
+  }
+
+  .map__lit dt,
+  .map__notes-list dt {
+    font-family: var(--font-mono);
+    font-size: var(--size-caption);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .map__lit dt,
+  .map__lit dd {
+    display: inline;
+    margin: 0;
+  }
+
+  .map__lit dt {
+    margin-right: var(--space-2);
+  }
+
+  /* One line per system where the lit lines have a column of their own; one running line on a phone. */
+  .map__lit > div {
+    display: inline;
+  }
+
+  .map__lit > div + div::before {
+    content: ' · ';
+    color: var(--ink-muted);
+  }
+
+  @media (min-width: 64rem) {
+    .map__lit {
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .map__lit > div {
+      display: block;
+    }
+
+    .map__lit > div + div::before {
+      content: none;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .map__reading-block {
+      margin-top: var(--space-3);
+    }
+
+    .map__boards {
+      margin-top: var(--space-3);
+    }
+
+    .map__reading-head {
+      padding-top: var(--space-2);
+    }
+
+    .map__reading-body {
+      padding-bottom: var(--space-2);
+    }
+
+    .map__description .matrix__description,
+    .map__lit {
+      font-size: var(--size-mono);
+    }
+  }
+
+  .map__reading-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0 var(--space-4);
+    padding-inline: var(--space-4);
+    border-top: var(--hairline) solid var(--rule);
+  }
+
+  .map__notes {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Open, the notes take the whole row and the matrix link follows them. */
+  .map__notes[open] {
+    flex-basis: 100%;
+  }
+
+  .map__notes summary {
+    padding-block: var(--space-2);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--size-caption);
+    color: var(--ink-muted);
+  }
+
+  .map__notes summary:hover {
+    color: var(--ink);
+  }
+
+  .map__notes summary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .map__matrix-link {
+    padding-block: var(--space-2);
+  }
+
+  .map__notes-list {
     display: grid;
     gap: var(--hairline);
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin-top: var(--space-4);
+    margin: 0 0 var(--space-3);
     background: var(--rule);
     border: var(--hairline) solid var(--rule);
   }
 
   @media (max-width: 64rem) {
-    .map__systems {
+    .map__notes-list {
       grid-template-columns: minmax(0, 1fr);
     }
   }
 
-  .map__system {
-    padding: var(--space-4);
+  .map__notes-list > div {
+    padding: var(--space-3) var(--space-4);
     background: var(--panel);
     font-size: var(--size-small);
   }
 
-  .map__system dt {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2) var(--space-3);
-    margin-bottom: var(--space-3);
+  .map__notes-list dt {
+    margin: 0 0 var(--space-2);
   }
 
-  .map__system-name {
-    font-family: var(--font-display);
-    font-size: var(--size-lead);
-    line-height: var(--leading-snug);
+  .map__notes-list dd {
+    margin: 0;
   }
 
-  .map__system dd > * + *,
-  .map__system [data-copy-of] > * + * {
-    margin-top: var(--space-3);
-  }
-
-  /* A reading borrows the matrix row's description and cells; here they read as prose, not as a table. */
-  .map__reading-block .matrix__description {
-    max-width: var(--measure);
-    margin-top: 0;
-    font-size: var(--size-body);
-    color: var(--ink);
-  }
-
-  .map__lit {
-    text-transform: none;
-    letter-spacing: 0;
+  .map__notes-list dd > * + * {
+    margin-top: var(--space-2);
   }
 
   .matrix__scroll {
@@ -274,7 +407,7 @@
 
   .matrix tr:target th,
   .matrix tr:target td {
-    box-shadow: inset 0 2px 0 var(--focus);
+    box-shadow: inset 0 2px 0 var(--ink);
   }
 
   .divergences {

@@ -82,9 +82,9 @@ const readingFor = (patternId: string, systemId: string) => {
   <section class="section" aria-labelledby="map-title">
     <div class="section__head">
       <h2 id="map-title">The map</h2>
-      <p class="kicker">
-        Every part and connection of all three, one system per row · pick a lens to light what
-        carries it
+      <p class="kicker">One system per row</p>
+      <p class="map__intro muted">
+        Every part and connection of all three. Pick a lens to light what carries it.
       </p>
     </div>
     <ArchitectureMap client:visible panels={panels} lenses={lenses}>
@@ -97,35 +97,44 @@ const readingFor = (patternId: string, systemId: string) => {
               aria-labelledby={`lens-${pattern.id}-title`}
               hidden
             >
-              <div class="panel__head">
+              <p class="map__reading-head">
                 <strong id={`lens-${pattern.id}-title`}>{pattern.name}</strong>
-                <a class="kicker" href={`#pattern-${pattern.id}`}>
-                  lens · in the matrix
-                </a>
-              </div>
-              <div class="panel__body">
-                <div data-copy-of={`#pattern-${pattern.id} [data-description]`} />
-                <dl class="map__systems">
+              </p>
+              <div class="map__reading-body">
+                <div
+                  class="map__description"
+                  data-copy-of={`#pattern-${pattern.id} [data-description]`}
+                />
+                <dl class="map__lit">
                   {patternSystems.map((system) => {
                     const reading = readingFor(pattern.id, system.id);
                     if (reading === undefined) {
                       return null;
                     }
                     return (
-                      <div class="map__system">
-                        <dt>
-                          <span class="map__system-name">{system.shortName}</span>
-                        </dt>
-                        <dd>
-                          <div
-                            data-copy-of={`#pattern-${pattern.id} [data-system="${system.id}"]`}
-                          />
-                          <p class="map__lit kicker">{litText(system, reading.nodes)}</p>
-                        </dd>
+                      <div>
+                        <dt>{system.shortName}</dt>
+                        <dd>{litText(system, reading.nodes)}</dd>
                       </div>
                     );
                   })}
                 </dl>
+              </div>
+              <div class="map__reading-foot">
+                <details class="map__notes">
+                  <summary>Notes and evidence</summary>
+                  <dl class="map__notes-list">
+                    {patternSystems.map((system) => (
+                      <div>
+                        <dt>{system.shortName}</dt>
+                        <dd data-copy-of={`#pattern-${pattern.id} [data-system="${system.id}"]`} />
+                      </div>
+                    ))}
+                  </dl>
+                </details>
+                <a class="kicker map__matrix-link" href={`#pattern-${pattern.id}`}>
+                  lens · in the matrix <span class="sr-only">for {pattern.name}</span>
+                </a>
               </div>
             </section>
           ))

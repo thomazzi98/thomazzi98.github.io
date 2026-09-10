@@ -33,14 +33,44 @@ const lenses: Lens[] = [
   },
 ];
 
+// The page renders one block per lens: the description and the lit lines in view, the notes and
+// evidence behind a closed summary.
 const readings = (
   <>
     <section class="map__reading-block" data-lens-reading="record-first" hidden>
-      <div data-copy-of="#pattern-record-first [data-description]" />
-      <div data-copy-of='#pattern-record-first [data-system="ledger"]' />
+      <p class="map__reading-head">
+        <strong>Record before answering</strong>
+      </p>
+      <div class="map__reading-body">
+        <div class="map__description" data-copy-of="#pattern-record-first [data-description]" />
+        <dl class="map__lit">
+          <div>
+            <dt>Ledger</dt>
+            <dd>Lit: API, PostgreSQL</dd>
+          </div>
+          <div>
+            <dt>Mirror</dt>
+            <dd>No part is lit: this lives in scripts and documents</dd>
+          </div>
+        </dl>
+      </div>
+      <div class="map__reading-foot">
+        <details class="map__notes">
+          <summary>Notes and evidence</summary>
+          <dl class="map__notes-list">
+            <div>
+              <dt>Ledger</dt>
+              <dd data-copy-of='#pattern-record-first [data-system="ledger"]' />
+            </div>
+          </dl>
+        </details>
+        <a class="kicker map__matrix-link" href="#pattern-record-first">
+          lens · in the matrix <span class="sr-only">for Record before answering</span>
+        </a>
+      </div>
     </section>
     <section class="map__reading-block" data-lens-reading="one-store" hidden>
-      <div data-copy-of="#pattern-one-store [data-description]" />
+      <div class="map__description" data-copy-of="#pattern-one-store [data-description]" />
     </section>
   </>
 );
@@ -166,6 +196,36 @@ describe('ArchitectureMap', () => {
     expect(document.querySelectorAll('#matrix-host td[data-system="ledger"] p')).toHaveLength(3);
     expect(screen.getByText('2 of 3 parts lit')).toBeTruthy();
     expect(screen.getByText('No part lit of 3')).toBeTruthy();
+  });
+
+  it('keeps the revealed reading compact: description and lit lines shown, notes closed', () => {
+    const { container } = renderMap();
+    fireEvent.click(screen.getByRole('radio', { name: 'Record before answering' }));
+    const block = container.querySelector<HTMLElement>('[data-lens-reading="record-first"]');
+    if (block === null) {
+      throw new Error('the reading block was not rendered');
+    }
+    const notes = block.querySelector<HTMLDetailsElement>('details.map__notes');
+    if (notes === null) {
+      throw new Error('the reading did not render its notes');
+    }
+    const shown = within(block);
+    expect(block.hidden).toBe(false);
+    expect(notes.open).toBe(false);
+    expect(shown.getByText('The row is written before the response leaves.')).toBeTruthy();
+    expect(shown.getByText('Lit: API, PostgreSQL')).toBeTruthy();
+    expect(shown.getByText('No part is lit: this lives in scripts and documents')).toBeTruthy();
+    expect(shown.getByText('Notes and evidence').tagName).toBe('SUMMARY');
+    // The note and its evidence are borrowed into the closed notes, not printed above them.
+    const note = shown.getByText('The API writes the entry in one transaction.');
+    expect(notes.contains(note)).toBe(true);
+    expect(notes.contains(shown.getByRole('link', { name: 'src/api.ts', hidden: true }))).toBe(
+      true,
+    );
+    expect(block.querySelector('.map__reading-body details')).toBeNull();
+    expect(
+      shown.getByRole('link', { name: 'lens · in the matrix for Record before answering' }),
+    ).toBeTruthy();
   });
 
   it('swaps the reading and the lit parts when another lens is chosen, borrowing once', () => {
