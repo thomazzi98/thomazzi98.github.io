@@ -2,8 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { systems } from '../../systems';
 import { repositoryUrl, shortCommit } from '../../systems/evidence';
-
-const maturityTone = { validated: 'ok', complete: 'ok', 'in-progress': 'wait' } as const;
+import { maturityText, maturityTone } from '../../systems/presentation';
 ---
 
 <Base
@@ -33,11 +32,11 @@ const maturityTone = { validated: 'ok', complete: 'ok', 'in-progress': 'wait' } 
           </a>
           <div class="system-card__facts">
             <span class="badge" data-tone={maturityTone[system.maturity.label]}>
-              {system.maturity.label.replace('-', ' ')}
+              {maturityText(system.maturity.label)}
             </span>
             <span class="kicker">
               {system.nodes.length} parts · {system.flows.length} flows · {system.decisions.length}{' '}
-              decisions
+              decisions shown
             </span>
             <a class="evidence" href={repositoryUrl(system.repository)}>
               pinned {shortCommit(system.repository)} · {system.repository.commitCount} commits

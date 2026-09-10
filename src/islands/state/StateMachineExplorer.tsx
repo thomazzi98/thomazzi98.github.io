@@ -1,18 +1,11 @@
 import { useSignal } from '@preact/signals';
-import type { StateMachine, Status, Tone } from '../../systems/schema';
+import type { StateMachine, Status, Transition } from '../../systems/schema';
 
 export interface StateMachineExplorerProps {
   readonly machine: StateMachine;
 }
 
 type Relation = 'out' | 'in' | 'other';
-
-const toneOf = (status: Status): Tone => {
-  if (status.terminal) {
-    return 'neutral';
-  }
-  return status.funded === true ? 'ok' : 'wait';
-};
 
 const describe = (status: Status): string => {
   const parts: string[] = [];
@@ -26,6 +19,34 @@ const describe = (status: Status): string => {
     parts.push(status.note);
   }
   return parts.join(' · ');
+};
+
+const names = (transitions: readonly Transition[], side: 'from' | 'to'): string =>
+  [...new Set(transitions.map((transition) => transition[side]))].join(', ');
+
+const Reading = ({
+  current,
+  outgoing,
+  incoming,
+}: {
+  readonly current: Status;
+  readonly outgoing: readonly Transition[];
+  readonly incoming: readonly Transition[];
+}) => {
+  const detail = describe(current);
+  const leaves = outgoing.length === 0 ? 'leaves to nothing' : `leaves to ${names(outgoing, 'to')}`;
+  const enters =
+    incoming.length === 0 ? 'enters from nothing' : `enters from ${names(incoming, 'from')}`;
+  return (
+    <>
+      <strong class="mono">{current.id}</strong>
+      <span class="muted">
+        {' '}
+        · {leaves} · {enters}
+        {detail === '' ? '' : ` · ${detail}`}
+      </span>
+    </>
+  );
 };
 
 export const StateMachineExplorer = ({ machine }: StateMachineExplorerProps) => {
@@ -53,7 +74,7 @@ export const StateMachineExplorer = ({ machine }: StateMachineExplorerProps) => 
               <button
                 type="button"
                 class="badge machine__status"
-                data-tone={toneOf(status)}
+                data-tone={status.tone}
                 aria-pressed={pressed}
                 onClick={() => {
                   selected.value = pressed ? undefined : status.id;
@@ -65,26 +86,25 @@ export const StateMachineExplorer = ({ machine }: StateMachineExplorerProps) => 
           );
         })}
       </ul>
-      <p class="machine__reading">
+      <p class="machine__reading" aria-live="polite">
         {current === undefined && (
           <span class="muted">
             Select a status to see where it can go and what brings it there.
           </span>
         )}
         {current !== undefined && (
-          <>
-            <strong class="mono">{current.id}</strong>
-            <span class="muted">
-              {' '}
-              · {String(outgoing.length)} way{outgoing.length === 1 ? '' : 's'} out ·{' '}
-              {String(incoming.length)} way{incoming.length === 1 ? '' : 's'} in
-              {describe(current) === '' ? '' : ` · ${describe(current)}`}
-            </span>
-          </>
+          <Reading current={current} outgoing={outgoing} incoming={incoming} />
         )}
       </p>
+      {current !== undefined && (
+        <p class="machine__key kicker" data-tone={current.tone}>
+          <span data-relation="out">From marked: leaves it</span>
+          <span data-relation="in">To marked: enters it</span>
+        </p>
+      )}
       <div
         class="machine__scroll"
+        role="region"
         tabIndex={0}
         aria-label={`Transitions of ${machine.name}, scrolls sideways`}
       >
@@ -103,6 +123,7 @@ export const StateMachineExplorer = ({ machine }: StateMachineExplorerProps) => 
               <tr
                 key={`${transition.from}-${transition.to}-${transition.trigger}`}
                 data-relation={relationOf(transition.from, transition.to)}
+                data-tone={current?.tone}
               >
                 <td class="mono">{transition.from}</td>
                 <td class="mono">{transition.to}</td>

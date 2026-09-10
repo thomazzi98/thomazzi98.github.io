@@ -10,9 +10,8 @@ export default defineConfig({
   image: { service: passthroughImageService() },
   integrations: [preact(), sitemap()],
   markdown: {
-    processor: unified(),
+    processor: unified({ rehypePlugins: [rehypeHeadingIds, rehypeDropNestedHeadingIds] }),
     shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
-    rehypePlugins: [rehypeHeadingIds, rehypeDropNestedHeadingIds],
   },
   fonts: [
     {
@@ -57,13 +56,12 @@ export default defineConfig({
       provider: fontProviders.local(),
       name: 'IBM Plex Mono',
       cssVariable: '--font-plex-mono',
-      weights: [400, 500],
+      weights: [400],
       styles: ['normal'],
       fallbacks: ['ui-monospace', 'Courier New', 'monospace'],
       options: {
         variants: [
           { src: ['./src/assets/fonts/ibm-plex-mono-400.woff2'], weight: 400, style: 'normal' },
-          { src: ['./src/assets/fonts/ibm-plex-mono-500.woff2'], weight: 500, style: 'normal' },
         ],
       },
     },

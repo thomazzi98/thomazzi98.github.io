@@ -1,21 +1,18 @@
 ---
 import type { GetStaticPaths } from 'astro';
+import EvidenceLinks from '../../components/EvidenceLinks.astro';
 import FlowStage from '../../components/FlowStage.astro';
 import FragmentBlock from '../../components/FragmentBlock.astro';
 import { SystemExplorer } from '../../islands/explorer/SystemExplorer';
 import { StateMachineExplorer } from '../../islands/state/StateMachineExplorer';
 import Base from '../../layouts/Base.astro';
 import { loadContent } from '../../lib/content';
+import { identity } from '../../lib/identity';
 import { createTechnologyNameLookup } from '../../lib/technologies';
 import { systems } from '../../systems';
-import {
-  commitUrl,
-  evidenceLabel,
-  evidenceUrl,
-  repositoryUrl,
-  shortCommit,
-} from '../../systems/evidence';
-import type { Evidence, Flow } from '../../systems/schema';
+import { commitUrl, evidenceUrl, repositoryUrl, shortCommit } from '../../systems/evidence';
+import { maturityText, maturityTone } from '../../systems/presentation';
+import type { Flow } from '../../systems/schema';
 
 export const getStaticPaths = (() =>
   systems.map((system) => ({
@@ -30,18 +27,12 @@ const technologyName = createTechnologyNameLookup(technologies);
 const technologyNames = Object.fromEntries(
   technologies.map((technology) => [technology.id, technology.data.name]),
 );
-const cite = (evidence: Evidence) => ({
-  href: evidenceUrl(repository, evidence),
-  label: evidenceLabel(evidence),
-});
 const flowsOfKind = (...kinds: Flow['kind'][]) =>
   system.flows.filter((flow) => kinds.includes(flow.kind));
 const pathFlows = flowsOfKind('request', 'asynchronous');
 const failureFlows = flowsOfKind('failure', 'recovery');
 const securityFlows = flowsOfKind('security');
-const maturityTone = { validated: 'ok', complete: 'ok', 'in-progress': 'wait' }[
-  system.maturity.label
-];
+const site = Astro.site?.href ?? '/';
 const sourceSchema = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareSourceCode',
@@ -50,12 +41,32 @@ const sourceSchema = {
   codeRepository: repositoryUrl(repository),
   programmingLanguage: 'TypeScript',
   runtimePlatform: repository.runtime,
-  author: { '@type': 'Person', name: 'Rafael Thomazzi' },
+  version: repository.pinnedCommit,
+  ...(repository.license === undefined ? {} : { license: repository.license }),
+  author: { '@type': 'Person', '@id': `${site}#person`, name: identity.name, url: site },
   url: new URL(Astro.url.pathname, Astro.site).href,
 };
+const sections = [
+  { id: 'problem', label: 'Problem' },
+  { id: 'architecture', label: 'Architecture' },
+  { id: 'flows', label: 'Flows' },
+  ...(system.stateMachines.length > 0 ? [{ id: 'state', label: 'State' }] : []),
+  ...(failureFlows.length > 0 ? [{ id: 'failure', label: 'Failure handling' }] : []),
+  { id: 'security', label: 'Security' },
+  { id: 'verification', label: 'Verification' },
+  { id: 'decisions', label: 'Decisions' },
+  { id: 'code', label: 'Code' },
+  { id: 'source', label: 'Source' },
+];
+const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repository)} on ${repository.pinnedOn}.`;
 ---
 
-<Base title={`${system.name} · Rafael Thomazzi`} description={system.tagline}>
+<Base
+  title={`${system.name} · ${identity.name}`}
+  description={system.tagline}
+  image={`/og/${system.id}.png`}
+  imageAlt={imageAlt}
+>
   <Fragment slot="head">
     <script
       is:inline
@@ -65,34 +76,42 @@ const sourceSchema = {
   </Fragment>
 
   <header class="system-head">
-    <p class="kicker">
-      System · <a href={repositoryUrl(repository)}>{repository.owner}/{repository.name}</a> · pinned{
-        ' '
-      }
-      <a href={commitUrl(repository)} class="mono">{shortCommit(repository)}</a>
-    </p>
-    <h1>{system.name}</h1>
-    <p class="hero__thesis">{system.thesis}</p>
-    <div class="system-head__facts">
-      <span class="badge" data-tone={maturityTone}>{system.maturity.label.replace('-', ' ')}</span>
-      <span class="kicker"
-        >{repository.commitCount} commits · {repository.firstCommitOn} → {repository.pinnedOn}</span
-      >
-      <span class="kicker">{repository.runtime} · {repository.packageManager}</span>
+    <div>
+      <p class="kicker">
+        System · <a href={repositoryUrl(repository)}>{repository.owner}/{repository.name}</a> · pinned{
+          ' '
+        }
+        <a href={commitUrl(repository)} class="mono">{shortCommit(repository)}</a>
+      </p>
+      <h1>{system.name}</h1>
+      <p class="hero__thesis">{system.thesis}</p>
+      <div class="system-head__facts">
+        <span class="badge" data-tone={maturityTone[system.maturity.label]}>
+          {maturityText(system.maturity.label)}
+        </span>
+        <span class="kicker"
+          >{repository.commitCount} commits · {repository.firstCommitOn} → {
+            repository.pinnedOn
+          }</span
+        >
+        <span class="kicker">{repository.runtime} · {repository.packageManager}</span>
+      </div>
+    </div>
+    <div class="panel maturity">
+      <div class="panel__head">
+        <strong>Where it stands</strong><span>at {shortCommit(repository)}</span>
+      </div>
+      <div class="panel__body">
+        <p>{system.maturity.statement}</p>
+        <p class="evidence">
+          <EvidenceLinks repository={repository} evidence={system.maturity.evidence} />
+        </p>
+      </div>
     </div>
   </header>
 
   <nav class="system-nav" aria-label="Sections">
-    <a href="#problem">Problem</a>
-    <a href="#architecture">Architecture</a>
-    <a href="#flows">Flows</a>
-    <a href="#state">State</a>
-    <a href="#failure">Failure handling</a>
-    <a href="#security">Security</a>
-    <a href="#verification">Verification</a>
-    <a href="#decisions">Decisions</a>
-    <a href="#code">Code</a>
-    <a href="#source">Source</a>
+    {sections.map((section) => <a href={`#${section.id}`}>{section.label}</a>)}
   </nav>
 
   <section class="section" id="problem" aria-labelledby="problem-title">
@@ -102,24 +121,6 @@ const sourceSchema = {
     </div>
     <div class="prose">
       {system.problem.map((paragraph) => <p>{paragraph}</p>)}
-    </div>
-    <div class="panel maturity">
-      <div class="panel__head">
-        <strong>Where it stands</strong><span>at {shortCommit(repository)}</span>
-      </div>
-      <div class="panel__body">
-        <p>{system.maturity.statement}</p>
-        <p class="evidence">
-          {
-            system.maturity.evidence.map((entry, index) => (
-              <>
-                {index > 0 && ' · '}
-                <a href={cite(entry).href}>{cite(entry).label}</a>
-              </>
-            ))
-          }
-        </p>
-      </div>
     </div>
   </section>
 
@@ -150,12 +151,7 @@ const sourceSchema = {
               <dd>
                 {entry.role}{' '}
                 <span class="evidence">
-                  {entry.evidence.map((item, index) => (
-                    <>
-                      {index > 0 && ' · '}
-                      <a href={cite(item).href}>{cite(item).label}</a>
-                    </>
-                  ))}
+                  <EvidenceLinks repository={repository} evidence={entry.evidence} />
                 </span>
               </dd>
             </div>
@@ -165,7 +161,7 @@ const sourceSchema = {
     </div>
   </section>
 
-  <section class="section" id="flows" aria-labelledby="flows-title">
+  <section class="section section--deferred" id="flows" aria-labelledby="flows-title">
     <div class="section__head">
       <h2 id="flows-title">How a request travels</h2>
       <p class="kicker">Replays of the documented flows · simulation, not live traffic</p>
@@ -175,7 +171,7 @@ const sourceSchema = {
 
   {
     system.stateMachines.length > 0 && (
-      <section class="section" id="state" aria-labelledby="state-title">
+      <section class="section section--deferred" id="state" aria-labelledby="state-title">
         <div class="section__head">
           <h2 id="state-title">Data and state</h2>
           <p class="kicker">Lifecycles copied from the tables the code enforces</p>
@@ -200,12 +196,7 @@ const sourceSchema = {
                 )}
               </div>
               <p class="panel__foot">
-                {machine.evidence.map((entry, index) => (
-                  <>
-                    {index > 0 && ' · '}
-                    <a href={cite(entry).href}>{cite(entry).label}</a>
-                  </>
-                ))}
+                <EvidenceLinks repository={repository} evidence={machine.evidence} />
               </p>
             </article>
           ))}
@@ -216,7 +207,7 @@ const sourceSchema = {
 
   {
     failureFlows.length > 0 && (
-      <section class="section" id="failure" aria-labelledby="failure-title">
+      <section class="section section--deferred" id="failure" aria-labelledby="failure-title">
         <div class="section__head">
           <h2 id="failure-title">Failure handling</h2>
           <p class="kicker">Pull a lever and watch the design answer</p>
@@ -226,7 +217,7 @@ const sourceSchema = {
     )
   }
 
-  <section class="section" id="security" aria-labelledby="security-title">
+  <section class="section section--deferred" id="security" aria-labelledby="security-title">
     <div class="section__head">
       <h2 id="security-title">Security boundaries</h2>
       <p class="kicker">Each concern names its control and the code that holds it</p>
@@ -239,12 +230,7 @@ const sourceSchema = {
             <dd>
               {control.control}{' '}
               <span class="evidence">
-                {control.evidence.map((entry, index) => (
-                  <>
-                    {index > 0 && ' · '}
-                    <a href={cite(entry).href}>{cite(entry).label}</a>
-                  </>
-                ))}
+                <EvidenceLinks repository={repository} evidence={control.evidence} />
               </span>
             </dd>
           </div>
@@ -254,7 +240,7 @@ const sourceSchema = {
     {securityFlows.length > 0 && <FlowStage system={system} flows={securityFlows} />}
   </section>
 
-  <section class="section" id="verification" aria-labelledby="verification-title">
+  <section class="section section--deferred" id="verification" aria-labelledby="verification-title">
     <div class="section__head">
       <h2 id="verification-title">How it is verified</h2>
       <p class="kicker">Tests, checks and the pipeline that runs them</p>
@@ -264,10 +250,8 @@ const sourceSchema = {
         system.verification.layers.map((layer) => (
           <article class="panel">
             <div class="panel__head">
-              <>
-                <strong>{layer.name}</strong>
-                <span>{layer.tool}</span>
-              </>
+              <strong>{layer.name}</strong>
+              <span>{layer.tool}</span>
             </div>
             <div class="panel__body">
               <p>{layer.proves}</p>
@@ -288,25 +272,30 @@ const sourceSchema = {
     </div>
     {
       system.verification.checks.length > 0 && (
-        <table class="checks">
-          <caption class="kicker">Checks the repository runs on itself</caption>
-          <thead>
-            <tr>
-              <>
+        <div
+          class="checks-scroll"
+          role="region"
+          tabindex="0"
+          aria-label="Checks the repository runs on itself, scrolls sideways"
+        >
+          <table class="checks">
+            <caption class="kicker">Checks the repository runs on itself</caption>
+            <thead>
+              <tr>
                 <th scope="col">Command</th>
                 <th scope="col">Refuses</th>
-              </>
-            </tr>
-          </thead>
-          <tbody>
-            {system.verification.checks.map((check) => (
-              <tr>
-                <td class="mono">{check.command}</td>
-                <td>{check.refuses}</td>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {system.verification.checks.map((check) => (
+                <tr>
+                  <td class="mono">{check.command}</td>
+                  <td>{check.refuses}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )
     }
     {
@@ -324,18 +313,11 @@ const sourceSchema = {
       )
     }
     <p class="evidence">
-      {
-        system.verification.evidence.map((entry, index) => (
-          <>
-            {index > 0 && ' · '}
-            <a href={cite(entry).href}>{cite(entry).label}</a>
-          </>
-        ))
-      }
+      <EvidenceLinks repository={repository} evidence={system.verification.evidence} />
     </p>
   </section>
 
-  <section class="section" id="decisions" aria-labelledby="decisions-title">
+  <section class="section section--deferred" id="decisions" aria-labelledby="decisions-title">
     <div class="section__head">
       <h2 id="decisions-title">Decisions</h2>
       <p class="kicker">What was chosen, what was refused, what it costs</p>
@@ -349,21 +331,21 @@ const sourceSchema = {
             <div class="prose">
               <p>{decision.decision}</p>
               {decision.alternatives.length > 0 && (
-                <p>
-                  <span class="muted">Refused:</span> {decision.alternatives.join('; ')}.
-                </p>
+                <div>
+                  <p class="muted">Refused:</p>
+                  <ul class="decision__refused">
+                    {decision.alternatives.map((alternative) => (
+                      <li>{alternative}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
               <p>
                 <span class="muted">Cost:</span> {decision.cost}
               </p>
             </div>
             <p class="evidence">
-              {decision.evidence.map((entry, index) => (
-                <>
-                  {index > 0 && ' · '}
-                  <a href={cite(entry).href}>{cite(entry).label}</a>
-                </>
-              ))}
+              <EvidenceLinks repository={repository} evidence={decision.evidence} />
             </p>
           </article>
         ))
@@ -371,7 +353,7 @@ const sourceSchema = {
     </div>
   </section>
 
-  <section class="section" id="code" aria-labelledby="code-title">
+  <section class="section section--deferred" id="code" aria-labelledby="code-title">
     <div class="section__head">
       <h2 id="code-title">Code as evidence</h2>
       <p class="kicker">Copied from the pinned commit and compared byte for byte in CI</p>
@@ -385,13 +367,13 @@ const sourceSchema = {
     </div>
   </section>
 
-  <section class="section" id="source" aria-labelledby="source-title">
+  <section class="section section--deferred" id="source" aria-labelledby="source-title">
     <div class="section__head">
       <h2 id="source-title">Source</h2>
       <p class="kicker">Read it at the commit this page describes</p>
     </div>
     <table class="facts">
-      <caption class="sr-only">Repository facts read from git</caption>
+      <caption class="sr-only">Repository facts checked against git by the test suite</caption>
       <tbody>
         <tr
           ><th scope="row">Repository</th><td
@@ -416,10 +398,8 @@ const sourceSchema = {
         {
           repository.license !== undefined && (
             <tr>
-              <>
-                <th scope="row">License</th>
-                <td>{repository.license}</td>
-              </>
+              <th scope="row">License</th>
+              <td>{repository.license}</td>
             </tr>
           )
         }
@@ -439,12 +419,7 @@ const sourceSchema = {
               <li>
                 {limitation.statement}{' '}
                 <span class="evidence">
-                  {limitation.evidence.map((entry, index) => (
-                    <>
-                      {index > 0 && ' · '}
-                      <a href={cite(entry).href}>{cite(entry).label}</a>
-                    </>
-                  ))}
+                  <EvidenceLinks repository={repository} evidence={limitation.evidence} />
                 </span>
               </li>
             ))}
@@ -453,4 +428,48 @@ const sourceSchema = {
       )
     }
   </section>
+
+  <script>
+    // The sticky section nav marks the section under the reading line, so a long page keeps its place.
+    const nav = document.querySelector('.system-nav');
+    const links = [...(nav?.querySelectorAll<HTMLAnchorElement>('a[href^="#"]') ?? [])];
+    const linkById = new Map(links.map((link) => [link.hash.slice(1), link]));
+    const sections = [...linkById.keys()].flatMap((id) => {
+      const section = document.getElementById(id);
+      return section === null ? [] : [section];
+    });
+    const markCurrent = (id: string | undefined) => {
+      for (const [sectionId, link] of linkById) {
+        if (sectionId === id) {
+          link.setAttribute('aria-current', 'true');
+          continue;
+        }
+        link.removeAttribute('aria-current');
+      }
+    };
+    const visible = new Set<string>();
+    const firstVisible = () => sections.find((section) => visible.has(section.id))?.id;
+    if (sections.length > 0 && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              visible.add(entry.target.id);
+              continue;
+            }
+            visible.delete(entry.target.id);
+          }
+          const current = firstVisible();
+          const aboveFirst = (sections[0]?.getBoundingClientRect().top ?? 0) > 0;
+          if (current !== undefined || aboveFirst) {
+            markCurrent(current);
+          }
+        },
+        { rootMargin: '-12% 0px -72% 0px' },
+      );
+      for (const section of sections) {
+        observer.observe(section);
+      }
+    }
+  </script>
 </Base>

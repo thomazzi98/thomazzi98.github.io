@@ -1,6 +1,17 @@
 @layer page {
   .system-head {
+    display: grid;
+    gap: var(--space-5) var(--space-7);
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: end;
     padding-block: var(--space-8) var(--space-5);
+  }
+
+  @media (max-width: 60rem) {
+    .system-head {
+      grid-template-columns: minmax(0, 1fr);
+      padding-block: var(--space-7) var(--space-5);
+    }
   }
 
   .system-head h1 {
@@ -9,6 +20,12 @@
 
   .system-head .hero__thesis {
     max-width: 34ch;
+  }
+
+  .system-head .maturity {
+    margin-top: 0;
+    max-width: none;
+    font-size: var(--size-small);
   }
 
   .system-head__facts {
@@ -41,12 +58,40 @@
   }
 
   .system-nav a {
+    padding-block: var(--space-2);
+    border-bottom: 2px solid transparent;
     color: var(--ink-muted);
     text-decoration: none;
+    transition:
+      color var(--duration) ease,
+      border-color var(--duration) ease;
   }
 
-  .system-nav a:hover {
+  .system-nav a:hover,
+  .system-nav a[aria-current='true'] {
     color: var(--ink);
+  }
+
+  .system-nav a[aria-current='true'] {
+    border-bottom-color: var(--ink);
+  }
+
+  @media (max-width: 48rem) {
+    /* The nav scrolls sideways on phones; the fade says so where the last item is cut. */
+    .system-nav::after {
+      content: '';
+      position: sticky;
+      right: calc(-1 * var(--gutter));
+      flex: 0 0 2.5rem;
+      margin-left: calc(-1 * var(--space-5));
+      background: linear-gradient(to right, transparent, var(--ground));
+      pointer-events: none;
+    }
+  }
+
+  .section--deferred {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1200px;
   }
 
   .maturity {
@@ -65,7 +110,7 @@
   .stack__list {
     display: grid;
     gap: var(--hairline);
-    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
     margin-top: var(--space-3);
     background: var(--rule);
     border: var(--hairline) solid var(--rule);
@@ -90,22 +135,6 @@
   .flows {
     display: grid;
     gap: var(--space-8);
-  }
-
-  .flow__head {
-    margin-bottom: var(--space-4);
-  }
-
-  .flow__title {
-    font-family: var(--font-display);
-    font-size: var(--size-pull);
-    font-weight: 400;
-    line-height: var(--leading-snug);
-    margin-block: var(--space-1) var(--space-2);
-  }
-
-  .flow__asserted {
-    margin-top: var(--space-3);
   }
 
   .transcript {
@@ -158,6 +187,8 @@
   }
 
   .machine__status {
+    min-height: 2rem;
+    padding-inline: var(--space-3);
     cursor: pointer;
   }
 
@@ -171,17 +202,24 @@
     font-size: var(--size-small);
   }
 
+  .machine__key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .machine__key span {
+    padding-left: var(--space-2);
+    box-shadow: inset 3px 0 0 var(--tone, var(--ink));
+  }
+
   .machine__explorer[data-selected] tr[data-relation='other'] td {
     color: var(--ink-faint);
   }
 
   tr[data-relation='out'] td:first-child,
   tr[data-relation='in'] td:nth-child(2) {
-    box-shadow: inset 3px 0 0 var(--wait);
-  }
-
-  tr[data-relation='in'] td:first-child {
-    box-shadow: inset 3px 0 0 var(--ok);
+    box-shadow: inset 3px 0 0 var(--tone, var(--ink));
   }
 
   .machine__scroll {
@@ -211,7 +249,7 @@
   .controls {
     display: grid;
     gap: var(--hairline);
-    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
     background: var(--rule);
     border: var(--hairline) solid var(--rule);
     margin-bottom: var(--space-6);
@@ -234,7 +272,7 @@
   }
 
   .layers {
-    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
   }
 
   .layers__examples {
@@ -246,8 +284,14 @@
     margin-top: var(--space-2);
   }
 
-  .checks {
+  .checks-scroll {
     margin-top: var(--space-6);
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .checks {
+    min-width: 28rem;
     font-size: var(--size-small);
   }
 
@@ -329,7 +373,15 @@
 
   .limitations li {
     padding-left: var(--space-4);
-    border-left: 2px solid var(--wait);
+    border-left: 2px solid var(--rule-strong);
+  }
+
+  .decision__refused {
+    display: grid;
+    gap: var(--space-1);
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--rule-strong);
+    color: var(--ink-muted);
   }
 
   .system-list {

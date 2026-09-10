@@ -2,7 +2,11 @@
 import Base from '../layouts/Base.astro';
 ---
 
-<Base title="404 · Rafael Thomazzi" description="There is nothing at this address.">
+<Base
+  title="404 · Rafael Thomazzi"
+  description="There is nothing at this address."
+  indexable={false}
+>
   <section class="page-head">
     <p class="kicker">404 · a client fault</p>
     <h1>Recorded, not retried.</h1>
@@ -11,6 +15,11 @@ import Base from '../layouts/Base.astro';
       that do exist are the <a href="/">home page</a>, the <a href="/systems/">systems</a>, the{' '}
       <a href="/architecture/">architecture map</a>, the <a href="/decisions/">decisions</a>,{' '}
       <a href="/about/">about</a> and <a href="/colophon/">the colophon</a>.
+    </p>
+    <p class="static-ledger" data-tone="fault">
+      <span>T+00:00.000</span>
+      <span>404</span>
+      <span>recorded, not retried</span>
     </p>
   </section>
 </Base>

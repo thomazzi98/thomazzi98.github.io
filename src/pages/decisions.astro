@@ -1,7 +1,7 @@
 ---
+import EvidenceLinks from '../components/EvidenceLinks.astro';
 import Base from '../layouts/Base.astro';
 import { systems } from '../systems';
-import { evidenceLabel, evidenceUrl } from '../systems/evidence';
 import {
   decisionThemes,
   type Decision,
@@ -130,12 +130,10 @@ const decisionHref = (entry: Entry) => `/systems/${entry.system.id}/#decision-${
                   </div>
                 </dl>
                 <p class="evidence">
-                  {entry.decision.evidence.map((item, position) => (
-                    <>
-                      {position > 0 && ' · '}
-                      <a href={evidenceUrl(entry.system.repository, item)}>{evidenceLabel(item)}</a>
-                    </>
-                  ))}
+                  <EvidenceLinks
+                    repository={entry.system.repository}
+                    evidence={entry.decision.evidence}
+                  />
                 </p>
               </div>
             </li>

@@ -61,7 +61,7 @@ const pipeline = [
 
 <Base
   title="Colophon · Rafael Thomazzi"
-  description="How this site is built and verified: a static Astro site with Preact islands, a deterministic trace kernel, a typed system model whose evidence is checked against pinned commits, the budgets the build enforces and the decisions behind it."
+  description="How this site is built and verified: static Astro pages, Preact islands, a deterministic trace kernel and evidence checked against pinned commits."
 >
   <section class="page-head">
     <p class="kicker">Colophon</p>
@@ -90,18 +90,19 @@ const pipeline = [
         nodes, edges, flows, state machines, decisions, code fragments, verification, security
         controls and limitations, validated by a Zod schema. Every entry carries evidence, a path
         and a line range at a pinned commit, and the schema does not accept an entry without it. The
-        unit suite checks out the three repositories at those commits, reads every cited file with <code
-          >git show</code
-        >, fails on a file that does not exist or a line range past the end of the file, and
-        compares every code fragment byte for byte with the original. Commit counts and dates are
-        read from git in the same step, never typed.
+        continuous integration checks out the three repositories at those commits and the unit suite
+        reads every cited file with <code>git show</code>, fails on a file that does not exist or a
+        line range past the end of the file, and compares every code fragment byte for byte with the
+        original. The commit counts and dates the models state are checked against git by the same
+        suite.
       </p>
       <p>
         Flows are replayed by a deterministic kernel under <code>src/trace/kernel</code>: a seeded
-        random source, a scheduler and a simulation on a virtual clock. A runner turns a flow and
-        the lever values into scheduled steps; the same runner produces the transcript tables at
-        build time and the <code>/systems/&lt;id&gt;.json</code> files, so the player, the table and the
-        data agree because they are one computation. Under reduced motion nothing moves until Step.
+        scheduler and a simulation on a virtual clock. A runner turns a flow and the lever values
+        into scheduled steps; the same runner produces the transcript tables at build time and the <code
+          >/systems/&lt;id&gt;.json</code
+        > files, so the player, the table and the data agree because they are one computation. Under reduced
+        motion nothing moves until Step.
       </p>
       <p>
         The person is content too. Roles, education and practices are collections validated with
@@ -118,7 +119,7 @@ const pipeline = [
         knows yet.
       </p>
     </div>
-    <table class="facts" style="margin-top: var(--space-6); max-width: 44rem">
+    <table class="facts colophon-pins">
       <caption class="kicker">Pinned commits this build describes</caption>
       <tbody>
         {
@@ -154,7 +155,7 @@ const pipeline = [
     </ol>
     {
       budgetGroups.map((group) => (
-        <table class="facts budgets" style="margin-top: var(--space-6)">
+        <table class="facts budgets">
           <caption class="kicker">Lighthouse budgets · {group.scope}</caption>
           <thead>
             <tr>
@@ -195,7 +196,7 @@ const pipeline = [
                 {decision.data.status}
               </span>{' '}
               · {decision.data.date.toISOString().slice(0, 10)} ·{' '}
-              <a href={recordUrl(decision.id)}>source</a>
+              <a href={recordUrl(decision.id)}>record {number}</a>
             </p>
             {decision.data.status === 'accepted' && (
               <div class="prose">

@@ -1,22 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <style>
-    .ground { fill: #efe9dd; }
-    .warp { fill: #24456e; }
-    .weft { fill: #b9ae95; }
+    .ground { fill: #f5f2ea; }
+    .node { fill: #f5f2ea; stroke: #1c1b18; }
+    .wire { stroke: #1c1b18; }
+    .settled { fill: #1f6f38; stroke: #1f6f38; }
     @media (prefers-color-scheme: dark) {
-      .ground { fill: #191a1d; }
-      .warp { fill: #8fb0e0; }
-      .weft { fill: #5e5a50; }
+      .ground { fill: #121416; }
+      .node { fill: #121416; stroke: #ece7dc; }
+      .wire { stroke: #ece7dc; }
+      .settled { fill: #79c98a; stroke: #79c98a; }
     }
   </style>
-  <rect class="ground" width="32" height="32" rx="4" />
-  <rect class="warp" x="4" y="4" width="8" height="8" />
-  <rect class="weft" x="12" y="4" width="8" height="8" />
-  <rect class="warp" x="20" y="4" width="8" height="8" />
-  <rect class="weft" x="4" y="12" width="8" height="8" />
-  <rect class="warp" x="12" y="12" width="8" height="8" />
-  <rect class="weft" x="20" y="12" width="8" height="8" />
-  <rect class="warp" x="4" y="20" width="8" height="8" />
-  <rect class="weft" x="12" y="20" width="8" height="8" />
-  <rect class="warp" x="20" y="20" width="8" height="8" />
+  <rect class="ground" width="32" height="32" />
+  <path class="wire" d="M11.5 8.5 H20.5 M8.5 11.5 V20.5" fill="none" stroke-width="1" />
+  <rect class="node" x="5.5" y="5.5" width="6" height="6" stroke-width="1" />
+  <rect class="node" x="20.5" y="5.5" width="6" height="6" stroke-width="1" />
+  <rect class="node settled" x="5.5" y="20.5" width="6" height="6" stroke-width="1" />
 </svg>

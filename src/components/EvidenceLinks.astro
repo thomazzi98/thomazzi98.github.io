@@ -1,0 +1,24 @@
+---
+import { evidenceLabel, evidenceUrl } from '../systems/evidence';
+import type { Evidence, Repository } from '../systems/schema';
+
+interface Props {
+  repository: Repository;
+  evidence: readonly Evidence[];
+}
+
+const { repository, evidence } = Astro.props;
+const links = evidence.map((entry) => ({
+  href: evidenceUrl(repository, entry),
+  label: evidenceLabel(entry),
+}));
+---
+
+{
+  links.map((link, index) => (
+    <Fragment>
+      {index > 0 && ' · '}
+      <a href={link.href}>{link.label}</a>
+    </Fragment>
+  ))
+}

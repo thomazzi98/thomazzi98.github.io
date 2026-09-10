@@ -4,18 +4,46 @@ import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
 import { compareByStartDescending, formatPeriod } from '../lib/period';
+import { createTechnologyNameLookup } from '../lib/technologies';
+import { selectGroup } from '../lib/technology-groups';
 import { systems } from '../systems';
 import { boardOf } from '../systems/board';
 import { commitUrl, repositoryUrl, shortCommit } from '../systems/evidence';
-import type { Tone } from '../systems/schema';
+import {
+  maturityText,
+  maturityTone,
+  toSchematicEdges,
+  toSchematicNodes,
+} from '../systems/presentation';
+import type { StackEntry, SystemModel } from '../systems/schema';
+import { sharedPatterns } from '../systems/shared-patterns';
 
-const { roles } = await loadContent();
+const description =
+  'Three public systems built to determine what actually happened and to refuse to guess, every claim linked to code at a pinned commit.';
+const { roles, technologies, education } = await loadContent();
 const latestRole = [...roles].sort(compareByStartDescending)[0];
-const maturityTone: Record<string, Tone> = {
-  validated: 'ok',
-  complete: 'ok',
-  'in-progress': 'wait',
+const technologyName = createTechnologyNameLookup(technologies);
+const categoryOf = new Map(
+  technologies.map((technology) => [technology.id, technology.data.category]),
+);
+// The runtime and the language open every stack; the panel leads with what makes each system itself.
+const featuredCategories = ['database', 'framework', 'messaging', 'blockchain', 'testing'];
+const stackFacts = (system: SystemModel): StackEntry[] => {
+  const rankOf = (entry: StackEntry) => {
+    const rank = featuredCategories.indexOf(categoryOf.get(entry.technology) ?? '');
+    return rank === -1 ? featuredCategories.length : rank;
+  };
+  return [...system.stack].sort((first, second) => rankOf(first) - rankOf(second)).slice(0, 3);
 };
+const firstSentence = (text: string): string => /^(.+?[.!?])(?:\s|$)/.exec(text)?.[1] ?? text;
+const lensIds = [
+  'postgres-only-store',
+  'table-driven-state-machine',
+  'unknown-outcome',
+  'idempotency-unique-index',
+  'tenant-isolation',
+];
+const lenses = lensIds.flatMap((id) => sharedPatterns.filter((pattern) => pattern.id === id));
 const panels: BoardPanel[] = systems.flatMap((system) => {
   const board = boardOf(system);
   if (board === undefined) {
@@ -27,16 +55,10 @@ const panels: BoardPanel[] = systems.flatMap((system) => {
       name: system.name,
       shortName: system.shortName,
       href: `/systems/${system.id}/`,
-      maturity: system.maturity.label.replace('-', ' '),
-      maturityTone: maturityTone[system.maturity.label] ?? 'neutral',
-      nodes: board.nodes.map(({ id, label, kind }) => ({ id, label, kind })),
-      edges: board.edges.map(({ id, from, to, label, protocol }) => ({
-        id,
-        from,
-        to,
-        label,
-        protocol,
-      })),
+      maturity: maturityText(system.maturity.label),
+      maturityTone: maturityTone[system.maturity.label],
+      nodes: toSchematicNodes(board.nodes),
+      edges: toSchematicEdges(board.edges),
       flow: {
         ...board.flow,
         assertedBy: [],
@@ -46,20 +68,29 @@ const panels: BoardPanel[] = systems.flatMap((system) => {
   ];
 });
 
+const site = Astro.site?.href ?? '/';
 const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
+  '@id': `${site}#person`,
   name: identity.name,
   jobTitle: identity.headline,
   description: identity.summary,
   email: `mailto:${identity.email}`,
-  url: Astro.site?.href,
+  url: site,
   sameAs: [identity.links.github, identity.links.linkedin],
   address: { '@type': 'PostalAddress', addressLocality: identity.city, addressCountry: 'BR' },
+  alumniOf: [...new Set(education.map((entry) => entry.data.institution))].map((name) => ({
+    '@type': 'EducationalOrganization',
+    name,
+  })),
+  knowsAbout: selectGroup(technologies, 'owned-in-production').map(
+    (technology) => technology.data.name,
+  ),
 };
 ---
 
-<Base title={`${identity.name} · ${identity.headline}`} description={identity.summary}>
+<Base title={`${identity.name} · ${identity.headline}`} description={description}>
   <Fragment slot="head">
     <script
       is:inline
@@ -70,7 +101,7 @@ const personSchema = {
 
   <section class="hero" aria-labelledby="hero-name">
     <div>
-      <p class="kicker">Backend engineer · payments, messaging and chain infrastructure</p>
+      <p class="kicker">{identity.strapline}</p>
       <h1 id="hero-name" class="hero__name">{identity.name}</h1>
       <p class="hero__thesis">Systems that can say what happened, and prove it.</p>
     </div>
@@ -104,40 +135,53 @@ const personSchema = {
         not live traffic
       </p>
     </div>
-    <SystemBoard client:load panels={panels} />
-    <table class="facts board__facts">
-      <caption class="kicker">Repository facts read from git at the pinned commit</caption>
-      <thead>
-        <tr>
-          <th scope="col">Repository</th>
-          <th scope="col">Pinned</th>
-          <th scope="col">Commits</th>
-          <th scope="col">Written</th>
-          <th scope="col">State</th>
-        </tr>
-      </thead>
-      <tbody>
-        {
-          systems.map((system) => (
-            <tr>
-              <td>
-                <a href={repositoryUrl(system.repository)}>
-                  {system.repository.owner}/{system.repository.name}
-                </a>
-              </td>
-              <td>
-                <a href={commitUrl(system.repository)}>{shortCommit(system.repository)}</a>
-              </td>
-              <td>{system.repository.commitCount}</td>
-              <td>
-                {system.repository.firstCommitOn} → {system.repository.pinnedOn}
-              </td>
-              <td>{system.maturity.label.replace('-', ' ')}</td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
+    <SystemBoard client:idle panels={panels} />
+    <div
+      class="facts-scroll board__facts"
+      role="region"
+      tabindex="0"
+      aria-label="Repository facts, scrolls sideways"
+    >
+      <table class="facts">
+        <caption class="kicker">Repository facts checked against git by the test suite</caption>
+        <thead>
+          <tr>
+            <th scope="col">Repository</th>
+            <th scope="col">Pinned</th>
+            <th scope="col">Commits</th>
+            <th scope="col">Written</th>
+            <th scope="col">State</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            systems.map((system) => (
+              <tr>
+                <td>
+                  <a href={repositoryUrl(system.repository)}>
+                    {system.repository.owner}/{system.repository.name}
+                  </a>
+                </td>
+                <td>
+                  <a href={commitUrl(system.repository)}>{shortCommit(system.repository)}</a>
+                </td>
+                <td>{system.repository.commitCount}</td>
+                <td>
+                  {system.repository.firstCommitOn} → {system.repository.pinnedOn}
+                </td>
+                <td>{maturityText(system.maturity.label)}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="facts-note">
+      State, in the words of each maturity statement: <em>validated</em>, the suites run against a
+      real chain and one real payment was sent on a public network; <em>complete</em>, every public
+      route is served and exercised by four test layers; <em>in progress</em>, the pieces are built
+      and tested and no route, use case or job joins them yet.
+    </p>
   </section>
 
   <section class="section" aria-labelledby="systems-title">
@@ -145,15 +189,68 @@ const personSchema = {
       <h2 id="systems-title">Systems</h2>
       <p class="kicker">Three public repositories, each a case study</p>
     </div>
-    <ul class="repositories">
+    <ol class="entry-panels">
       {
-        systems.map((system) => (
+        systems.map((system, index) => (
+          <li class="entry-panel">
+            <div class="entry-panel__head">
+              <span class="kicker">
+                {String(index + 1).padStart(2, '0')} · {system.repository.owner}/
+                {system.repository.name}
+              </span>
+              <span class="badge" data-tone={maturityTone[system.maturity.label]}>
+                {maturityText(system.maturity.label)}
+              </span>
+            </div>
+            <h3 class="entry-panel__name">
+              <a href={`/systems/${system.id}/`}>{system.name}</a>
+            </h3>
+            <p class="entry-panel__problem">{system.problem[0]}</p>
+            <dl class="entry-panel__stack">
+              {stackFacts(system).map((entry) => (
+                <div>
+                  <dt>{technologyName({ id: entry.technology })}</dt>
+                  <dd>{firstSentence(entry.role)}</dd>
+                </div>
+              ))}
+            </dl>
+            <p class="entry-panel__links">
+              <a class="control" href={`/systems/${system.id}/`}>
+                Open the system
+              </a>
+              <a href={`/systems/${system.id}/#failure`}>Failure scenarios</a>
+            </p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="share-title">
+    <div class="section__head">
+      <h2 id="share-title">What they share</h2>
+      <p class="kicker">
+        No runtime coupling, no shared code · an engineering approach, verified at the pinned
+        commits
+      </p>
+    </div>
+    <ul class="lenses">
+      {
+        lenses.map((pattern, index) => (
           <li>
-            <a href={`/systems/${system.id}/`}>{system.name}</a>
-            <span class="muted">{system.tagline}</span>
+            <a href={`/architecture/#pattern-${pattern.id}`}>
+              <span class="lenses__number">{String(index + 1).padStart(2, '0')}</span>
+              <span>{pattern.name}</span>
+            </a>
           </li>
         ))
       }
     </ul>
+    <p class="lenses__more evidence">
+      <a href="/architecture/">All {sharedPatterns.length} patterns on the architecture map</a> ·{
+        ' '
+      }
+      <a href="/decisions/">every decision with its price</a> · <a href="/about/">about me</a>
+    </p>
   </section>
 </Base>

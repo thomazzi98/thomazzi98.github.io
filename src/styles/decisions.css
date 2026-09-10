@@ -129,7 +129,6 @@
   .entry__facts dt {
     font-family: var(--font-mono);
     font-size: var(--size-micro);
-    font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-muted);
@@ -137,12 +136,12 @@
   }
 
   .entry__cost dt {
-    color: var(--wait);
+    color: var(--ink);
   }
 
   .entry__cost dd {
     padding-left: var(--space-3);
-    border-left: 2px solid var(--wait);
+    border-left: 2px solid var(--ink);
   }
 
   .entry__refused {

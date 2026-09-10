@@ -1,5 +1,6 @@
 import type { APIRoute, GetStaticPaths } from 'astro';
 import { systems } from '../../systems';
+import { edgeEndpoints } from '../../systems/presentation';
 import { defaultLeverValues, runTranscript } from '../../trace/runner';
 
 export const getStaticPaths = (() =>
@@ -10,15 +11,13 @@ export const GET: APIRoute = ({ params }) => {
   if (system === undefined) {
     return new Response('Not found', { status: 404 });
   }
-  const endpoints = new Map(
-    system.edges.map((edge) => [edge.id, { from: edge.from, to: edge.to }]),
-  );
+  const endpoints = edgeEndpoints(system.edges);
   const transcripts = Object.fromEntries(
     system.flows.map((flow) => [
       flow.id,
       runTranscript(flow, endpoints, { levers: defaultLeverValues(flow.levers) }),
     ]),
   );
-  const body = JSON.stringify({ system, transcripts }, null, 2);
+  const body = JSON.stringify({ system, transcripts });
   return new Response(body, { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 };
