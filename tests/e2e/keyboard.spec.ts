@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { must, readPaletteIndex } from './islands';
+import { hydrated, must, readPaletteIndex } from './islands';
 
 test('the skip link is the first tab stop and moves focus to the main landmark', async ({
   page,
@@ -61,6 +61,7 @@ test('the command palette opens with the shortcut and jumps to a decision', asyn
   await page.goto('/about/');
   const trigger = page.getByRole('button', { name: 'Search' });
   await expect(trigger).toBeVisible();
+  await hydrated(trigger);
   await page.keyboard.press('Control+k');
   const input = page.getByRole('combobox', { name: 'Jump to' });
   await expect(input).toBeFocused();
@@ -77,23 +78,28 @@ test('the command palette opens with the shortcut and jumps to a decision', asyn
   await expect(page.locator(`[id="${decision.href.split('#')[1] ?? ''}"]`)).toBeVisible();
 });
 
-test('the palette closes with Escape and returns focus to its trigger', async ({
+test('the palette closes with Escape, returns focus to its trigger and ignores a slash', async ({
   page,
   javaScriptEnabled,
 }) => {
   test.skip(!javaScriptEnabled, 'the palette is an island');
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Search' })).toBeVisible();
+  const trigger = page.getByRole('button', { name: 'Search' });
+  await expect(trigger).toBeVisible();
+  await hydrated(trigger);
   await page.keyboard.press('Control+k');
-  await expect(page.getByRole('combobox', { name: 'Jump to' })).toBeFocused();
+  const input = page.getByRole('combobox', { name: 'Jump to' });
+  await expect(input).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Search' })).toBeFocused();
+  await page.keyboard.press('/');
+  await expect(input).toBeHidden();
 });
 
 test('without JavaScript no search button is offered', async ({ page, javaScriptEnabled }) => {
   test.skip(javaScriptEnabled, 'this is the no-JavaScript projection');
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Search' })).toHaveCount(0);
+  await expect(page.locator('button.palette__trigger')).toBeHidden();
   await expect(page.locator('dialog.palette')).toBeHidden();
 });
 

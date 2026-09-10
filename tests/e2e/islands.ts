@@ -4,6 +4,9 @@ import { systemSchema } from '../../src/systems/schema';
 
 export const clockAtZero = 'T+00:00.000';
 
+export const reducedMotionNote =
+  'Reduced motion: nothing moves until you press Play or Step or move the scrubber.';
+
 const transcriptEntrySchema = z.object({
   at: z.number(),
   station: z.string(),
@@ -52,7 +55,9 @@ export const must = <Value>(value: Value | undefined, description: string): Valu
   return value;
 };
 
-// Islands mount when they scroll into view; walk the page so every one of them hydrates.
+// Islands mount when they scroll into view; walk the page so every one of them hydrates. The
+// sections below the fold render lazily and the page grows as they do, so the height is read
+// again on every step rather than once at the top.
 export const revealIslands = async (page: Page): Promise<void> => {
   await page.evaluate(async () => {
     const nextFrame = () =>
@@ -61,8 +66,8 @@ export const revealIslands = async (page: Page): Promise<void> => {
           resolve();
         });
       });
-    const height = document.documentElement.scrollHeight;
-    for (let top = 0; top < height; top += Math.max(200, window.innerHeight * 0.8)) {
+    const stride = Math.max(200, window.innerHeight * 0.8);
+    for (let top = 0; top < document.documentElement.scrollHeight; top += stride) {
       window.scrollTo(0, top);
       await nextFrame();
       await nextFrame();
@@ -77,6 +82,34 @@ export const hydrated = async (island: Locator): Promise<void> => {
   await expect(island.locator('xpath=ancestor::astro-island[1]')).not.toHaveAttribute('ssr', {
     timeout: 15_000,
   });
+};
+
+export const clockIn = (root: Locator): Locator =>
+  root.getByRole('timer', { name: 'Virtual clock' });
+
+export const horizontalOverflow = (page: Page): Promise<number> =>
+  page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+// A stopped replay renders no new revision and moves no clock across the page's own frames; two
+// ticks are enough because a running loop refreshes on every one.
+export const expectNothingMoves = async (root: Locator): Promise<void> => {
+  const readings = await root.evaluate(async (element) => {
+    const nextFrame = () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    const snapshot = () =>
+      `${element.getAttribute('data-revision') ?? ''} ${
+        element.querySelector('[data-clock]')?.textContent ?? ''
+      }`;
+    const before = snapshot();
+    await nextFrame();
+    await nextFrame();
+    return { before, after: snapshot() };
+  });
+  expect(readings.after).toBe(readings.before);
 };
 
 export const stepUntilClockMoves = async (step: Locator, clock: Locator): Promise<void> => {

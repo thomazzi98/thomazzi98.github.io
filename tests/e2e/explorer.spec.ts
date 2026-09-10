@@ -14,7 +14,7 @@ const openExplorer = async (page: Page) => {
 test.describe('the system explorer', () => {
   test.skip(({ javaScriptEnabled }) => !javaScriptEnabled, 'the explorer is an island');
 
-  test('keyboard: Tab reaches the first node, arrows move focus, Enter inspects, Escape clears', async ({
+  test('keyboard: Tab reaches the first node, arrows move focus, Enter inspects, Escape clears, End reaches the last edge', async ({
     page,
     request,
     isMobile,
@@ -24,11 +24,13 @@ test.describe('the system explorer', () => {
     const explorer = await openExplorer(page);
     const drawing = explorer.locator('svg.schematic--horizontal');
     const nodes = drawing.locator('[data-node]');
+    const edges = drawing.locator('[data-edge]');
 
     // Start from the last link before the architecture section, as a keyboard user arrives.
     await page.locator('#architecture').locator('xpath=preceding::a[1]').focus();
     await page.keyboard.press('Tab');
-    const scroller = explorer.locator('.schematic-scroll');
+    // A drawing too wide to stack sits in a scroller that takes focus before its parts do.
+    const scroller = explorer.locator('.schematic-scroll[role="region"]');
     if ((await scroller.count()) > 0) {
       await expect(scroller).toBeFocused();
       await page.keyboard.press('Tab');
@@ -58,6 +60,23 @@ test.describe('the system explorer', () => {
 
     await page.keyboard.press('Escape');
     await expect(nodes.nth(1)).toHaveAttribute('aria-pressed', 'false');
+    await expect(inspector).toContainText('Select a node or an edge');
+
+    // The edges follow the nodes in the same roving order, so End lands on the last wire.
+    await page.keyboard.press('End');
+    await expect(edges.last()).toBeFocused();
+    await expect(edges.last()).toHaveAttribute('tabindex', '0');
+    await expect(nodes.nth(1)).toHaveAttribute('tabindex', '-1');
+    const focusedEdgeId = await edges.last().getAttribute('data-edge');
+    const lastEdge = must(
+      system.edges.find((edge) => edge.id === focusedEdgeId),
+      'the edge under focus',
+    );
+    await page.keyboard.press('Enter');
+    await expect(edges.last()).toHaveAttribute('aria-pressed', 'true');
+    await expect(inspector.locator('[data-selection="edge"]')).toContainText(lastEdge.label);
+    await page.keyboard.press('Escape');
+    await expect(edges.last()).toHaveAttribute('aria-pressed', 'false');
     await expect(inspector).toContainText('Select a node or an edge');
   });
 
@@ -107,7 +126,14 @@ test.describe('the system explorer', () => {
       /^https:\/\/github\.com\//,
     );
 
-    await sheet.getByRole('button', { name: 'Close' }).click();
+    await sheet.locator('.explorer__sheet-head').getByRole('button', { name: 'Close' }).click();
+    await expect(sheet).toHaveJSProperty('open', false);
+    await expect(explorer.locator('.parts__item').first()).toHaveAttribute('aria-pressed', 'false');
+
+    // The sheet rises from the bottom, so a tap near the top of the screen lands on the backdrop.
+    await explorer.locator('.parts__item').first().click();
+    await expect(sheet).toHaveJSProperty('open', true);
+    await page.mouse.click(10, 10);
     await expect(sheet).toHaveJSProperty('open', false);
     await expect(explorer.locator('.parts__item').first()).toHaveAttribute('aria-pressed', 'false');
   });

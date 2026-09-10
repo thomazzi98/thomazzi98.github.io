@@ -1,6 +1,17 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Flow, Lever } from '../../src/systems/schema';
-import { clockAtZero, hydrated, must, readSystemDocument, stepUntilClockMoves } from './islands';
+import {
+  clockAtZero,
+  clockIn,
+  expectNothingMoves,
+  horizontalOverflow,
+  hydrated,
+  must,
+  readPaletteIndex,
+  readSystemDocument,
+  reducedMotionNote,
+  stepUntilClockMoves,
+} from './islands';
 import { readSitemapRoutes } from './routes';
 
 const systemId = 'cryptopay';
@@ -51,19 +62,34 @@ const stepTimes = async (player: Locator, count: number) => {
 test.describe('the flow player', () => {
   test.skip(({ javaScriptEnabled }) => !javaScriptEnabled, 'the player is an island');
 
-  test('the first stage plays on its own and fills the ledger', async ({ page, request }) => {
+  test('the first stage plays on its own, fills the ledger and ends with Step disabled', async ({
+    page,
+    request,
+  }) => {
     const { system } = await readSystemDocument(request, systemId);
     const first = must(pathFlows(system.flows)[0], 'the first request flow');
     const player = await openStage(page);
     await expect(player).toHaveAttribute('data-flow', first.id);
     await expect(player).toHaveAttribute('data-running', 'true');
-    await expect(player.locator('.player__clock')).not.toHaveText(clockAtZero);
+    await expect(clockIn(player)).not.toHaveText(clockAtZero);
     await expect(player.locator('[data-ledger] .ledger__line').first()).toBeVisible();
     const firstStep = must(first.steps[0], 'the first step');
     await expect(player.locator('[data-ledger]')).toContainText(firstStep.ledger);
+
+    const scrubber = player.getByRole('slider', { name: 'Scrub the virtual clock' });
+    await scrubber.focus();
+    await scrubber.press('End');
+    await expect(player).toHaveAttribute('data-running', 'false');
+    await expect(player.locator('.player__progress')).toHaveText(/(\d+) of \1 steps/);
+    const step = player.getByRole('button', { name: 'Step' });
+    await expect(step).toHaveAttribute('aria-disabled', 'true');
+    await step.focus();
+    await expect(step).toBeFocused();
+    await expect(player.getByRole('button', { name: 'Replay' })).toBeVisible();
+    await expectNothingMoves(player);
   });
 
-  test('switching a lever restarts the replay and changes what the ledger says', async ({
+  test('switching a lever replays from the start and changes what the ledger says', async ({
     page,
     request,
   }) => {
@@ -84,12 +110,16 @@ test.describe('the flow player', () => {
     );
     const player = await openStage(page);
     const ledger = player.locator('[data-ledger]');
+    const reset = player.getByRole('button', { name: 'Reset' });
 
     await choose(player, alternative.label);
-    await expect(player).toHaveAttribute('data-running', 'false');
-    await expect(player.locator('.player__clock')).toHaveText(clockAtZero);
-    await expect(ledger).toContainText('Nothing has happened yet.');
+    await expect(ledger).toContainText(`${lever.label}: ${alternative.label}. Replaying.`);
+    await expect(player).toHaveAttribute('data-running', 'true');
 
+    // Reset stops the replay so the rest of the run is stepped by hand, one event at a time.
+    await reset.click();
+    await expect(clockIn(player)).toHaveText(clockAtZero);
+    await expect(ledger).toContainText('Nothing has happened yet.');
     const total = stepsUnder(first, lever, alternative.value).length;
     await stepTimes(player, total);
     await expect(player.locator('.player__progress')).toHaveText(
@@ -103,24 +133,61 @@ test.describe('the flow player', () => {
       'the default lever option',
     );
     await choose(player, defaultOption.label);
+    await expect(ledger).toContainText(`${lever.label}: ${defaultOption.label}. Replaying.`);
+    await reset.click();
     await expect(ledger).toContainText('Nothing has happened yet.');
     await stepTimes(player, stepsUnder(first, lever, lever.defaultValue).length);
     await expect(ledger).toContainText(defaultLine);
     await expect(ledger).not.toContainText(alternativeLine);
   });
 
-  test('the flow selector swaps the flow and resets the clock', async ({ page, request }) => {
+  test('the flow selector swaps the flow and replays it from the start', async ({
+    page,
+    request,
+  }) => {
     const { system } = await readSystemDocument(request, systemId);
     const second = must(pathFlows(system.flows)[1], 'a second request flow');
+    const secondFirstStep = must(second.steps[0], `the first step of ${second.id}`);
     const player = await openStage(page);
     await choose(player, second.name);
     await expect(player).toHaveAttribute('data-flow', second.id);
-    await expect(player).toHaveAttribute('data-running', 'false');
-    await expect(player.locator('.player__clock')).toHaveText(clockAtZero);
     await expect(player.locator('.player__flow')).toContainText(second.name);
+    const ledger = player.locator('[data-ledger]');
+    await expect(ledger).toContainText(`Flow: ${second.name}. Replaying.`);
+    await expect(player).toHaveAttribute('data-running', 'true');
+    await expect(ledger).toContainText(secondFirstStep.ledger);
   });
 
-  test('the transcript tables are rendered and closed when JavaScript runs', async ({ page }) => {
+  test('a palette choice of a flow selects it in the stage already on the page', async ({
+    page,
+    request,
+  }) => {
+    const { system } = await readSystemDocument(request, systemId);
+    const second = must(pathFlows(system.flows)[1], 'a second request flow');
+    const index = await readPaletteIndex(request);
+    const entry = must(
+      index.find((candidate) => candidate.href === `${route}#flow-${second.id}`),
+      `a palette entry for ${second.id}`,
+    );
+    const player = await openStage(page);
+    await page.keyboard.press('Control+k');
+    const input = page.getByRole('combobox', { name: 'Jump to' });
+    await expect(input).toBeFocused();
+    await input.fill(entry.title);
+    await expect(page.getByRole('option', { name: entry.title })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await page.keyboard.press('Enter');
+    await expect.poll(() => new URL(page.url()).hash).toBe(`#flow-${second.id}`);
+    await expect(input).toBeHidden();
+    await expect(player).toHaveAttribute('data-flow', second.id);
+    await expect(player.getByRole('radio', { name: second.name, exact: true })).toBeChecked();
+  });
+
+  test('the transcript tables are rendered closed and open without widening the page', async ({
+    page,
+  }) => {
     await page.goto(route);
     const transcripts = page.locator('details.transcript');
     expect(await transcripts.count()).toBeGreaterThan(0);
@@ -129,25 +196,39 @@ test.describe('the flow player', () => {
     await firstTranscript.locator('summary').click();
     await expect(firstTranscript).toHaveJSProperty('open', true);
     expect(await firstTranscript.locator('tbody tr').count()).toBeGreaterThan(1);
+    await expect(firstTranscript.locator('tbody tr').first()).toBeVisible();
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   });
 
   test.describe('under reduced motion', () => {
     test.use({ reducedMotion: 'reduce' });
 
-    test('nothing plays until Step and a note says so', async ({ page }) => {
+    test('nothing plays until Play or Step, a note says so, and a change only resets', async ({
+      page,
+      request,
+    }) => {
+      const { system } = await readSystemDocument(request, systemId);
+      const second = must(pathFlows(system.flows)[1], 'a second request flow');
       const player = await openStage(page);
-      const clock = player.locator('.player__clock');
-      await expect(
-        player.getByText('Reduced motion: nothing moves until you press Step.'),
-      ).toBeVisible();
-      await expect(player.getByRole('button', { name: 'Play' })).toHaveCount(0);
+      const clock = clockIn(player);
+      await expect(player.getByText(reducedMotionNote)).toBeVisible();
+      await expect(player.getByRole('button', { name: 'Play' })).toBeVisible();
       await expect(player).toHaveAttribute('data-running', 'false');
       await expect(clock).toHaveText(clockAtZero);
+      await expectNothingMoves(player);
+
       const step = player.getByRole('button', { name: 'Step' });
       await step.click();
       await expect(player.locator('[data-ledger] .ledger__line').first()).toBeVisible();
       await stepUntilClockMoves(step, clock);
       await expect(player).toHaveAttribute('data-running', 'false');
+
+      await choose(player, second.name);
+      await expect(player.locator('[data-ledger]')).toContainText(
+        `Flow: ${second.name}. Reset; press Play or Step.`,
+      );
+      await expect(player).toHaveAttribute('data-running', 'false');
+      await expect(clock).toHaveText(clockAtZero);
     });
   });
 });
@@ -164,6 +245,12 @@ test('without JavaScript every transcript is open and readable', async ({
   await expect(page.locator('details.transcript[open]')).toHaveCount(total);
   await expect(transcripts.first().locator('tbody tr').first()).toBeVisible();
   await expect(transcripts.first().locator('tbody tr td').first()).toHaveText(clockAtZero);
+  // The note lives in a noscript element, which the text engine skips, so it is found by class.
+  const note = page.locator('p.stage__note').first();
+  await expect(note).toBeVisible();
+  await expect(note).toHaveText('The controls need JavaScript; every flow is written out below.');
+  await expect(page.locator('#flows .player__rail')).toBeHidden();
+  await expect(page.locator('#flows .player__levers')).toBeHidden();
 });
 
 test('the JSON route serves each system with one transcript per flow', async ({ request }) => {
