@@ -30,29 +30,24 @@ const followThreshold = 4;
 
 export const Ledger = ({ title, name, lines, total, note }: LedgerProps) => {
   const scrollReference = useRef<HTMLDivElement>(null);
-  const followingReference = useRef(true);
+  const heightReference = useRef<number | undefined>(undefined);
+  const printed = lines.length + (note === undefined ? 0 : 1);
 
+  // Whether to follow is decided from where the visitor was before the new lines landed: the
+  // height before this commit is remembered, so a scroll event (which the browser marks trusted
+  // even when a script caused it) never has to be told apart from the visitor's own.
   useEffect(() => {
     const box = scrollReference.current;
     if (box === null) {
       return;
     }
-    if (lines.length === 0) {
-      followingReference.current = true;
-    }
-    if (followingReference.current) {
+    const heightBefore = heightReference.current ?? box.scrollHeight;
+    const wasAtBottom = box.scrollTop + box.clientHeight >= heightBefore - followThreshold;
+    if (printed === 0 || wasAtBottom) {
       box.scrollTop = box.scrollHeight;
     }
-  }, [lines.length]);
-
-  const onScroll = () => {
-    const box = scrollReference.current;
-    if (box === null) {
-      return;
-    }
-    followingReference.current =
-      box.scrollTop + box.clientHeight >= box.scrollHeight - followThreshold;
-  };
+    heightReference.current = box.scrollHeight;
+  }, [printed]);
 
   return (
     <div class="ledger" data-ledger>
@@ -65,7 +60,6 @@ export const Ledger = ({ title, name, lines, total, note }: LedgerProps) => {
       <div
         class="ledger__scroll"
         ref={scrollReference}
-        onScroll={onScroll}
         role="region"
         tabIndex={0}
         aria-label={`${name}, scrolls`}

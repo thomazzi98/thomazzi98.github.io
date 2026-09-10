@@ -187,7 +187,16 @@ export const usePlayback = (options: PlaybackOptions): Playback => {
     },
     step: () => {
       stop();
-      const advanced = current().filter((simulation) => simulation.step());
+      const simulations = current();
+      const advanced = simulations.filter((simulation) => simulation.step());
+      // The last event stepped: the clock runs on to the end, where the scrubber and the Replay
+      // label already point.
+      if (exhausted(simulations)) {
+        const end = optionsReference.current.endOf();
+        for (const simulation of simulations) {
+          simulation.advance(Math.max(0, end - simulation.now));
+        }
+      }
       refresh();
       return advanced;
     },

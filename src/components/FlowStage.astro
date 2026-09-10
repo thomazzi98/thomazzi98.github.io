@@ -46,7 +46,7 @@ const transcripts = flows.map((flow) => ({
 }));
 ---
 
-<div class="stage">
+<div class="stage" data-flows={flows.map((flow) => flow.id).join(' ')}>
   <FlowPlayer
     client:visible
     stageId={stageId}
@@ -58,12 +58,14 @@ const transcripts = flows.map((flow) => ({
     autoplay={autoplay}
   />
   <noscript>
-    <p class="stage__note">The controls need JavaScript; every flow is written out below.</p>
+    <p class="stage__note">
+      Without JavaScript the replays do not run; the transcripts below are complete.
+    </p>
   </noscript>
   <div class="transcripts">
     {
       transcripts.map(({ flow, entries, defaults }) => (
-        <details class="transcript" id={`flow-${flow.id}`} open>
+        <details class="transcript" id={`transcript-${flow.id}`} open>
           <summary>
             <span class="transcript__name">{flow.name}</span>
             <span class="kicker">
@@ -72,7 +74,12 @@ const transcripts = flows.map((flow) => ({
             </span>
           </summary>
           <p class="transcript__summary muted">{flow.summary}</p>
-          <div class="transcript__scroll">
+          <div
+            class="transcript__scroll"
+            role="region"
+            tabindex="0"
+            aria-label={`${flow.name} transcript, scrolls sideways`}
+          >
             <table class="transcript__table">
               <caption class="sr-only">{flow.name}, replayed with the default levers</caption>
               <thead>
@@ -103,10 +110,22 @@ const transcripts = flows.map((flow) => ({
     }
   </div>
   <script is:inline>
-    for (const transcript of document.currentScript.parentElement.querySelectorAll(
-      'details.transcript',
-    )) {
-      transcript.removeAttribute('open');
+    {
+      const stage = document.currentScript.parentElement;
+      for (const transcript of stage.querySelectorAll('details.transcript')) {
+        transcript.removeAttribute('open');
+      }
+      // The player hydrates once it is in view, so a hash naming one of this stage's flows brings
+      // it there first; the player then selects the flow and restarts.
+      const flowIds = stage.dataset.flows.split(' ');
+      const bringPlayer = () => {
+        if (!flowIds.includes(window.location.hash.replace(/^#flow-/, ''))) {
+          return;
+        }
+        stage.querySelector('.player')?.scrollIntoView({ block: 'start' });
+      };
+      bringPlayer();
+      window.addEventListener('hashchange', bringPlayer);
     }
   </script>
 </div>

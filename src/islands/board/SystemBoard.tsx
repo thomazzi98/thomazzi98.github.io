@@ -181,6 +181,13 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
         </p>
       </div>
 
+      <noscript>
+        <p class="board__noscript">
+          Without JavaScript the replays do not run; each system page carries the transcripts.
+        </p>
+      </noscript>
+      {ledger}
+
       <div class="board__panels">
         {panels.map((panel, index) => {
           const simulation = simulations[index];
@@ -224,16 +231,14 @@ export const SystemBoard = ({ panels }: SystemBoardProps) => {
                 packets={packetsOn(simulation, panel.edges, { snap: reducedMotion })}
               />
               <a class="board__enter control" href={panel.href}>
-                Enter the system
+                Enter the system <span class="sr-only">{panel.name}</span>
               </a>
             </section>
           );
         })}
       </div>
-
-      {ledger}
       <p class="sr-only" aria-live="polite">
-        {playback.announcement}
+        {playback.announcement === '' ? null : playback.announcement}
       </p>
     </div>
   );

@@ -14,6 +14,17 @@
     background: var(--panel);
   }
 
+  /* On a phone the drawing and the ledger cannot share a screen with the rail, so the rail rides
+     under the section nav (3.9rem tall) and Pause and Step stay within reach of a ledger reader.
+     Reading order and focus order stay the document's own. */
+  @media (max-width: 48rem) {
+    .player__rail {
+      position: sticky;
+      top: 3.9rem;
+      z-index: 4;
+    }
+  }
+
   .player__clock {
     min-width: 12ch;
     font-variant-numeric: tabular-nums;
@@ -104,6 +115,13 @@
     max-width: var(--measure);
   }
 
+  /* The table scrolls sideways inside the box, so the box is a focusable region; the ring sits
+     inside the transcript's own border like the ledger's. */
+  .transcript__scroll:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
   .transcript__asserted {
     padding: var(--space-3) var(--space-4);
     border-top: var(--hairline) solid var(--rule);
@@ -151,6 +169,20 @@
   .lever__option:has(input:focus-visible) {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+  }
+
+  /* Forced colours drop the author background that marks the chosen option, so the choice is drawn
+     as an outline and an underline instead; focus turns the outline dashed. */
+  @media (forced-colors: active) {
+    .lever__option:has(input:checked) {
+      outline: 2px solid;
+      outline-offset: -2px;
+      text-decoration: underline;
+    }
+
+    .lever__option:has(input:focus-visible) {
+      outline-style: dashed;
+    }
   }
 
   .lever__option input {

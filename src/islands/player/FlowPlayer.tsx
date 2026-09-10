@@ -159,12 +159,16 @@ export const FlowPlayer = ({
     return playback.finished ? 'Replay' : 'Play';
   };
 
+  // A hash naming one of this player's flows (the palette links flows that way) selects it, brings
+  // the player into view and restarts the replay, even when the flow is already the current one.
   useEffect(() => {
     const followHash = () => {
       const target = flowFromHash(flows);
-      if (target !== undefined && target.id !== flowId.value) {
-        selectFlow(target);
+      if (target === undefined) {
+        return;
       }
+      selectFlow(target);
+      playback.root.current?.scrollIntoView({ block: 'start' });
     };
     followHash();
     window.addEventListener('hashchange', followHash);
@@ -234,6 +238,7 @@ export const FlowPlayer = ({
   return (
     <div
       ref={playback.root}
+      id={`flow-${flow.id}`}
       class="player"
       data-system={systemId}
       data-flow={flow.id}
@@ -361,7 +366,7 @@ export const FlowPlayer = ({
         {ledger}
       </div>
       <p class="sr-only" aria-live="polite">
-        {playback.announcement}
+        {playback.announcement === '' ? null : playback.announcement}
       </p>
     </div>
   );

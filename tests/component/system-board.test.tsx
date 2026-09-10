@@ -102,6 +102,51 @@ describe('SystemBoard', () => {
     );
   });
 
+  it('runs the clock on to the end when the last event is stepped, where the scrubber and Replay point', () => {
+    const board = boardIn(render(<SystemBoard panels={panels} />).container);
+    fireEvent.click(within(board).getByRole('button', { name: 'Pause' }));
+    const step = within(board).getByRole('button', { name: 'Step' });
+    fireEvent.click(step);
+    fireEvent.click(step);
+    fireEvent.click(step);
+    expect(board.querySelector('.board__clock')?.textContent).toBe('T+00:02.000');
+    const scrubber = within(board).getByRole<HTMLInputElement>('slider', {
+      name: 'Scrub the virtual clock',
+    });
+    expect(scrubber.value).toBe('2000');
+    expect(scrubber.getAttribute('aria-valuetext')).toBe('T+00:02.000');
+    expect(within(board).getByRole('button', { name: 'Replay' })).toBeTruthy();
+    expect(step.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('prints the ledger under the rail and above the panels, with the no-script line between', () => {
+    const board = boardIn(render(<SystemBoard panels={panels} />).container);
+    const children = [...board.children].map((child) => child.className || child.tagName);
+    expect(children.indexOf('board__rail')).toBeLessThan(children.indexOf('NOSCRIPT'));
+    expect(children.indexOf('NOSCRIPT')).toBeLessThan(children.indexOf('board__ledger'));
+    expect(children.indexOf('board__ledger')).toBeLessThan(children.indexOf('board__panels'));
+    expect(board.querySelector('noscript .board__noscript')?.textContent).toBe(
+      'Without JavaScript the replays do not run; each system page carries the transcripts.',
+    );
+  });
+
+  it('names the system in every Enter link and keeps the live region empty between announcements', () => {
+    const board = boardIn(render(<SystemBoard panels={panels} />).container);
+    expect(within(board).getByRole('link', { name: 'Enter the system Alpha system' })).toBeTruthy();
+    expect(within(board).getByRole('link', { name: 'Enter the system Beta system' })).toBeTruthy();
+    const region = board.querySelector('[aria-live="polite"]');
+    if (region === null) {
+      throw new Error('the board has no live region');
+    }
+    expect(region.childNodes).toHaveLength(0);
+    const observer = new MutationObserver(() => undefined);
+    observer.observe(region, { childList: true, characterData: true, subtree: true });
+    passFrames(500);
+    expect(board.querySelector('.board__clock')?.textContent).not.toBe('T+00:00.000');
+    expect(observer.takeRecords()).toHaveLength(0);
+    observer.disconnect();
+  });
+
   it('keeps every ledger line, interleaved by clock and system, and counts them honestly', () => {
     const board = boardIn(render(<SystemBoard panels={panels} />).container);
     const step = within(board).getByRole('button', { name: 'Step' });

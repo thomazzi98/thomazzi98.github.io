@@ -102,6 +102,10 @@
     height: 18rem;
   }
 
+  .board__noscript {
+    max-width: var(--measure);
+  }
+
   .board__facts {
     display: block;
     overflow-x: auto;

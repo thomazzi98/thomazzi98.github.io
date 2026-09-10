@@ -248,7 +248,9 @@ test('without JavaScript every transcript is open and readable', async ({
   // The note lives in a noscript element, which the text engine skips, so it is found by class.
   const note = page.locator('p.stage__note').first();
   await expect(note).toBeVisible();
-  await expect(note).toHaveText('The controls need JavaScript; every flow is written out below.');
+  await expect(note).toHaveText(
+    'Without JavaScript the replays do not run; the transcripts below are complete.',
+  );
   await expect(page.locator('#flows .player__rail')).toBeHidden();
   await expect(page.locator('#flows .player__levers')).toBeHidden();
 });
