@@ -92,7 +92,7 @@ export const system = defineSystem({
   problem: [
     'A merchant needs to accept Polygon, TRON or Solana payments and be told, with certainty, when the money is theirs. The hard part is not the HTTP surface. It is that the browser lies, providers lag, chains reorganise, and a notification sent once and lost is a shipped order nobody paid for.',
     'CryptoPay issues one derived deposit address per payment and hands the customer a hosted checkout. From then on the browser is irrelevant. A chain worker scans blocks under a fenced lease, records transfers, and only credits a payment once the confirmation count and the chain finality tag agree, seconded by a second provider. A merchant is told through a Standard Webhooks callback written in the same transaction as the status change.',
-    'PostgreSQL is the only durable store and the only queue. Four processes hold four database roles: the API has no signing code and opens a seed only to derive addresses, the chain worker cannot read a key or a seed, the callback worker cannot read a payment, and the settlement worker is the only process that signs.',
+    'PostgreSQL is the only durable store and the only queue. Four processes hold four database roles: the API composes no signer and opens a seed only to derive addresses, the chain worker cannot read a key or a seed, the callback worker cannot read a payment, and the settlement worker is the only process that signs.',
   ],
   thesis:
     'Every state change is derived from stored chain observations, and anything the chain has not settled is held rather than guessed.',
@@ -228,7 +228,7 @@ export const system = defineSystem({
       evidence: [
         lines('apps/web/src/app/connect/page.tsx', 11, 32),
         lines(session, 3, 15),
-        lines('e2e/dashboard.spec.ts', 90, 98),
+        lines('e2e/dashboard.spec.ts', 86, 95),
       ],
     },
     {
@@ -2895,7 +2895,7 @@ export const system = defineSystem({
       evidence: [
         lines(session, 3, 15),
         lines(bffRoute, 16, 44),
-        lines('e2e/dashboard.spec.ts', 90, 98),
+        lines('e2e/dashboard.spec.ts', 86, 95),
       ],
     },
     {

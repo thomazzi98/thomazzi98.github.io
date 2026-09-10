@@ -26,7 +26,7 @@ so wherever it appears.
 src/
   systems/        the typed model: schema, one <id>.system.ts per system, verbatim fragments,
                   evidence links, source access, the board footprint
-  trace/          the deterministic kernel (seeded random, scheduler, simulation) and the flow runner
+  trace/          the deterministic kernel (scheduler, simulation) and the flow runner
   islands/        Preact islands: schematic, explorer and inspector, flow player and ledger,
                   home board, state machine explorer, architecture map, command palette
   components/     Astro shells around the islands: flow stages, code fragments, evidence links

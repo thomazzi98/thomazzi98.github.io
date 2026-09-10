@@ -47,6 +47,16 @@ describe('the practices on the About page', () => {
     }
   });
 
+  it('claim no job, queue or worker for the gateway, which has none at its pinned commit', () => {
+    const backedByGateway = practices.filter((practice) =>
+      practice.backing.some((backing) => backing.id === 'mini-payment-gateway'),
+    );
+    expect(backedByGateway.length).toBeGreaterThan(0);
+    for (const practice of backedByGateway) {
+      expect(practice.claim, practice.id).not.toMatch(/\b(job|queue|worker)s?\b/i);
+    }
+  });
+
   it('are each backed by at least one of the three systems or one role', () => {
     const systemIds = new Set(systems.map((system) => system.id));
     for (const practice of practices) {

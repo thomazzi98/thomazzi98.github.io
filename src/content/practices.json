@@ -2,7 +2,7 @@
   {
     "id": "database-serialises",
     "order": 1,
-    "claim": "The database serialises what the code must not guess: an idempotency key is a unique-index claim, a job is a row claimed under a lock, a race has one winner and the losers are told what it did.",
+    "claim": "The database serialises what the code must not guess: an idempotency key is a unique-index claim, a race has one winner, and the losers are told what the winner did.",
     "backing": [
       { "kind": "system", "id": "cryptopay" },
       { "kind": "system", "id": "whatsapp-notification-platform" },
@@ -27,7 +27,7 @@
   {
     "id": "at-least-once-stated",
     "order": 4,
-    "claim": "At-least-once delivery is stated, not hidden: the claim is committed before the network call and the receiver is told to deduplicate.",
+    "claim": "At-least-once delivery is stated, not hidden: the claim is committed before the network call, and the duplicate window is either handed to the receiver to deduplicate or decided by a stated per-tenant policy.",
     "backing": [
       { "kind": "system", "id": "whatsapp-notification-platform" },
       { "kind": "system", "id": "cryptopay" }
