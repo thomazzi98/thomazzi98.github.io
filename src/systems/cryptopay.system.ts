@@ -216,6 +216,22 @@ export const system = defineSystem({
       evidence: [lines(apiKey, 7, 24), lines(networkConfiguration, 500, 523)],
     },
     {
+      id: 'operator',
+      label: 'Operator browser',
+      kind: 'actor',
+      purpose:
+        'A person at the merchant who pastes an API key into the connect form and then reads and manages payments, networks, settlement, webhooks and settings in the dashboard.',
+      notes: [
+        'No accounts, passwords or users table: the dashboard authenticates the way a merchant server does, so anything it shows is reachable with the same key.',
+        'The key is written to the httpOnly cookie cryptopay_key by a server action and never reaches page JavaScript; an end-to-end test reads document.cookie to prove it.',
+      ],
+      evidence: [
+        lines('apps/web/src/app/connect/page.tsx', 11, 32),
+        lines(session, 3, 15),
+        lines('e2e/dashboard.spec.ts', 90, 98),
+      ],
+    },
+    {
       id: 'customer-browser',
       label: 'Customer browser and wallet',
       kind: 'actor',
@@ -492,7 +508,7 @@ export const system = defineSystem({
     },
     {
       id: 'browser-web',
-      from: 'merchant',
+      from: 'operator',
       to: 'web',
       label: 'Dashboard over the BFF',
       protocol: 'https',
@@ -2282,8 +2298,8 @@ export const system = defineSystem({
         {
           id: 'failed',
           terminal: false,
-          tone: 'fault',
-          note: 'Means a retry is scheduled at next_attempt_at.',
+          tone: 'wait',
+          note: 'Means a retry is scheduled at next_attempt_at; the claim query treats it like pending.',
         },
         {
           id: 'abandoned',

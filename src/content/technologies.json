@@ -172,7 +172,7 @@
     "name": "Vitest",
     "category": "testing",
     "firstUsed": 2026,
-    "group": "familiar"
+    "group": "shipped-with"
   },
   {
     "id": "ethereum",
@@ -290,6 +290,20 @@
     "id": "playwright",
     "name": "Playwright",
     "category": "testing",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "testcontainers",
+    "name": "Testcontainers",
+    "category": "testing",
+    "firstUsed": 2026,
+    "group": "shipped-with"
+  },
+  {
+    "id": "vite",
+    "name": "Vite",
+    "category": "frontend",
     "firstUsed": 2026,
     "group": "shipped-with"
   },

@@ -24,6 +24,7 @@ describe('periodSchema', () => {
 describe('practiceSchema', () => {
   const practice = {
     id: 'reproduce-first',
+    order: 8,
     claim: 'Reproduce a failure before fixing it.',
     backing: [
       { kind: 'role', id: 'sky-one' },
@@ -33,6 +34,14 @@ describe('practiceSchema', () => {
 
   it('accepts a claim backed by a role and a system', () => {
     expect(practiceSchema.safeParse(practice).success).toBe(true);
+  });
+
+  it('requires a positive whole-number order', () => {
+    const { order, ...withoutOrder } = practice;
+    expect(order).toBe(8);
+    expect(practiceSchema.safeParse(withoutOrder).success).toBe(false);
+    expect(practiceSchema.safeParse({ ...practice, order: 0 }).success).toBe(false);
+    expect(practiceSchema.safeParse({ ...practice, order: 1.5 }).success).toBe(false);
   });
 
   it('rejects a claim with nothing behind it', () => {

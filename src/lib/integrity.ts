@@ -16,6 +16,7 @@ interface TechnologyLike {
 interface SystemLike {
   id: string;
   stack: { technology: string }[];
+  nodes: { id: string; technologies: string[] }[];
 }
 
 interface PracticeLike {
@@ -80,6 +81,12 @@ export const findIntegrityProblems = ({
       `system "${system.id}"`,
       system.stack.map((entry) => ({ id: entry.technology })),
     );
+    for (const node of system.nodes) {
+      checkStack(
+        `system "${system.id}" node "${node.id}"`,
+        node.technologies.map((id) => ({ id })),
+      );
+    }
   }
 
   for (const practice of practices) {

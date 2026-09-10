@@ -23,6 +23,13 @@ describe('the practices on the About page', () => {
     expect(new Set(practices.map((practice) => practice.id)).size).toBe(practices.length);
   });
 
+  it('carry the positions one to n, each once, so About needs no second source for the order', () => {
+    const positions = practices
+      .map((practice) => practice.order)
+      .sort((first, second) => first - second);
+    expect(positions).toEqual(practices.map((_practice, index) => index + 1));
+  });
+
   it('cite only systems in the registry and roles in the collection', () => {
     const problems = findIntegrityProblems({
       roles: roleIds.map((id) => ({ id, data: { stack: [] } })),

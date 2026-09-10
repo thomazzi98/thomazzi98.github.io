@@ -102,7 +102,7 @@ export const system = defineSystem({
   maturity: {
     label: 'complete',
     statement:
-      'Every public route is served, described by a generated OpenAPI document that a test compares against the router, and exercised by four test layers, including a browser suite against the production images. The provider path is validated against a deterministic stub in CI; the README states the limits that remain: at-least-once delivery, a rate limiter that fails open, no load test, and no measurement against the real gateway.',
+      'Every public route is served, described by a generated OpenAPI document that a test compares against the router, and exercised by four test layers (unit, component, integration, end to end), the last a browser suite against the production images. The provider path is validated against a deterministic stub in CI; the README states the limits that remain: at-least-once delivery, a rate limiter that fails open, no load test, and no measurement against the real gateway.',
     evidence: [
       cite('apps/api/src/public-api/openapi.integration.test.ts', [61, 95]),
       cite(ciWorkflow, [23, 210]),
@@ -2358,7 +2358,7 @@ export const system = defineSystem({
         {
           id: 'UNRESOLVED',
           terminal: false,
-          tone: 'unknown',
+          tone: 'flight',
           note: 'outcome IS NULL and request_finished_at IS NULL, by CHECK constraint. Committed before the provider is contacted.',
         },
         { id: 'SUCCEEDED', terminal: true, tone: 'ok' },

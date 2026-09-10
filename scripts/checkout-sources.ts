@@ -57,9 +57,12 @@ const clone = (source: PinnedSource): void => {
   const destination = join(vendorDirectory, source.name);
   const url = `https://github.com/${source.owner}/${source.name}.git`;
   if (!existsSync(join(destination, '.git'))) {
-    execFileSync('git', ['clone', '--quiet', '--no-checkout', url, destination], {
-      stdio: 'inherit',
-    });
+    // Blobs are fetched lazily by git show, so the clone carries history without file contents.
+    execFileSync(
+      'git',
+      ['clone', '--quiet', '--no-checkout', '--filter=blob:none', url, destination],
+      { stdio: 'inherit' },
+    );
   }
   if (!hasCommit(destination, source.commit)) {
     git(destination, ['fetch', '--quiet', 'origin']);

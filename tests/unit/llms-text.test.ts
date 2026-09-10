@@ -53,4 +53,20 @@ describe('renderLlmsText', () => {
     expect(output).toContain('- [Plain-text resume](https://thomazzi98.github.io/resume.txt)');
     expect(output).toContain('- [About](https://thomazzi98.github.io/about/)');
   });
+
+  it('links the architecture map, the decisions index, the colophon and the search index', () => {
+    const links = output.slice(output.indexOf('## Links'));
+    expect(links).toContain('](https://thomazzi98.github.io/architecture/)');
+    expect(links).toContain('](https://thomazzi98.github.io/decisions/)');
+    expect(links).toContain('](https://thomazzi98.github.io/colophon/)');
+    expect(links).toContain('](https://thomazzi98.github.io/palette.json)');
+    expect(links).toContain('- [GitHub](https://github.com/thomazzi98)');
+  });
+
+  it('says what the JSON routes carry', () => {
+    const systemsSection = output.slice(output.indexOf('## Systems'), output.indexOf('## Roles'));
+    expect(systemsSection).toContain(
+      'Each /systems/<id>.json route carries the full model of one system and the default transcript of each of its flows, pinned to one commit of its repository.',
+    );
+  });
 });

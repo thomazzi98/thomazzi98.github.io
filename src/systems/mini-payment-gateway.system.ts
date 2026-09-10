@@ -164,7 +164,7 @@ export const system = defineSystem({
     },
     {
       technology: 'knip',
-      role: 'Finds unused exports and dependencies across the three workspaces.',
+      role: 'Finds unused exports and dependencies across the two workspaces and the root scripts.',
       evidence: [cite('knip.json', [1, 17])],
     },
   ],
@@ -221,8 +221,9 @@ export const system = defineSystem({
     },
     {
       id: 'redis',
-      label: 'Redis 7 (provisioned, unused)',
+      label: 'Redis 7',
       kind: 'store',
+      stamp: 'unused',
       purpose:
         'Declared in compose and required as REDIS_URL by the configuration schema. No code opens a connection to it and no Redis client is a dependency.',
       notes: [

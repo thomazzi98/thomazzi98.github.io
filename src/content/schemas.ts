@@ -70,6 +70,8 @@ export const practiceBackingSchema = z.object({
 
 export const practiceSchema = z.object({
   id: identifier,
+  // The collection loader sorts entries by id; the About page renders them in this order instead.
+  order: z.number().int().positive(),
   claim: z.string().min(1),
   backing: z.array(practiceBackingSchema).min(1),
 });

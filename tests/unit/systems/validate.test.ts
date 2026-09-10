@@ -98,4 +98,39 @@ describe('findSystemProblems', () => {
     }
     expect(findSystemProblems(system)).toEqual(['node "api" is declared more than once']);
   });
+
+  it('reports a lever declared twice inside one flow', () => {
+    const system = parsed();
+    const flow = firstOf(system.flows);
+    flow.levers.push({ ...firstOf(flow.levers) });
+    expect(findSystemProblems(system)).toEqual([
+      'flow "record-entry" declares lever "database" more than once',
+    ]);
+  });
+
+  it('reports an edge that starts and ends at the same node', () => {
+    const system = parsed();
+    const edge = firstOf(system.edges);
+    edge.to = edge.from;
+    expect(findSystemProblems(system)).toEqual([
+      'edge "client-api" starts and ends at the same node',
+    ]);
+  });
+
+  it('requires a tone on every status', () => {
+    const machine = firstOf(fixtureSystem.stateMachines ?? []);
+    const statuses = machine.statuses.map((status) => ({
+      id: status.id,
+      terminal: status.terminal,
+    }));
+    const result = systemSchema.safeParse({
+      ...fixtureSystem,
+      stateMachines: [{ ...machine, statuses }],
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path.join('.'))).toEqual([
+      'stateMachines.0.statuses.0.tone',
+      'stateMachines.0.statuses.1.tone',
+    ]);
+  });
 });

@@ -10,10 +10,21 @@ const technology = (id: string) => ({ id });
 const reference = (id: string) => ({ id });
 const backing = (kind: PracticeBackingKind, id: string) => ({ kind, id });
 
+const gateway = {
+  id: 'gateway',
+  stack: [{ technology: 'fastify' }],
+  nodes: [{ id: 'web', technologies: ['vite'] }],
+};
+
 const validGraph = {
-  technologies: [technology('typescript'), technology('mongodb'), technology('fastify')],
+  technologies: [
+    technology('typescript'),
+    technology('mongodb'),
+    technology('fastify'),
+    technology('vite'),
+  ],
   roles: [{ id: 'sky-one', data: { stack: [reference('typescript'), reference('mongodb')] } }],
-  systems: [{ id: 'gateway', stack: [{ technology: 'fastify' }] }],
+  systems: [gateway],
   practices: [
     {
       id: 'reproduce-first',
@@ -41,10 +52,27 @@ describe('findIntegrityProblems', () => {
   it('reports a system that cites a technology missing from the registry', () => {
     const graph = {
       ...validGraph,
-      systems: [{ id: 'gateway', stack: [{ technology: 'fastify' }, { technology: 'redis' }] }],
+      systems: [{ ...gateway, stack: [{ technology: 'fastify' }, { technology: 'redis' }] }],
     };
     expect(findIntegrityProblems(graph)).toEqual([
       'system "gateway" references unknown technology "redis"',
+    ]);
+  });
+
+  it('reports a node that cites a technology missing from the registry', () => {
+    const graph = {
+      ...validGraph,
+      systems: [{ ...gateway, nodes: [{ id: 'web', technologies: ['vite', 'testcontainers'] }] }],
+    };
+    expect(findIntegrityProblems(graph)).toEqual([
+      'system "gateway" node "web" references unknown technology "testcontainers"',
+    ]);
+  });
+
+  it('counts a technology cited only by a node as referenced', () => {
+    const graph = { ...validGraph, systems: [{ ...gateway, nodes: [] }] };
+    expect(findIntegrityProblems(graph)).toEqual([
+      'technology "vite" is not referenced by any role or system',
     ]);
   });
 

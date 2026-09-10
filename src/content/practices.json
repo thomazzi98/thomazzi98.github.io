@@ -1,6 +1,7 @@
 [
   {
     "id": "database-serialises",
+    "order": 1,
     "claim": "The database serialises what the code must not guess: an idempotency key is a unique-index claim, a job is a row claimed under a lock, a race has one winner and the losers are told what it did.",
     "backing": [
       { "kind": "system", "id": "cryptopay" },
@@ -10,7 +11,8 @@
   },
   {
     "id": "lifecycle-as-a-table",
-    "claim": "A state machine is one table that the code, the database and the documentation share; a trigger refuses the edge the table does not list, and a test fails when the copies drift.",
+    "order": 2,
+    "claim": "A state machine is one table that the code and the database share; a trigger refuses the edge the table does not list, and a test fails when the two copies drift.",
     "backing": [
       { "kind": "system", "id": "mini-payment-gateway" },
       { "kind": "system", "id": "whatsapp-notification-platform" }
@@ -18,15 +20,14 @@
   },
   {
     "id": "unknown-is-a-result",
+    "order": 3,
     "claim": "An unknown outcome is a result, not a failure: a timeout or a 5xx licenses neither retry nor failover until a read proves what happened.",
-    "backing": [
-      { "kind": "system", "id": "mini-payment-gateway" },
-      { "kind": "system", "id": "whatsapp-notification-platform" }
-    ]
+    "backing": [{ "kind": "system", "id": "mini-payment-gateway" }]
   },
   {
     "id": "at-least-once-stated",
-    "claim": "At-least-once delivery is stated, not hidden: the attempt is committed before the network call and the receiver is told to deduplicate.",
+    "order": 4,
+    "claim": "At-least-once delivery is stated, not hidden: the claim is committed before the network call and the receiver is told to deduplicate.",
     "backing": [
       { "kind": "system", "id": "whatsapp-notification-platform" },
       { "kind": "system", "id": "cryptopay" }
@@ -34,15 +35,16 @@
   },
   {
     "id": "least-privilege-roles",
+    "order": 5,
     "claim": "Each process connects to the database as a role that can do only what it needs, granted after the migrations run and revoked on everything else.",
     "backing": [
       { "kind": "system", "id": "cryptopay" },
-      { "kind": "system", "id": "whatsapp-notification-platform" },
       { "kind": "system", "id": "mini-payment-gateway" }
     ]
   },
   {
     "id": "boundaries-by-tooling",
+    "order": 6,
     "claim": "A layer boundary is enforced by tooling or it is only a belief: lint rules and dependency rules decide what a domain module may import.",
     "backing": [
       { "kind": "system", "id": "cryptopay" },
@@ -52,6 +54,7 @@
   },
   {
     "id": "off-the-request-path",
+    "order": 7,
     "claim": "Slow or unreliable third-party work leaves the request path: the request records what was asked and answers, and a worker does the rest.",
     "backing": [
       { "kind": "role", "id": "eight-assets" },
@@ -61,6 +64,7 @@
   },
   {
     "id": "reproduce-first",
+    "order": 8,
     "claim": "Reproduce a failure before fixing it, with a harness that runs the real dependency or a stub that copies its awkwardness.",
     "backing": [
       { "kind": "role", "id": "sky-one" },
@@ -69,11 +73,13 @@
   },
   {
     "id": "read-model-for-reports",
+    "order": 9,
     "claim": "Reports read a read model, not the collection the workers write on every run.",
     "backing": [{ "kind": "role", "id": "sky-one" }]
   },
   {
     "id": "every-claim-links",
+    "order": 10,
     "claim": "Every claim about a system on this site links to the file and line that prove it, at a commit the build verifies.",
     "backing": [
       { "kind": "system", "id": "cryptopay" },

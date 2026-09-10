@@ -1,6 +1,5 @@
 ---
 import { render } from 'astro:content';
-import practiceSource from '../content/practices.json';
 import type { PracticeBacking } from '../content/schemas';
 import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
@@ -15,9 +14,8 @@ const rolesByRecency = [...roles].sort(compareByStartDescending);
 const renderedRoles = await Promise.all(
   rolesByRecency.map(async (role) => ({ role, Content: (await render(role)).Content })),
 );
-const practiceRank = new Map(practiceSource.map((practice, index) => [practice.id, index]));
 const practicesInWrittenOrder = [...practices].sort(
-  (first, second) => (practiceRank.get(first.id) ?? 0) - (practiceRank.get(second.id) ?? 0),
+  (first, second) => first.data.order - second.data.order,
 );
 const educationByRecency = [...education].sort(
   (first, second) => second.data.year - first.data.year,
@@ -40,7 +38,7 @@ const backingLink = (backing: PracticeBacking): { href: string; label: string } 
 
 <Base
   title="About · Rafael Thomazzi"
-  description="Rafael Thomazzi: seven years of backend work in Node.js and TypeScript, the roles in order, the practices the three systems and the roles back, education, availability and contact."
+  description="Rafael Thomazzi's roles in order, the practices the three systems and the roles back, education, availability and contact."
 >
   <section class="page-head about-head" aria-labelledby="about-title">
     <div>
