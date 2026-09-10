@@ -28,10 +28,13 @@ src/
                   evidence links, source access, the board footprint
   trace/          the deterministic kernel (seeded random, scheduler, simulation) and the flow runner
   islands/        Preact islands: schematic, explorer and inspector, flow player and ledger,
-                  home board, state machine explorer
-  components/     Astro shells around the islands: flow stages, code fragments
-  pages/          routes, including /systems/<id>.json, resume.txt and llms.txt
+                  home board, state machine explorer, architecture map, command palette
+  components/     Astro shells around the islands: flow stages, code fragments, evidence links
+  pages/          the routes: /, /systems/, /systems/<id>/, /architecture/, /decisions/, /about/,
+                  /colophon/, plus /systems/<id>.json, /palette.json, resume.txt and llms.txt
   content/        roles, education, practices and the technology registry (Zod collections)
+  lib/            the person's identity, content loading and integrity checks, the text
+                  projections, the palette index, budgets and build information
   layouts/        the page shell
   styles/         tokens and one stylesheet per surface, in cascade layers
 docs/decisions/   the site's own decision records, rendered on the colophon
@@ -73,8 +76,8 @@ internal link check. `npm run test:e2e` runs Playwright with axe against every r
 sitemap on desktop, on a Pixel 7 profile and with JavaScript disabled; it needs
 `npx playwright install chromium` first. `npm run og:image` regenerates the social image.
 
-`git config core.hooksPath .githooks` installs a pre-commit hook that runs the lint, format and
-draft checks, so a commit cannot get ahead of the CI gate.
+`git config core.hooksPath .githooks` installs a pre-commit hook that runs the cheap part of the
+gate (lint, formatting and the draft check) before every commit.
 
 After changing dependencies, run `npm run lock` to regenerate the lockfile with the Linux
 optional dependencies CI needs.
@@ -87,4 +90,12 @@ the code cannot show.
 
 Every push to `main` checks out the pinned sources, runs the verify script, the end-to-end suite
 and Lighthouse CI against the built site, and deploys to GitHub Pages only if all of it passes.
-The budgets are in `lighthouserc.json` and rendered on the colophon.
+Pull requests run the same checks without deploying. The budgets are in `lighthouserc.json`,
+measured through `scripts/serve-dist.ts`, which compresses text the way Pages does, and rendered
+on the colophon.
+
+## Licences
+
+The site's code is MIT (see `LICENSE`). The fonts are under the SIL Open Font License 1.1; the
+copyright lines are in `src/assets/fonts/NOTICE.txt`. The files under `src/systems/fragments/`
+are verbatim copies from the three repositories at their pinned commits, by the same author.

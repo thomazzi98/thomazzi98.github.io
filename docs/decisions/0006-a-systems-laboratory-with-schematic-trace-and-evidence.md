@@ -41,9 +41,12 @@ faults, violet for the outcome nobody knows yet, ivory for a packet in flight.
 
 #### Consequences
 
-- Client-side JavaScript returns as Preact islands under a per-route budget the build enforces.
+- Client-side JavaScript returns as Preact islands under a per-route budget the build enforces:
+  90 KB of script, four font files, 60 KB of compressed document on text pages and 120 KB on a
+  system page, asserted by `lighthouserc.json` against the same compressing server the tests use.
 - A system without evidence for a claim cannot be published: the unit suite reads the pinned
   checkout and fails on a missing file, a wrong line range or a fragment that drifted.
-- The repository facts on the site are read from git, never typed.
+- The repository facts on the site are checked against git by the test suite: a count or a date
+  that disagrees with the pinned checkout fails the build.
 - Decision 0005 is superseded; the bench engine's kernel survives as the trace kernel.
 - No theme toggle: the colour scheme follows the operating system, as decision 0001 chose.

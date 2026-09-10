@@ -22,5 +22,5 @@ system through `light-dark()`.
 - Anything interactive would need an island and a justification. A theme toggle is a known
   non-goal: the color scheme follows the operating system.
 - The choice is itself a claim on a site about backend work: the heavier tool was not needed.
-- Superseded in part by decision 0005: client-side JavaScript returns for the benches, under a
-  budget the build enforces.
+- Superseded in part by decision 0005, then by 0006: client-side JavaScript returns as islands,
+  under a budget the build enforces.

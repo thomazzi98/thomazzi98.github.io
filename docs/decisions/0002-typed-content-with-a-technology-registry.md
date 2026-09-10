@@ -24,3 +24,6 @@ fails on a reference to an unknown id and on a registry entry that no role or pr
 - Case-study bodies are markdown, so a weaker study can omit a section without a schema fight.
 - The registry rule is enforced in `src/lib/integrity.ts` with unit tests rather than in Zod,
   because it needs all four collections at once.
+- Amended by decision 0006 on 2026-09-09: the projects collection, the stack page and the career
+  trace were retired. Roles, education, practices and technologies remain; the three systems cite
+  technologies too, and a practice names the system or the role that backs it.
