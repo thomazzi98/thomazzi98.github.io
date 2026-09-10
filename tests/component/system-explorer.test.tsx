@@ -47,15 +47,25 @@ const wideDrawing = (container: Element): HTMLElement => {
   return svg;
 };
 
+const inspectorAside = () => screen.getByRole('complementary', { name: 'Inspector' });
+
 afterEach(cleanup);
 
 describe('SystemExplorer', () => {
-  it('renders every node as a named control with its callout number', () => {
+  it('renders every node as a named control whose callout number is its parts-list number', () => {
     const { container } = renderExplorer();
     const drawing = within(wideDrawing(container));
     expect(drawing.getByRole('button', { name: '1. Client, actor' })).toBeTruthy();
     expect(drawing.getByRole('button', { name: '2. API, process' })).toBeTruthy();
     expect(drawing.getByRole('button', { name: '3. PostgreSQL, store, unused' })).toBeTruthy();
+    const callouts = [
+      ...container.querySelectorAll('.schematic--horizontal .schematic__balloon text'),
+    ].map((text) => Number(text.textContent));
+    const listed = [...container.querySelectorAll('.parts__number')].map((text) =>
+      Number(text.textContent),
+    );
+    expect(callouts).toEqual([1, 2, 3]);
+    expect(listed).toEqual(callouts);
   });
 
   it('moves focus between nodes with the arrow keys and selects with Enter', () => {
@@ -70,7 +80,7 @@ describe('SystemExplorer', () => {
     expect(client.getAttribute('tabindex')).toBe('-1');
     fireEvent.keyDown(api, { key: 'Enter' });
     expect(api.getAttribute('aria-pressed')).toBe('true');
-    const inspector = within(screen.getByRole('complementary'));
+    const inspector = within(inspectorAside());
     expect(inspector.getByText('Accepts requests.')).toBeTruthy();
     expect(inspector.getByRole('link', { name: 'src/api.ts' }).getAttribute('href')).toBe(
       `https://github.com/thomazzi98/ledger/blob/${'a'.repeat(40)}/src/api.ts`,
@@ -81,12 +91,45 @@ describe('SystemExplorer', () => {
     const { container } = renderExplorer();
     const drawing = within(wideDrawing(container));
     fireEvent.click(drawing.getByRole('button', { name: '2. API, process' }));
-    const inspector = within(screen.getByRole('complementary'));
+    const inspector = within(inspectorAside());
     fireEvent.click(inspector.getByRole('button', { name: /→ PostgreSQL · INSERT entry/ }));
     expect(inspector.getByText('Edge · SQL over a database connection')).toBeTruthy();
     expect(
       inspector.getByRole('link', { name: 'src/repository.ts:5-9' }).getAttribute('href'),
     ).toMatch(/src\/repository\.ts#L5-L9$/);
+  });
+
+  it('puts focus on the inspector title after a button inside the inspector changed the view', () => {
+    const { container } = renderExplorer();
+    const drawing = within(wideDrawing(container));
+    fireEvent.click(drawing.getByRole('button', { name: '2. API, process' }));
+    const aside = inspectorAside();
+    const inspector = within(aside);
+    expect(document.activeElement).not.toBe(aside.querySelector('.inspector__title'));
+    fireEvent.click(inspector.getByRole('button', { name: /→ PostgreSQL · INSERT entry/ }));
+    const edgeTitle = aside.querySelector<HTMLElement>('.inspector__title');
+    expect(edgeTitle?.textContent).toBe('INSERT entry');
+    expect(edgeTitle?.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(edgeTitle);
+    fireEvent.click(inspector.getByRole('button', { name: 'PostgreSQL' }));
+    const nodeTitle = aside.querySelector<HTMLElement>('.inspector__title');
+    expect(nodeTitle?.textContent).toBe('PostgreSQL');
+    expect(document.activeElement).toBe(nodeTitle);
+  });
+
+  it('announces a selection through the title line alone', () => {
+    const { container } = renderExplorer();
+    const aside = inspectorAside();
+    expect(aside.hasAttribute('aria-live')).toBe(false);
+    const live = aside.querySelector('.inspector__head[aria-live="polite"]');
+    expect(live?.textContent).toBe('InspectorNothing selected');
+    fireEvent.click(
+      within(wideDrawing(container)).getByRole('button', { name: '2. API, process' }),
+    );
+    expect(aside.querySelector('.inspector__head[aria-live="polite"]')?.textContent).toBe(
+      '2 · processAPI',
+    );
+    expect(aside.querySelectorAll('[aria-live]')).toHaveLength(1);
   });
 
   it('clears the selection with Escape and toggles it from the parts list', () => {
@@ -100,7 +143,14 @@ describe('SystemExplorer', () => {
     const partsRow = screen.getByRole('button', { name: /03 PostgreSQL unused store/ });
     fireEvent.click(partsRow);
     expect(partsRow.getAttribute('aria-pressed')).toBe('true');
-    expect(within(screen.getByRole('complementary')).getByText('Keeps the ledger.')).toBeTruthy();
+    expect(within(inspectorAside()).getByText('Keeps the ledger.')).toBeTruthy();
+    // The drawing's single Tab stop follows the part chosen in the list.
+    expect(
+      drawing
+        .getByRole('button', { name: '3. PostgreSQL, store, unused' })
+        .getAttribute('tabindex'),
+    ).toBe('0');
+    expect(client.getAttribute('tabindex')).toBe('-1');
   });
 
   it('reaches the edges after the last node with the arrow keys and toggles them with Enter', () => {
@@ -118,7 +168,7 @@ describe('SystemExplorer', () => {
     expect(insert.getAttribute('tabindex')).toBe('0');
     fireEvent.keyDown(insert, { key: 'Enter' });
     expect(insert.getAttribute('aria-pressed')).toBe('true');
-    const inspector = within(screen.getByRole('complementary'));
+    const inspector = within(inspectorAside());
     expect(inspector.getByText('Edge · SQL over a database connection')).toBeTruthy();
     fireEvent.keyDown(insert, { key: ' ' });
     expect(insert.getAttribute('aria-pressed')).toBe('false');
@@ -132,11 +182,11 @@ describe('SystemExplorer', () => {
     const { container } = renderExplorer();
     const drawing = within(wideDrawing(container));
     fireEvent.click(drawing.getByRole('button', { name: '2. API, process' }));
-    const inspector = within(screen.getByRole('complementary', { name: 'Inspector' }));
+    const inspector = within(inspectorAside());
     const connection = inspector.getByRole('button', { name: /→ PostgreSQL · INSERT entry/ });
     fireEvent.keyDown(connection, { key: 'Escape' });
     expect(container.querySelector('.explorer')?.getAttribute('data-selected')).toBeNull();
-    expect(inspector.getByRole('heading', { name: 'Inspector' })).toBeTruthy();
+    expect(inspector.getByRole('heading', { name: 'Nothing selected' })).toBeTruthy();
   });
 
   it('shows the stamp of a part in the drawing, the parts list and the inspector', () => {
@@ -147,8 +197,16 @@ describe('SystemExplorer', () => {
     const partsRow = screen.getByRole('button', { name: /03 PostgreSQL unused store/ });
     expect(partsRow.querySelector('.stamp')?.textContent).toBe('unused');
     fireEvent.click(partsRow);
-    const inspector = screen.getByRole('complementary', { name: 'Inspector' });
-    expect(inspector.querySelector('.inspector .stamp')?.textContent).toBe('unused');
+    expect(inspectorAside().querySelector('.inspector .stamp')?.textContent).toBe('unused');
+  });
+
+  it('breaks evidence paths after their slashes', () => {
+    const { container } = renderExplorer();
+    fireEvent.click(
+      within(wideDrawing(container)).getByRole('button', { name: '2. API, process' }),
+    );
+    const link = within(inspectorAside()).getByRole('link', { name: 'src/api.ts' });
+    expect(link.innerHTML).toBe('src/<wbr>api.ts');
   });
 
   it('selects the part named by the hash when the hash changes', () => {
@@ -168,7 +226,7 @@ describe('SystemExplorer', () => {
 
   it('keeps the inspector in the page on every viewport and closes the sheet with its control', () => {
     renderExplorer();
-    const aside = screen.getByRole('complementary', { name: 'Inspector' });
+    const aside = inspectorAside();
     expect(aside.hasAttribute('hidden')).toBe(false);
     const sheet = document.querySelector('dialog.explorer__sheet');
     expect(sheet?.querySelector('.explorer__sheet-head .explorer__close')?.textContent).toBe(
@@ -187,7 +245,7 @@ describe('SystemExplorer', () => {
     );
   });
 
-  it('serves plain graphics and an inert parts list until it hydrates', () => {
+  it('serves plain graphics and a plain parts list until it hydrates', () => {
     const html = renderToString(
       <SystemExplorer
         systemId={system.id}
@@ -201,9 +259,14 @@ describe('SystemExplorer', () => {
     expect(html).not.toContain('role="button"');
     expect(html).not.toMatch(/<g[^>]*tabindex="0"/);
     expect(html).toContain('role="img"');
-    expect(html.match(/class="parts__item"[^>]*disabled/g)).toHaveLength(3);
+    expect(html.match(/<span class="parts__item">/g)).toHaveLength(3);
+    expect(html).not.toContain('<button type="button" class="parts__item"');
+    expect(html).toContain(
+      '<noscript><p class="muted">With JavaScript the drawing and this list open an inspector; every part and connection is named inside the drawing.</p></noscript>',
+    );
     const { container } = renderExplorer();
-    expect(container.querySelectorAll('.parts__item:disabled')).toHaveLength(0);
+    expect(container.querySelectorAll('button.parts__item')).toHaveLength(3);
+    expect(container.querySelectorAll('span.parts__item')).toHaveLength(0);
     expect(container.querySelectorAll('svg [role="button"]').length).toBeGreaterThan(0);
   });
 

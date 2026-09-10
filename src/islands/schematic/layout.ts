@@ -1,7 +1,7 @@
 import type { EdgeProtocol, NodeKind } from '../../systems/schema';
 import { protocolTag } from './protocol';
 
-export type Orientation = 'horizontal' | 'vertical' | 'rail';
+export type Orientation = 'horizontal' | 'rail';
 
 export interface LayoutOptions {
   // A rail spreads its parts over at least this many rows' worth of height, so the drawings on
@@ -48,7 +48,9 @@ export interface PlacedEdge<Edge extends LayoutEdge = LayoutEdge> {
   start: Point;
   end: Point;
   control?: Point;
-  tag: Point;
+  // Absent when the wire goes unlabelled: a rail wire on the drawing's majority protocol, or the
+  // second wire of a pair that runs both ways on one protocol.
+  tag?: Point;
 }
 
 export interface Layout<
@@ -58,29 +60,31 @@ export interface Layout<
   orientation: Orientation;
   width: number;
   height: number;
+  // The parts in drawn order: declaration order in a horizontal drawing, row order on a rail.
   nodes: PlacedNode<Node>[];
   edges: PlacedEdge<Edge>[];
+  legend?: string;
 }
 
 export const nodeWidth = 160;
 export const labelFontSize = 13;
 export const labelLineHeight = 15;
 export const tagFontSize = 10;
+export const legendRow = 22;
 const labelInset = 8;
 const labelLineLimit = 2;
 const rankGap = 84;
 const laneGap = 30;
 const margin = 16;
-const verticalLaneLimit = 2;
 const orderingSweeps = 3;
-const outwardBow = 56;
-const outwardStep = 14;
 const tagHeight = 14;
 const tagClearance = 6;
 const tagPadding = 4;
 const railGap = 28;
 const railGapLimit = 128;
-const railStep = 10;
+const bowStep = 10;
+const bowMinimum = 32;
+const railTagSeparation = 16;
 
 const stampRow = 18;
 
@@ -90,6 +94,28 @@ export const nodeHeightOf = (lineCount: number, stamped = false): number =>
   (lineCount > 1 ? 58 : 46) + (stamped ? stampRow : 0);
 
 const entryKinds: ReadonlySet<NodeKind> = new Set(['actor', 'external']);
+
+// The length an edge adds to the path through the drawing; undefined leaves the edge out of the
+// layering altogether. Compose ordering says what starts before what, not what talks to what,
+// so it has no length and imposes no order.
+type EdgeLength = (edge: LayoutEdge) => number | undefined;
+
+const runtimeLength: EdgeLength = (edge) => (edge.protocol === 'orchestration' ? undefined : 1);
+
+// A package calling a package is structure inside one artefact, not a hop a request makes, so
+// a drawing that would otherwise run past four columns keeps those calls inside one column.
+const compactLength =
+  (kindOf: ReadonlyMap<string, NodeKind>): EdgeLength =>
+  (edge) => {
+    const length = runtimeLength(edge);
+    if (length === undefined) {
+      return undefined;
+    }
+    const insidePackages = kindOf.get(edge.from) === 'package' && kindOf.get(edge.to) === 'package';
+    return insidePackages ? 0 : length;
+  };
+
+export const columnLimit = 4;
 
 // Glyph widths in em, close enough to IBM Plex Sans and Mono to wrap and to place tags
 // without measuring the rendered text.
@@ -182,12 +208,59 @@ export const wrapLabel = (label: string): string[] => {
   return kept;
 };
 
-const rankNodes = (nodes: readonly LayoutNode[], edges: readonly LayoutEdge[]) => {
-  const ranks = new Map<string, number>();
+const incomingCounts = (nodes: readonly LayoutNode[], edges: readonly LayoutEdge[]) => {
   const incoming = new Map(nodes.map((node) => [node.id, 0]));
   for (const edge of edges) {
     incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
   }
+  return incoming;
+};
+
+// A reply that closes a cycle (a webhook back to the caller) would stall the layering, so the
+// edges that lead back to a part still on the depth-first stack are left out of it. The walk
+// starts from the parts nothing calls, so the edge dropped is the one that returns.
+const forwardEdges = (nodes: readonly LayoutNode[], edges: readonly LayoutEdge[]): LayoutEdge[] => {
+  const incoming = incomingCounts(nodes, edges);
+  const state = new Map<string, 'open' | 'done'>();
+  const dropped = new Set<string>();
+  const visit = (id: string) => {
+    state.set(id, 'open');
+    for (const edge of edges.filter((candidate) => candidate.from === id)) {
+      const target = state.get(edge.to);
+      if (target === 'open') {
+        dropped.add(edge.id);
+        continue;
+      }
+      if (target === undefined) {
+        visit(edge.to);
+      }
+    }
+    state.set(id, 'done');
+  };
+  const ordered = [...nodes].sort(
+    (first, second) =>
+      Number((incoming.get(first.id) ?? 0) > 0) - Number((incoming.get(second.id) ?? 0) > 0),
+  );
+  for (const node of ordered) {
+    if (!state.has(node.id)) {
+      visit(node.id);
+    }
+  }
+  return edges.filter((edge) => !dropped.has(edge.id));
+};
+
+// Longest-path layering over the edges that have a length.
+const rankNodesBy = (
+  nodes: readonly LayoutNode[],
+  allEdges: readonly LayoutEdge[],
+  lengthOf: EdgeLength,
+) => {
+  const edges = forwardEdges(
+    nodes,
+    allEdges.filter((edge) => lengthOf(edge) !== undefined),
+  );
+  const ranks = new Map<string, number>();
+  const incoming = incomingCounts(nodes, edges);
   const sources = nodes.filter((node) => incoming.get(node.id) === 0).map((node) => node.id);
   const queue = [...sources];
   for (const id of queue) {
@@ -200,8 +273,9 @@ const rankNodes = (nodes: readonly LayoutNode[], edges: readonly LayoutEdge[]) =
     }
     const currentRank = ranks.get(current) ?? 0;
     for (const edge of edges.filter((candidate) => candidate.from === current)) {
-      if ((ranks.get(edge.to) ?? -1) < currentRank + 1) {
-        ranks.set(edge.to, currentRank + 1);
+      const reached = currentRank + (lengthOf(edge) ?? 0);
+      if ((ranks.get(edge.to) ?? -1) < reached) {
+        ranks.set(edge.to, reached);
       }
       const remaining = (incoming.get(edge.to) ?? 1) - 1;
       incoming.set(edge.to, remaining);
@@ -210,33 +284,38 @@ const rankNodes = (nodes: readonly LayoutNode[], edges: readonly LayoutEdge[]) =
       }
     }
   }
-  // A node inside a cycle never reaches zero incoming edges; place it after its predecessors.
-  for (const node of nodes) {
-    if (ranks.has(node.id)) {
-      continue;
-    }
-    const predecessors = edges
-      .filter((edge) => edge.to === node.id)
-      .map((edge) => ranks.get(edge.from))
-      .filter((rank): rank is number => rank !== undefined);
-    ranks.set(node.id, predecessors.length === 0 ? 0 : Math.max(...predecessors) + 1);
-  }
-  // A process nobody calls, such as a worker that polls, belongs next to what it talks to,
-  // not in the column of entry points.
+  // A part nothing calls at runtime, such as a worker that polls, a one-shot job or a package
+  // only a job exercises, belongs in the column before what it talks to, not in the column of
+  // entry points.
   for (const node of nodes) {
     if (!sources.includes(node.id) || entryKinds.has(node.kind)) {
       continue;
     }
     const targets = edges
       .filter((edge) => edge.from === node.id)
-      .map((edge) => ranks.get(edge.to))
+      .map((edge) => {
+        const rank = ranks.get(edge.to);
+        return rank === undefined ? undefined : rank - (lengthOf(edge) ?? 0);
+      })
       .filter((rank): rank is number => rank !== undefined);
     if (targets.length === 0) {
       continue;
     }
-    ranks.set(node.id, Math.max(0, Math.min(...targets) - 1));
+    ranks.set(node.id, Math.max(0, Math.min(...targets)));
   }
   return ranks;
+};
+
+const rankNodes = (nodes: readonly LayoutNode[], edges: readonly LayoutEdge[]) => {
+  const honest = rankNodesBy(nodes, edges, runtimeLength);
+  if (Math.max(...honest.values()) < columnLimit) {
+    return honest;
+  }
+  return rankNodesBy(
+    nodes,
+    edges,
+    compactLength(new Map(nodes.map((node) => [node.id, node.kind]))),
+  );
 };
 
 const groupByRank = (nodes: readonly LayoutNode[], ranks: ReadonlyMap<string, number>) => {
@@ -316,6 +395,35 @@ const orderLanes = (
       sortLane(rank, 'after');
     }
   }
+  orderWithinLanes(lanes, edges);
+};
+
+// A wire between two parts of one lane runs down the column, so its source comes first: a
+// topological pass over each lane keeps the barycenter order wherever those wires allow it.
+const orderWithinLanes = (lanes: Map<number, string[]>, edges: readonly LayoutEdge[]) => {
+  for (const [rank, lane] of lanes) {
+    const inLane = new Set(lane);
+    const internal = edges.filter(
+      (edge) => inLane.has(edge.from) && inLane.has(edge.to) && edge.from !== edge.to,
+    );
+    if (internal.length === 0) {
+      continue;
+    }
+    const remaining = [...lane];
+    const ordered: string[] = [];
+    while (remaining.length > 0) {
+      const next =
+        remaining.find(
+          (id) => !internal.some((edge) => edge.to === id && remaining.includes(edge.from)),
+        ) ?? remaining[0];
+      if (next === undefined) {
+        break;
+      }
+      ordered.push(next);
+      remaining.splice(remaining.indexOf(next), 1);
+    }
+    lanes.set(rank, ordered);
+  }
 };
 
 const tenth = (value: number): number => Math.round(value * 10) / 10;
@@ -368,36 +476,6 @@ const boxesOverlap = (first: Box, second: Box): boolean =>
   first.y < second.y + second.height &&
   second.y < first.y + first.height;
 
-// Liang-Barsky clipping: true when the segment enters the box.
-const segmentCrossesBox = (start: Point, end: Point, box: Box): boolean => {
-  const deltaX = end.x - start.x;
-  const deltaY = end.y - start.y;
-  const checks: readonly (readonly [number, number])[] = [
-    [-deltaX, start.x - box.x],
-    [deltaX, box.x + box.width - start.x],
-    [-deltaY, start.y - box.y],
-    [deltaY, box.y + box.height - start.y],
-  ];
-  let enter = 0;
-  let exit = 1;
-  for (const [direction, distance] of checks) {
-    if (direction === 0) {
-      if (distance < 0) {
-        return false;
-      }
-      continue;
-    }
-    const ratio = distance / direction;
-    if (direction < 0) {
-      enter = Math.max(enter, ratio);
-    }
-    if (direction > 0) {
-      exit = Math.min(exit, ratio);
-    }
-  }
-  return enter < exit;
-};
-
 const quadraticPoint = (start: Point, control: Point, end: Point, progress: number): Point => {
   const remaining = 1 - progress;
   return {
@@ -443,12 +521,23 @@ export const tagBox = (point: Point, text: string): Box => {
 // along the wire until their box clears every node and every tag already placed.
 const tagFractions = (index: number): readonly number[] => {
   const primary = index % 2 === 0 ? 0.4 : 0.6;
-  return [primary, 1 - primary, 0.3, 0.7, 0.5, 0.25, 0.75, 0.2, 0.8, 0.15, 0.85];
+  return [primary, 1 - primary, 0.3, 0.7, 0.5, 0.25, 0.75, 0.2, 0.8, 0.15, 0.85, 0.1, 0.9];
 };
 
-// When no point on the wire is clear the tag steps one tag height to either side of it, which
-// keeps it attributable to its wire while it leaves the neighbour it would have covered.
-const tagNudges: readonly number[] = [0, -1, 1];
+// The two wires of a pair that runs both ways bow apart, so their tags start a third of the way
+// along each wire and never meet at the shared midpoint.
+const antiparallelFractions: readonly (readonly number[])[] = [
+  [0.35, 0.3, 0.25, 0.4, 0.2, 0.45, 0.15, 0.1],
+  [0.65, 0.7, 0.75, 0.6, 0.8, 0.55, 0.85, 0.9],
+];
+
+// One tag serves a pair that runs both ways on one protocol; it sits on the chord between the
+// two bows, where it belongs to both wires.
+const sharedTagFractions: readonly number[] = [0.5, 0.4, 0.6, 0.3, 0.7, 0.25, 0.75, 0.2, 0.8];
+
+// When no point on the wire is clear the tag steps whole tag heights to either side of it,
+// which keeps it attributable to its wire while it leaves the neighbour it would have covered.
+const tagNudges: readonly number[] = [0, -1, 1, -2, 2];
 
 const placeTag = (
   route: Pick<PlacedEdge, 'start' | 'end' | 'control'>,
@@ -480,9 +569,8 @@ const placeTag = (
 // enough for that tag to clear the parts it passes.
 const bowFractions: readonly number[] = [0.5, 0.42, 0.58, 0.34, 0.66, 0.25, 0.75];
 
-// Side 0 is the gap between the two lanes, which no part occupies.
 interface OutwardRoute {
-  side: -1 | 0 | 1;
+  side: -1 | 1;
   level: number;
   bow: number;
   span: readonly [number, number];
@@ -511,54 +599,6 @@ const levelOf = (
   return level;
 };
 
-// In the two-lane vertical layout a wire that would run through another part leaves the
-// column on its outer side and comes back in, so packets never appear to cross unrelated parts.
-const outwardRoutes = <Node extends LayoutNode>(
-  edges: readonly LayoutEdge[],
-  byId: ReadonlyMap<string, PlacedNode<Node>>,
-  pairs: ReadonlyMap<string, number>,
-  columnsCentre: number,
-): Map<string, OutwardRoute> => {
-  const routes = new Map<string, OutwardRoute>();
-  for (const edge of edges) {
-    const origin = byId.get(edge.from);
-    const destination = byId.get(edge.to);
-    if (origin === undefined || destination === undefined) {
-      continue;
-    }
-    if ((pairs.get(pairKey(edge)) ?? 1) > 1 || destination.rank < origin.rank) {
-      continue;
-    }
-    const start = boundaryPoint(origin, center(destination));
-    const end = boundaryPoint(destination, center(origin));
-    const blocked = [...byId.values()].some(
-      (other) => other !== origin && other !== destination && segmentCrossesBox(start, end, other),
-    );
-    if (!blocked) {
-      continue;
-    }
-    const ends = [center(origin).y, center(destination).y];
-    const span: readonly [number, number] = [Math.min(...ends), Math.max(...ends)];
-    const tagWidth = tagBox({ x: 0, y: 0 }, protocolTag[edge.protocol]).width;
-    const originLeft = center(origin).x <= columnsCentre;
-    const destinationLeft = center(destination).x <= columnsCentre;
-    if (originLeft !== destinationLeft) {
-      routes.set(edge.id, { side: 0, level: 0, bow: 0, span, tagWidth });
-      continue;
-    }
-    const side: -1 | 1 = originLeft ? -1 : 1;
-    const level = levelOf([...routes.values()], side, span);
-    routes.set(edge.id, {
-      side,
-      level,
-      bow: outwardBow + outwardStep * level,
-      span,
-      tagWidth,
-    });
-  }
-  return routes;
-};
-
 // On a rail only a wire to the next row runs straight down the column. Every other wire leaves
 // the column and comes back: forwards on the right, backwards on the left, a second wire of one
 // pair beside the first; each side is levelled by span overlap, and every bow on a side reaches
@@ -567,6 +607,7 @@ const railRoutes = <Node extends LayoutNode>(
   edges: readonly LayoutEdge[],
   byId: ReadonlyMap<string, PlacedNode<Node>>,
   rowOf: ReadonlyMap<string, number>,
+  tagged: (edge: LayoutEdge) => boolean,
 ): Map<string, OutwardRoute> => {
   const routes = new Map<string, OutwardRoute>();
   const pairsSeen = new Set<string>();
@@ -587,7 +628,7 @@ const railRoutes = <Node extends LayoutNode>(
     const side: -1 | 1 = toRow < fromRow ? -1 : 1;
     const ends = [center(origin).y, center(destination).y];
     const span: readonly [number, number] = [Math.min(...ends), Math.max(...ends)];
-    const tagWidth = tagBox({ x: 0, y: 0 }, protocolTag[edge.protocol]).width;
+    const tagWidth = tagged(edge) ? tagBox({ x: 0, y: 0 }, protocolTag[edge.protocol]).width : 0;
     routes.set(edge.id, {
       side,
       level: levelOf([...routes.values()], side, span),
@@ -600,8 +641,46 @@ const railRoutes = <Node extends LayoutNode>(
     const onSide = [...routes.values()].filter((route) => route.side === side);
     const reach = Math.max(0, ...onSide.map((route) => route.tagWidth / 2)) + tagPadding;
     for (const route of onSide) {
-      route.bow = 2 * reach + railStep * route.level;
+      route.bow = Math.max(bowMinimum, 2 * reach) + bowStep * route.level;
     }
+  }
+  return routes;
+};
+
+// In a horizontal drawing a wire between two parts of one column that are not neighbours would
+// run through the parts between them, so it leaves the column into the gap beside it and comes
+// back: to the right, or to the left from the last column, where nothing lies to the right.
+const columnRoutes = <Node extends LayoutNode>(
+  edges: readonly LayoutEdge[],
+  byId: ReadonlyMap<string, PlacedNode<Node>>,
+  laneIndexOf: ReadonlyMap<string, number>,
+  lastRank: number,
+): Map<string, OutwardRoute> => {
+  const routes = new Map<string, OutwardRoute>();
+  for (const edge of edges) {
+    const origin = byId.get(edge.from);
+    const destination = byId.get(edge.to);
+    if (origin === undefined || destination === undefined) {
+      continue;
+    }
+    if (origin.rank !== destination.rank) {
+      continue;
+    }
+    const rows = Math.abs((laneIndexOf.get(edge.from) ?? 0) - (laneIndexOf.get(edge.to) ?? 0));
+    if (rows < 2) {
+      continue;
+    }
+    const side: -1 | 1 = origin.rank === lastRank && lastRank > 0 ? -1 : 1;
+    const ends = [center(origin).y, center(destination).y];
+    const span: readonly [number, number] = [Math.min(...ends), Math.max(...ends)];
+    const level = levelOf([...routes.values()], side, span);
+    routes.set(edge.id, {
+      side,
+      level,
+      bow: bowMinimum + bowStep * level,
+      span,
+      tagWidth: tagBox({ x: 0, y: 0 }, protocolTag[edge.protocol]).width,
+    });
   }
   return routes;
 };
@@ -629,6 +708,21 @@ const railTag = (
   return { x: tenth(point.x), y: tenth(point.y) };
 };
 
+// A rail prints a tag only where the protocol differs from the one most of its wires use; that
+// protocol is named once in a legend instead. Without a clear majority every wire is tagged.
+const majorityProtocol = (edges: readonly LayoutEdge[]): EdgeProtocol | undefined => {
+  const counts = new Map<EdgeProtocol, number>();
+  for (const edge of edges) {
+    counts.set(edge.protocol, (counts.get(edge.protocol) ?? 0) + 1);
+  }
+  const ranked = [...counts.entries()].sort((first, second) => second[1] - first[1]);
+  const [leader, runnerUp] = ranked;
+  if (leader === undefined || leader[1] === runnerUp?.[1]) {
+    return undefined;
+  }
+  return leader[0];
+};
+
 const railOrder = (lanes: ReadonlyMap<number, string[]>): string[] =>
   [...lanes.keys()]
     .sort((first, second) => first - second)
@@ -642,31 +736,11 @@ const railGapFor = (count: number, nodeHeight: number, rows: number): number => 
   return Math.min(railGapLimit, Math.round(span / (count - 1) - nodeHeight));
 };
 
-// A wire between the lanes that must skip a rank runs straight down the gap between them, from
-// the inner edge of one part to the inner edge of the other.
-const gapEdge = (origin: Box, destination: Box): Pick<PlacedEdge, 'start' | 'end'> => {
-  const downwards = center(destination).y >= center(origin).y ? 1 : -1;
-  const innerX = (box: Box, other: Box) => (box.x < other.x ? box.x + box.width : box.x);
-  return {
-    start: {
-      x: innerX(origin, destination),
-      y: tenth(center(origin).y + (downwards * origin.height) / 4),
-    },
-    end: {
-      x: innerX(destination, origin),
-      y: tenth(center(destination).y - (downwards * destination.height) / 4),
-    },
-  };
-};
-
 const outwardEdge = (
   origin: Box,
   destination: Box,
   route: OutwardRoute,
 ): Pick<PlacedEdge, 'start' | 'end' | 'control'> => {
-  if (route.side === 0) {
-    return gapEdge(origin, destination);
-  }
   const downwards = center(destination).y >= center(origin).y ? 1 : -1;
   const edgeX = (box: Box) => (route.side === -1 ? box.x : box.x + box.width);
   const columnEdge =
@@ -708,6 +782,25 @@ const bowMultiplier = (
   return count > 1 ? spread : Number(backwards);
 };
 
+// The wire that answers this one between the same two parts, when the pair is exactly two.
+const antiparallelOf = <Edge extends LayoutEdge>(
+  edge: Edge,
+  edges: readonly Edge[],
+  count: number,
+): Edge | undefined => {
+  if (count !== 2) {
+    return undefined;
+  }
+  return edges.find((other) => other.from === edge.to && other.to === edge.from);
+};
+
+// A rail tag keeps a whole tag height plus two units to its neighbours, so a column of tags
+// stays a column of separate words.
+const separated = (box: Box, separation: number): Box => {
+  const grow = (separation - box.height) / 2;
+  return { ...box, y: box.y - grow, height: box.height + 2 * grow };
+};
+
 export const layoutSystem = <Node extends LayoutNode, Edge extends LayoutEdge>(
   nodes: readonly Node[],
   edges: readonly Edge[],
@@ -719,72 +812,51 @@ export const layoutSystem = <Node extends LayoutNode, Edge extends LayoutEdge>(
   orderLanes(lanes, edges, ranks);
   const rankCount = Math.max(...lanes.keys()) + 1;
   const laneCount = Math.max(...[...lanes.values()].map((lane) => lane.length));
-  const verticalLaneCount = Math.min(laneCount, verticalLaneLimit);
   const linesById = new Map(nodes.map((node) => [node.id, wrapLabel(node.label)]));
   const nodeHeight = nodeHeightOf(
     Math.max(1, ...[...linesById.values()].map((lines) => lines.length)),
     nodes.some((node) => node.stamp !== undefined),
   );
-  const rowsOf = (rank: number): number =>
-    Math.ceil((lanes.get(rank)?.length ?? 1) / verticalLaneLimit);
-  const rowOffsets = [...Array(rankCount).keys()].map((rank) =>
-    [...Array(rank).keys()].reduce((total, earlier) => total + rowsOf(earlier), 0),
-  );
   const along = (rank: number): number => margin + rank * (nodeWidth + rankGap);
-  const alongVertical = (rank: number): number =>
-    margin + (rowOffsets[rank] ?? 0) * (nodeHeight + laneGap) + rank * rankGap;
   const across = (index: number, count: number): number =>
     Math.round(margin + (index + (laneCount - count) / 2) * (nodeHeight + laneGap));
-  // A lone part in a rank stays in the left lane rather than the middle, so the gap between the
-  // lanes remains free for the wires that run down it.
-  const acrossVertical = (index: number): number => margin + index * (nodeWidth + laneGap);
   const railRowOf = new Map(railOrder(lanes).map((id, row) => [id, row]));
   const railPitch = nodeHeight + railGapFor(nodes.length, nodeHeight, options.rows ?? 0);
+  const drawnOrder =
+    orientation === 'rail'
+      ? [...nodes].sort(
+          (first, second) => (railRowOf.get(first.id) ?? 0) - (railRowOf.get(second.id) ?? 0),
+        )
+      : nodes;
 
-  const placed: PlacedNode<Node>[] = nodes.map((node, number) => {
+  const placed: PlacedNode<Node>[] = drawnOrder.map((node, index) => {
     const rank = ranks.get(node.id) ?? 0;
     const lane = lanes.get(rank) ?? [];
-    const index = lane.indexOf(node.id);
     const lines = linesById.get(node.id) ?? [node.label];
-    const box = { node, rank, number: number + 1, lines, width: nodeWidth, height: nodeHeight };
-    if (orientation === 'horizontal') {
-      return { ...box, x: along(rank), y: across(index, lane.length) };
-    }
+    const box = { node, rank, number: index + 1, lines, width: nodeWidth, height: nodeHeight };
     if (orientation === 'rail') {
       return { ...box, x: margin, y: margin + (railRowOf.get(node.id) ?? 0) * railPitch };
     }
-    const row = Math.floor(index / verticalLaneLimit);
-    return {
-      ...box,
-      x: acrossVertical(index % verticalLaneLimit),
-      y: alongVertical(rank) + row * (nodeHeight + laneGap),
-    };
+    return { ...box, x: along(rank), y: across(lane.indexOf(node.id), lane.length) };
   });
 
   const pairs = countPairs(edges);
-  const baseWidthOf: Readonly<Record<Orientation, number>> = {
-    horizontal: along(rankCount - 1) + nodeWidth + margin,
-    vertical: acrossVertical(verticalLaneCount - 1) + nodeWidth + margin,
-    rail: 2 * margin + nodeWidth,
-  };
-  const baseWidth = baseWidthOf[orientation];
+  const majority = orientation === 'rail' ? majorityProtocol(edges) : undefined;
+  const legend = majority === undefined ? undefined : `unlabelled wires: ${protocolTag[majority]}`;
+  const baseWidth =
+    orientation === 'rail' ? 2 * margin + nodeWidth : along(rankCount - 1) + nodeWidth + margin;
   const placedById = new Map(placed.map((entry) => [entry.node.id, entry]));
-  const routesOf = (): Map<string, OutwardRoute> => {
-    if (orientation === 'vertical') {
-      return outwardRoutes(edges, placedById, pairs, baseWidth / 2);
-    }
-    if (orientation === 'rail') {
-      return railRoutes(edges, placedById, railRowOf);
-    }
-    return new Map<string, OutwardRoute>();
-  };
-  const routes = routesOf();
+  const laneIndexOf = new Map(
+    [...lanes.values()].flatMap((lane) => lane.map((id, index) => [id, index] as const)),
+  );
+  const routes =
+    orientation === 'rail'
+      ? railRoutes(edges, placedById, railRowOf, (edge) => edge.protocol !== majority)
+      : columnRoutes(edges, placedById, laneIndexOf, rankCount - 1);
   // The rail's margins already give a tag its clearance, so a side only grows by what its bows
-  // need beyond them.
-  const roomOf = (side: -1 | 1): number => {
-    const room = sideRoom(routes, side);
-    return orientation === 'rail' ? Math.max(0, room - margin) : room;
-  };
+  // need beyond them; a horizontal drawing grows only where a bow leaves its last column.
+  const roomOf = (side: -1 | 1): number =>
+    orientation === 'rail' ? Math.max(0, sideRoom(routes, side) - margin) : 0;
   const leftRoom = roomOf(-1);
   const rightRoom = roomOf(1);
   for (const entry of placed) {
@@ -822,24 +894,46 @@ export const layoutSystem = <Node extends LayoutNode, Edge extends LayoutEdge>(
           }
         : outwardEdge(origin, destination, outward);
     const text = protocolTag[edge.protocol];
-    const tag =
-      orientation === 'rail'
-        ? railTag(route, text, obstacles)
-        : placeTag(route, text, tagFractions(index), obstacles);
-    obstacles.push(tagBox(tag, text));
+    const opposite = antiparallelOf(edge, edges, count);
+    const tagOf = (): Point | undefined => {
+      if (orientation === 'rail') {
+        return edge.protocol === majority ? undefined : railTag(route, text, obstacles);
+      }
+      if (opposite === undefined) {
+        return placeTag(route, text, tagFractions(index), obstacles);
+      }
+      if (opposite.protocol !== edge.protocol) {
+        return placeTag(route, text, antiparallelFractions[ordinal] ?? [], obstacles);
+      }
+      return ordinal === 0 ? placeTag(straight, text, sharedTagFractions, obstacles) : undefined;
+    };
+    const tag = tagOf();
+    if (tag !== undefined) {
+      const box = tagBox(tag, text);
+      obstacles.push(orientation === 'rail' ? separated(box, railTagSeparation) : box);
+    }
     placedEdges.push({ edge, ...route, tag });
   });
 
-  const width = baseWidth + leftRoom + rightRoom;
-  const heightOf: Readonly<Record<Orientation, () => number>> = {
-    horizontal: () => across(laneCount - 1, laneCount) + nodeHeight + margin,
-    vertical: () =>
-      alongVertical(rankCount - 1) +
-      (rowsOf(rankCount - 1) - 1) * (nodeHeight + laneGap) +
-      nodeHeight +
-      margin,
-    rail: () => margin + (nodes.length - 1) * railPitch + nodeHeight + margin,
-  };
+  const reach = placedEdges.flatMap((placed) => {
+    const apex = placed.control === undefined ? [] : [pointAlong(placed, 0.5).x];
+    if (placed.tag === undefined) {
+      return apex;
+    }
+    const box = tagBox(placed.tag, protocolTag[placed.edge.protocol]);
+    return [...apex, box.x + box.width];
+  });
+  const roomWidth = baseWidth + leftRoom + rightRoom;
+  const width =
+    orientation === 'rail' ? roomWidth : Math.max(roomWidth, ...reach.map((edge) => edge + margin));
+  const height =
+    orientation === 'rail'
+      ? margin +
+        (nodes.length - 1) * railPitch +
+        nodeHeight +
+        (legend === undefined ? 0 : legendRow) +
+        margin
+      : across(laneCount - 1, laneCount) + nodeHeight + margin;
 
-  return { orientation, width, height: heightOf[orientation](), nodes: placed, edges: placedEdges };
+  return { orientation, width, height, nodes: placed, edges: placedEdges, legend };
 };

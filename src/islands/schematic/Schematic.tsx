@@ -1,6 +1,6 @@
 import { useSignal } from '@preact/signals';
 import type { TargetedKeyboardEvent } from 'preact';
-import { useMemo, useRef } from 'preact/hooks';
+import { useEffect, useMemo, useRef } from 'preact/hooks';
 import type { SystemEdge, SystemNode, Tone } from '../../systems/schema';
 import { Glyph } from './glyphs';
 import {
@@ -53,6 +53,7 @@ const keyToOffset: Readonly<Record<string, number>> = {
 };
 
 const firstBaseline = 19;
+const legendInset = 6;
 // A drum's cap arc reaches ten units into the box, so a store's label starts lower.
 const storeLabelDrop = 4;
 const captionInset = 8;
@@ -111,12 +112,27 @@ export const Schematic = ({
   const placedById = new Map(layout.edges.map((placed) => [placed.edge.id, placed]));
   const labelById = new Map(nodes.map((node) => [node.id, node.label]));
   const controlCount = layout.nodes.length + layout.edges.length;
-  const focused = useSignal(
-    Math.max(
-      0,
-      layout.nodes.findIndex((placed) => isSelected(selected, 'node', placed.node.id)),
-    ),
-  );
+  const indexOfSelection = (): number => {
+    if (selected === undefined) {
+      return -1;
+    }
+    if (selected.kind === 'node') {
+      return layout.nodes.findIndex((placed) => placed.node.id === selected.id);
+    }
+    const edgeIndex = layout.edges.findIndex((placed) => placed.edge.id === selected.id);
+    return edgeIndex === -1 ? -1 : layout.nodes.length + edgeIndex;
+  };
+  const focused = useSignal(Math.max(0, indexOfSelection()));
+
+  // The single Tab stop follows a selection made elsewhere, in the parts list or the inspector,
+  // so Shift+Tab back into the drawing lands on the part just chosen.
+  useEffect(() => {
+    const index = indexOfSelection();
+    if (index !== -1) {
+      focused.value = index;
+    }
+    // The layout is derived from the same props, so the selection is the only trigger.
+  }, [selected]);
 
   // One roving stop per drawing: the nodes in callout order, then the edges in model order.
   const focusControl = (index: number) => {
@@ -329,19 +345,34 @@ export const Schematic = ({
       </g>
       {/* Tags are drawn last so a packet in flight never hides the protocol it travels on. */}
       <g class="schematic__tags" aria-hidden="true">
-        {layout.edges.map((placed) => (
+        {layout.edges.map((placed) => {
+          if (placed.tag === undefined) {
+            return null;
+          }
+          return (
+            <text
+              key={placed.edge.id}
+              class="schematic__tag"
+              data-selected={isSelected(selected, 'edge', placed.edge.id) ? 'true' : undefined}
+              data-active={activeEdge === placed.edge.id ? 'true' : undefined}
+              x={placed.tag.x}
+              y={placed.tag.y}
+              text-anchor="middle"
+            >
+              {protocolTag[placed.edge.protocol]}
+            </text>
+          );
+        })}
+        {layout.legend !== undefined && (
           <text
-            key={placed.edge.id}
-            class="schematic__tag"
-            data-selected={isSelected(selected, 'edge', placed.edge.id) ? 'true' : undefined}
-            data-active={activeEdge === placed.edge.id ? 'true' : undefined}
-            x={placed.tag.x}
-            y={placed.tag.y}
+            class="schematic__legend"
+            x={layout.width / 2}
+            y={layout.height - legendInset}
             text-anchor="middle"
           >
-            {protocolTag[placed.edge.protocol]}
+            {layout.legend}
           </text>
-        ))}
+        )}
       </g>
     </svg>
   );

@@ -9,7 +9,6 @@
     overflow: visible;
   }
 
-  .schematic--vertical,
   .schematic-scroll--vertical {
     display: none;
   }
@@ -32,15 +31,20 @@
     margin-top: var(--space-2);
   }
 
+  /* Once the wrappers have measured themselves the hint stays only where one really overflows;
+     unmeasured markup, as served, keeps it. */
+  :has(> .schematic-scroll[data-overflows]):not(:has(> .schematic-scroll[data-overflows='true']))
+    > .schematic-scroll__hint {
+    display: none;
+  }
+
+  /* On a phone the stacked wrapper carries the rail; the wide drawing waits for a wider screen. */
   @media (max-width: 48rem) {
-    .schematic--horizontal,
     .schematic-scroll--horizontal {
       display: none;
     }
 
-    .schematic--vertical,
-    .schematic-scroll--vertical,
-    .schematic-scroll .schematic--horizontal {
+    .schematic-scroll--vertical {
       display: block;
     }
   }
@@ -150,10 +154,12 @@
     fill: var(--ground-ink);
   }
 
+  /* The hit stroke is transparent, so a wire's pointer target can be a 24 unit band without
+     changing the drawing. */
   .schematic__hit {
     fill: none;
     stroke: transparent;
-    stroke-width: 14;
+    stroke-width: 24;
   }
 
   .schematic__wire {
@@ -232,6 +238,13 @@
     fill: var(--ink);
   }
 
+  .schematic__legend {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    fill: var(--ink-muted);
+  }
+
   .schematic__packet {
     fill: var(--tone, var(--flight));
     stroke: var(--ground);
@@ -303,23 +316,16 @@
     }
   }
 
+  /* The drawing always takes the full row; the inspector sits beside the parts list, where the
+     selection is made, and stays in view while that list scrolls. */
   .explorer {
     display: grid;
     gap: var(--space-5) var(--space-6);
     grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
     grid-template-areas:
-      'drawing inspector'
+      'drawing drawing'
       'parts inspector';
     align-items: start;
-  }
-
-  /* Below 72rem the drawing takes the full row so it is never shrunk beside the inspector. */
-  @media (max-width: 72rem) {
-    .explorer {
-      grid-template-areas:
-        'drawing drawing'
-        'parts inspector';
-    }
   }
 
   @media (max-width: 48rem) {
@@ -368,6 +374,12 @@
     background: var(--panel);
     color: var(--ink);
     font-size: var(--size-small);
+    overscroll-behavior: contain;
+  }
+
+  /* A swipe that reaches the end of the sheet must not carry the page behind it away. */
+  body:has(.explorer__sheet[open]) {
+    overflow: hidden;
   }
 
   .explorer__sheet::backdrop {
@@ -394,10 +406,20 @@
     margin-top: var(--space-3);
   }
 
+  .inspector__head > * + * {
+    margin-top: var(--space-2);
+  }
+
   .inspector__title {
     font-family: var(--font-display);
     font-size: var(--size-lead);
     font-weight: 400;
+  }
+
+  /* Paths break after their slashes, where a <wbr> sits, not inside a file name. */
+  .inspector__evidence a {
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .inspector__fields {

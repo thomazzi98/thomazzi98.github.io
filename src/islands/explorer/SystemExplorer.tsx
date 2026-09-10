@@ -41,14 +41,22 @@ export const SystemExplorer = ({
   technologyNames = {},
 }: SystemExplorerProps) => {
   const selection = useSignal<Selection | undefined>(undefined);
-  // Until the island hydrates the drawing is plain graphics and the parts list is inert, so a
-  // reader without JavaScript never meets a control that does nothing.
+  // Until the island hydrates the drawing is plain graphics and the parts list is plain text, so
+  // a reader without JavaScript never meets a control that does nothing.
   const ready = useSignal(false);
   const narrow = useMediaQuery(narrowQuery);
   const dialogReference = useRef<HTMLDialogElement>(null);
+  const asideReference = useRef<HTMLElement>(null);
   const keepSelectionOnClose = useRef(false);
+  // A button inside the inspector replaces the view that held it, which would drop focus to the
+  // body; the flag asks the next render to put focus on the new title instead.
+  const focusTitleNext = useRef(false);
   const select = (next: Selection | undefined) => {
     selection.value = next;
+  };
+  const selectFromInspector = (next: Selection | undefined) => {
+    focusTitleNext.current = true;
+    select(next);
   };
 
   useEffect(() => {
@@ -98,6 +106,15 @@ export const SystemExplorer = ({
     }
   }, [selection.value, narrow]);
 
+  useEffect(() => {
+    if (!focusTitleNext.current) {
+      return;
+    }
+    focusTitleNext.current = false;
+    const host = narrow ? dialogReference.current : asideReference.current;
+    host?.querySelector<HTMLElement>('.inspector__title')?.focus();
+  }, [selection.value, narrow]);
+
   const onExplorerKey = (event: TargetedKeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape' && selection.value !== undefined) {
       select(undefined);
@@ -124,7 +141,7 @@ export const SystemExplorer = ({
       nodes={nodes}
       edges={edges}
       selection={selection.value}
-      onSelect={select}
+      onSelect={selectFromInspector}
       technologyNames={technologyNames}
     />
   );
@@ -142,7 +159,7 @@ export const SystemExplorer = ({
           onSelect={ready.value ? select : undefined}
         />
       </div>
-      <aside class="explorer__inspector" aria-label="Inspector" aria-live="polite">
+      <aside ref={asideReference} class="explorer__inspector" aria-label="Inspector">
         {inspector}
       </aside>
       <dialog
@@ -168,6 +185,13 @@ export const SystemExplorer = ({
       </dialog>
       <div class="explorer__parts">
         <p class="kicker">Parts list</p>
+        {/* Outside the inspector, because the layout hides the inspector when scripts are off. */}
+        <noscript>
+          <p class="muted">
+            With JavaScript the drawing and this list open an inspector; every part and connection
+            is named inside the drawing.
+          </p>
+        </noscript>
         <PartsList
           nodes={nodes}
           selection={selection.value}

@@ -1,5 +1,5 @@
-import { cleanup, render } from '@testing-library/preact';
-import { afterEach, describe, expect, it } from 'vitest';
+import { act, cleanup, render } from '@testing-library/preact';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Schematic } from '../../src/islands/schematic/Schematic';
 import { SchematicPair, stackedLimit } from '../../src/islands/schematic/SchematicPair';
 import { toSchematicEdges, toSchematicNodes } from '../../src/systems/presentation';
@@ -29,7 +29,10 @@ const drawing = (onSelect?: () => void) =>
     />,
   );
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe('Schematic', () => {
   it('draws plain graphics when nothing can be selected', () => {
@@ -54,6 +57,49 @@ describe('Schematic', () => {
     expect(container.querySelector('[data-edge="client-api"]')?.getAttribute('tabindex')).toBe(
       '-1',
     );
+  });
+
+  it('moves its single Tab stop to whatever is selected from outside', () => {
+    const { container, rerender } = render(
+      <Schematic
+        systemId="fixture"
+        title="Ledger architecture"
+        description={system.tagline}
+        nodes={nodes}
+        edges={edges}
+        orientation="horizontal"
+        onSelect={() => undefined}
+      />,
+    );
+    const stop = () => container.querySelector('[tabindex="0"]');
+    expect(stop()?.getAttribute('data-node')).toBe('client');
+    rerender(
+      <Schematic
+        systemId="fixture"
+        title="Ledger architecture"
+        description={system.tagline}
+        nodes={nodes}
+        edges={edges}
+        orientation="horizontal"
+        selected={{ kind: 'node', id: 'database' }}
+        onSelect={() => undefined}
+      />,
+    );
+    expect(stop()?.getAttribute('data-node')).toBe('database');
+    rerender(
+      <Schematic
+        systemId="fixture"
+        title="Ledger architecture"
+        description={system.tagline}
+        nodes={nodes}
+        edges={edges}
+        orientation="horizontal"
+        selected={{ kind: 'edge', id: 'client-api' }}
+        onSelect={() => undefined}
+      />,
+    );
+    expect(stop()?.getAttribute('data-edge')).toBe('client-api');
+    expect(container.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
   });
 
   it('is laid out at its natural size and tells a scroller how wide it is', () => {
@@ -99,7 +145,7 @@ describe('Schematic', () => {
     );
   });
 
-  it('draws a rail when asked, at its natural size, with its own ids', () => {
+  it('draws a rail when asked, at its natural size, with its own ids and row-order callouts', () => {
     const { container } = render(
       <Schematic
         systemId="fixture"
@@ -119,6 +165,37 @@ describe('Schematic', () => {
       Number(frame.getAttribute('y') ?? frame.getAttribute('d')?.split(',')[1]),
     );
     expect(new Set(tops).size).toBe(nodes.length);
+    expect(
+      [...container.querySelectorAll('.schematic__balloon text')].map((text) => text.textContent),
+    ).toEqual(['1', '2', '3']);
+  });
+
+  it('prints a legend on a rail instead of a tag on every wire of its majority protocol', () => {
+    const { container } = render(
+      <Schematic
+        systemId="fixture"
+        title="Ledger rail"
+        description={system.tagline}
+        nodes={nodes}
+        edges={[
+          ...edges,
+          {
+            id: 'client-database',
+            from: 'client',
+            to: 'database',
+            label: 'audit',
+            protocol: 'sql',
+          },
+        ]}
+        orientation="rail"
+      />,
+    );
+    expect(container.querySelector('.schematic__legend')?.textContent).toBe(
+      'unlabelled wires: SQL',
+    );
+    expect(
+      [...container.querySelectorAll('.schematic__tag')].map((tag) => tag.textContent),
+    ).toEqual(['HTTPS']);
   });
 
   it('draws protocol tags after the packets so a packet never hides one', () => {
@@ -138,18 +215,22 @@ describe('SchematicPair', () => {
     kind: 'process' as const,
   }));
 
-  it('stacks a footprint of up to twelve parts and scrolls a larger one with a visible hint', () => {
+  it('pairs a footprint of up to twelve parts with a rail and scrolls a larger one with a hint', () => {
     expect(stackedLimit).toBe(12);
     const stacked = render(
       <SchematicPair systemId="pair" title="Ledger" description="" nodes={nodes} edges={edges} />,
     );
     expect(stacked.container.querySelectorAll('svg')).toHaveLength(2);
-    expect(stacked.container.querySelector('.schematic-scroll--horizontal svg')).not.toBeNull();
-    expect(stacked.container.querySelector('.schematic-scroll--vertical svg')).not.toBeNull();
+    expect(
+      stacked.container.querySelector('.schematic-scroll--horizontal svg.schematic--horizontal'),
+    ).not.toBeNull();
+    expect(
+      stacked.container.querySelector('.schematic-scroll--vertical svg.schematic--rail'),
+    ).not.toBeNull();
     const regions = [...stacked.container.querySelectorAll('[role="region"]')];
     expect(regions.map((region) => region.getAttribute('aria-label'))).toEqual([
       'Ledger, wide drawing, scrolls sideways',
-      'Ledger, stacked drawing, scrolls sideways',
+      'Ledger, drawn as a rail',
     ]);
     expect(regions.every((region) => region.getAttribute('tabindex') === '0')).toBe(true);
     expect(stacked.container.querySelectorAll('.schematic-scroll__hint')).toHaveLength(1);
@@ -177,5 +258,61 @@ describe('SchematicPair', () => {
     expect(scrolled.container.querySelector('.schematic-scroll__hint')?.textContent).toBe(
       'Full drawing · scrolls sideways',
     );
+  });
+
+  it('marks each wrapper with whether it overflows once it can measure itself', async () => {
+    // Without a ResizeObserver nothing is measured and the served markup keeps its hint.
+    const served = render(
+      <SchematicPair systemId="wide" title="Ledger" description="" nodes={wideNodes} edges={[]} />,
+    );
+    expect(
+      served.container.querySelector('.schematic-scroll')?.hasAttribute('data-overflows'),
+    ).toBe(false);
+    cleanup();
+    const callbacks: (() => void)[] = [];
+    class FakeResizeObserver {
+      constructor(callback: () => void) {
+        callbacks.push(callback);
+      }
+      observe() {
+        return undefined;
+      }
+      disconnect() {
+        return undefined;
+      }
+    }
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+    let scrollWidth = 900;
+    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+      configurable: true,
+      get: () => scrollWidth,
+    });
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get: () => 700,
+    });
+    try {
+      const { container } = render(
+        <SchematicPair
+          systemId="wide"
+          title="Ledger"
+          description=""
+          nodes={wideNodes}
+          edges={[]}
+        />,
+      );
+      const wrapper = container.querySelector('.schematic-scroll');
+      expect(wrapper?.getAttribute('data-overflows')).toBe('true');
+      scrollWidth = 700;
+      await act(() => {
+        for (const callback of callbacks) {
+          callback();
+        }
+      });
+      expect(wrapper?.getAttribute('data-overflows')).toBe('false');
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollWidth');
+      Reflect.deleteProperty(HTMLElement.prototype, 'clientWidth');
+    }
   });
 });

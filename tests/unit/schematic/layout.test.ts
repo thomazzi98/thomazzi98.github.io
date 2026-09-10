@@ -1,20 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
+  columnLimit,
   edgePath,
   layoutSystem,
+  legendRow,
   nodeHeightOf,
   nodeWidth,
   pointAlong,
   tagBox,
   wrapLabel,
+  type LayoutEdge,
+  type LayoutNode,
   type PlacedEdge,
 } from '../../../src/islands/schematic/layout';
+import type { EdgeProtocol, NodeKind } from '../../../src/systems/schema';
 import { defineSystem } from '../../../src/systems/validate';
 import { firstOf, fixtureSystem } from '../systems/fixture';
 
 const system = defineSystem(fixtureSystem);
 
-const placedNode = (id: string, orientation: 'horizontal' | 'vertical') => {
+const placedNode = (id: string, orientation: 'horizontal' | 'rail') => {
   const placed = layoutSystem(system.nodes, system.edges, orientation).nodes.find(
     (entry) => entry.node.id === id,
   );
@@ -40,7 +45,33 @@ const placedEdge = (edges: readonly PlacedEdge[], id: string): PlacedEdge => {
   return placed;
 };
 
+const tagOf = (placed: PlacedEdge) => {
+  if (placed.tag === undefined) {
+    throw new Error(`edge ${placed.edge.id} has no tag`);
+  }
+  return placed.tag;
+};
+
 const secondEdge = firstOf(system.edges.slice(1));
+
+const part = (id: string, kind: NodeKind = 'process'): LayoutNode => ({ id, label: id, kind });
+const link = (
+  origin: string,
+  destination: string,
+  protocol: EdgeProtocol = 'sql',
+  id = `${origin}-${destination}`,
+): LayoutEdge => ({ id, from: origin, to: destination, protocol });
+
+const rankOf = (layout: ReturnType<typeof layoutSystem>, id: string) =>
+  placedNodeIn(layout, id).rank;
+
+const rounded = (point: { x: number; y: number }) => ({
+  x: Math.round(point.x * 10) / 10,
+  y: Math.round(point.y * 10) / 10,
+});
+
+const insideBox = (point: { x: number; y: number }, box: PlacedEdge['start'] & object) =>
+  point.x > box.x && point.x < box.x + nodeWidth && point.y > box.y;
 
 describe('layoutSystem', () => {
   it('ranks nodes by their longest path from a source', () => {
@@ -49,11 +80,11 @@ describe('layoutSystem', () => {
     expect(placedNode('database', 'horizontal').rank).toBe(2);
   });
 
-  it('lays ranks left to right on wide screens and top to bottom on narrow ones', () => {
+  it('lays ranks left to right on wide screens and top to bottom on a rail', () => {
     expect(placedNode('api', 'horizontal').x).toBeGreaterThan(placedNode('client', 'horizontal').x);
     expect(placedNode('api', 'horizontal').y).toBe(placedNode('client', 'horizontal').y);
-    expect(placedNode('api', 'vertical').y).toBeGreaterThan(placedNode('client', 'vertical').y);
-    expect(placedNode('api', 'vertical').x).toBe(placedNode('client', 'vertical').x);
+    expect(placedNode('api', 'rail').y).toBeGreaterThan(placedNode('client', 'rail').y);
+    expect(placedNode('api', 'rail').x).toBe(placedNode('client', 'rail').x);
   });
 
   it('numbers nodes in declaration order so callouts match the parts list', () => {
@@ -66,6 +97,131 @@ describe('layoutSystem', () => {
       ['api', 2],
       ['database', 3],
     ]);
+  });
+
+  it('gives an orchestration edge no length, so compose ordering never stretches the drawing', () => {
+    const nodes = [part('api'), part('postgres', 'store'), part('migrate', 'job')];
+    const edges = [
+      link('api', 'postgres'),
+      link('postgres', 'migrate', 'orchestration'),
+      link('migrate', 'postgres'),
+    ];
+    const layout = layoutSystem(nodes, edges, 'horizontal');
+    // Counted, the ordering edge would close a cycle and push the job one column past the store.
+    expect(rankOf(layout, 'api')).toBe(0);
+    expect(rankOf(layout, 'migrate')).toBe(0);
+    expect(rankOf(layout, 'postgres')).toBe(1);
+    expect(layout.width).toBe(16 + nodeWidth + 84 + nodeWidth + 16);
+  });
+
+  it('places a part nothing calls in the column before what it talks to, unless it is an entry', () => {
+    const nodes = [...system.nodes, part('worker'), part('auditor', 'actor')];
+    const edges = [
+      ...system.edges,
+      link('worker', 'database', 'sql', 'worker-database'),
+      link('auditor', 'database', 'sql', 'auditor-database'),
+    ];
+    const layout = layoutSystem(nodes, edges, 'horizontal');
+    expect(rankOf(layout, 'worker')).toBe(1);
+    expect(rankOf(layout, 'auditor')).toBe(0);
+    expect(rankOf(layout, 'database')).toBe(2);
+  });
+
+  it('leaves a wire that closes a cycle out of the layering and bows it backwards', () => {
+    const nodes = [...system.nodes, part('provider', 'external')];
+    const edges = [
+      ...system.edges,
+      link('api', 'provider', 'https', 'api-provider'),
+      link('provider', 'api', 'webhook', 'provider-callback'),
+    ];
+    const layout = layoutSystem(nodes, edges, 'horizontal');
+    expect(rankOf(layout, 'provider')).toBe(2);
+    expect(rankOf(layout, 'database')).toBe(2);
+    expect(placedEdge(layout.edges, 'provider-callback').control).toBeDefined();
+    expect(placedEdge(layout.edges, 'api-provider').control).toBeDefined();
+  });
+
+  it('keeps to four columns by folding calls between packages into one column', () => {
+    const chain = (length: number) => {
+      const packages = [...Array(length).keys()].map((index) =>
+        part(`package-${String(index)}`, 'package'),
+      );
+      const nodes = [part('client', 'actor'), part('api'), ...packages];
+      const edges = [
+        link('client', 'api', 'https'),
+        link('api', 'package-0', 'in-process'),
+        ...packages
+          .slice(1)
+          .map((node, index) => link(`package-${String(index)}`, node.id, 'in-process')),
+      ];
+      return layoutSystem(nodes, edges, 'horizontal');
+    };
+    const honest = chain(2);
+    expect(rankOf(honest, 'package-1')).toBe(3);
+    const folded = chain(3);
+    expect(columnLimit).toBe(4);
+    expect(rankOf(folded, 'package-0')).toBe(2);
+    expect(rankOf(folded, 'package-2')).toBe(2);
+    expect(folded.width).toBe(honest.width - (nodeWidth + 84));
+  });
+
+  it('routes a wire between two parts of one column that are not neighbours beside the column', () => {
+    const nodes = [
+      part('api'),
+      part('one', 'job'),
+      part('two', 'job'),
+      part('three', 'job'),
+      part('postgres', 'store'),
+    ];
+    const edges = [
+      link('api', 'postgres'),
+      link('one', 'postgres'),
+      link('two', 'postgres'),
+      link('three', 'postgres'),
+      link('one', 'two', 'orchestration'),
+      link('one', 'three', 'orchestration'),
+    ];
+    const layout = layoutSystem(nodes, edges, 'horizontal');
+    const one = placedNodeIn(layout, 'one');
+    const two = placedNodeIn(layout, 'two');
+    const three = placedNodeIn(layout, 'three');
+    expect([one.rank, two.rank, three.rank]).toEqual([0, 0, 0]);
+    // The lane keeps the wires' sources above their targets.
+    expect(one.y).toBeLessThan(two.y);
+    expect(two.y).toBeLessThan(three.y);
+    expect(placedEdge(layout.edges, 'one-two').control).toBeUndefined();
+    const skip = placedEdge(layout.edges, 'one-three');
+    if (skip.control === undefined) {
+      throw new Error('the skipping wire should bow');
+    }
+    expect(skip.control.x).toBeGreaterThan(one.x + nodeWidth);
+    for (let step = 0; step <= 20; step += 1) {
+      expect(insideBox(pointAlong(skip, step / 20), two)).toBe(false);
+    }
+    expect(layout.width).toBe(16 + nodeWidth + 84 + nodeWidth + 16);
+  });
+
+  it('turns a bow in the last column into the gap on its left so the drawing keeps its width', () => {
+    const nodes = [
+      part('client', 'actor'),
+      part('api'),
+      part('alpha', 'job'),
+      part('beta', 'job'),
+      part('gamma', 'job'),
+    ];
+    const edges = [
+      link('client', 'api', 'https'),
+      link('api', 'alpha', 'in-process'),
+      link('api', 'beta', 'in-process'),
+      link('api', 'gamma', 'in-process'),
+      link('alpha', 'gamma', 'orchestration'),
+    ];
+    const layout = layoutSystem(nodes, edges, 'horizontal');
+    const alpha = placedNodeIn(layout, 'alpha');
+    const skip = placedEdge(layout.edges, 'alpha-gamma');
+    expect(alpha.rank).toBe(2);
+    expect(skip.control?.x).toBeLessThan(alpha.x);
+    expect(layout.width).toBe(16 + 2 * (nodeWidth + 84) + nodeWidth + 16);
   });
 
   it('gives every node the same box and a canvas that contains all of them', () => {
@@ -154,7 +310,7 @@ describe('layoutSystem', () => {
     expect(second.tag).toEqual(
       expect.objectContaining({ x: Math.round(pointAlong(second, 0.6).x * 10) / 10 }),
     );
-    const boxes = layout.edges.map((placed) => tagBox(placed.tag, 'HTTPS'));
+    const boxes = layout.edges.map((placed) => tagBox(tagOf(placed), 'HTTPS'));
     for (const box of boxes) {
       for (const node of layout.nodes) {
         const overlaps =
@@ -167,137 +323,67 @@ describe('layoutSystem', () => {
     }
   });
 
-  it('bows a vertical wire around a part it would otherwise run through', () => {
+  it('starts the tags of a pair that runs both ways a third of the way along each wire', () => {
     const edges = [
       ...system.edges,
-      { ...secondEdge, id: 'client-database', from: 'client', to: 'database', label: 'audit' },
+      {
+        ...secondEdge,
+        id: 'database-api',
+        from: 'database',
+        to: 'api',
+        label: 'row',
+        protocol: 'webhook' as const,
+      },
     ];
-    const layout = layoutSystem(system.nodes, edges, 'vertical');
-    const skip = placedEdge(layout.edges, 'client-database');
-    const api = layout.nodes.find((entry) => entry.node.id === 'api');
-    if (api === undefined || skip.control === undefined) {
-      throw new Error('the skipping edge should bow');
-    }
-    expect(skip.control.x).toBeLessThan(api.x);
-    for (let step = 0; step <= 20; step += 1) {
-      const point = pointAlong(skip, step / 20);
-      const inside =
-        point.x > api.x &&
-        point.x < api.x + api.width &&
-        point.y > api.y &&
-        point.y < api.y + api.height;
-      expect(inside).toBe(false);
-    }
-    // The canvas grows to hold the bow and its tag instead of clipping them.
-    expect(skip.control.x).toBeGreaterThanOrEqual(0);
-    expect(layout.width).toBeGreaterThan(nodeWidth + 32);
+    const layout = layoutSystem(system.nodes, edges, 'horizontal');
+    const forward = placedEdge(layout.edges, 'api-database');
+    const reply = placedEdge(layout.edges, 'database-api');
+    expect(tagOf(forward)).toEqual(rounded(pointAlong(forward, 0.35)));
+    expect(tagOf(reply)).toEqual(rounded(pointAlong(reply, 0.65)));
   });
 
-  it('runs a wire between the lanes down the gap when it would cross a part', () => {
-    const part = (id: string) => ({ id, label: id, kind: 'process' as const });
-    const link = (origin: string, destination: string) => ({
-      ...secondEdge,
-      id: `${origin}-${destination}`,
-      from: origin,
-      to: destination,
-      label: `${origin} to ${destination}`,
-    });
-    const nodes = ['left0', 'right0', 'left1', 'right1', 'left2', 'right2'].map(part);
+  it('prints one tag on the chord for a pair that runs both ways on one protocol', () => {
     const edges = [
-      link('left0', 'left1'),
-      link('right0', 'right1'),
-      link('left1', 'left2'),
-      link('right1', 'right2'),
-      link('left0', 'right2'),
+      ...system.edges,
+      {
+        ...secondEdge,
+        id: 'database-api',
+        from: 'database',
+        to: 'api',
+        label: 'row',
+        protocol: 'sql' as const,
+      },
     ];
-    const layout = layoutSystem(nodes, edges, 'vertical');
-    const crossing = placedEdge(layout.edges, 'left0-right2');
-    const others = layout.nodes.filter(
-      (placed) => placed.node.id !== 'left0' && placed.node.id !== 'right2',
+    const layout = layoutSystem(system.nodes, edges, 'horizontal');
+    const forward = placedEdge(layout.edges, 'api-database');
+    const reply = placedEdge(layout.edges, 'database-api');
+    expect(reply.tag).toBeUndefined();
+    expect(tagOf(forward)).toEqual(
+      rounded({
+        x: (forward.start.x + forward.end.x) / 2,
+        y: (forward.start.y + forward.end.y) / 2,
+      }),
     );
-    for (let step = 0; step <= 40; step += 1) {
-      const point = pointAlong(crossing, step / 40);
-      for (const box of others) {
-        const inside =
-          point.x > box.x &&
-          point.x < box.x + box.width &&
-          point.y > box.y &&
-          point.y < box.y + box.height;
-        expect(inside).toBe(false);
-      }
-    }
-    // The gap route needs no room beside the column.
-    expect(layout.width).toBe(2 * nodeWidth + 30 + 2 * 16);
-  });
-
-  it('lets detours on one side share a bow unless they run alongside each other', () => {
-    const chain = ['first', 'second', 'third', 'fourth', 'fifth'].map((id) => ({
-      id,
-      label: id,
-      kind: 'process' as const,
-    }));
-    const link = (origin: string, destination: string) => ({
-      ...secondEdge,
-      id: `${origin}-${destination}`,
-      from: origin,
-      to: destination,
-      label: `${origin} to ${destination}`,
-    });
-    const steps = [
-      link('first', 'second'),
-      link('second', 'third'),
-      link('third', 'fourth'),
-      link('fourth', 'fifth'),
-    ];
-    const apart = layoutSystem(
-      chain,
-      [...steps, link('first', 'third'), link('third', 'fifth')],
-      'vertical',
-    );
-    const firstDetour = placedEdge(apart.edges, 'first-third');
-    const secondDetour = placedEdge(apart.edges, 'third-fifth');
-    expect(firstDetour.control?.x).toBe(secondDetour.control?.x);
-    const alongside = layoutSystem(
-      chain,
-      [...steps, link('first', 'third'), link('first', 'fourth')],
-      'vertical',
-    );
-    const shallow = placedEdge(alongside.edges, 'first-third');
-    const deep = placedEdge(alongside.edges, 'first-fourth');
-    expect(deep.control?.x).toBeLessThan(shallow.control?.x ?? 0);
-    // The column only pays for the room the deepest detour and the widest tag need.
-    expect(alongside.width).toBeGreaterThan(apart.width);
-    expect(apart.width).toBeLessThan(nodeWidth + 2 * 16 + 80);
   });
 
   it('is deterministic', () => {
-    const first = layoutSystem(system.nodes, system.edges, 'vertical');
-    const second = layoutSystem(system.nodes, system.edges, 'vertical');
-    expect(first).toEqual(second);
+    for (const orientation of ['horizontal', 'rail'] as const) {
+      const first = layoutSystem(system.nodes, system.edges, orientation);
+      const second = layoutSystem(system.nodes, system.edges, orientation);
+      expect(first).toEqual(second);
+    }
   });
 });
 
 describe('layoutSystem as a rail', () => {
-  const part = (id: string) => ({ id, label: id, kind: 'process' as const });
-  const link = (origin: string, destination: string, protocol: 'sql' | 'webhook' = 'sql') => ({
-    ...secondEdge,
-    id: `${origin}-${destination}`,
-    from: origin,
-    to: destination,
-    label: `${origin} to ${destination}`,
-    protocol,
-  });
-  const chain = ['first', 'second', 'third', 'fourth'].map(part);
+  const chain = ['first', 'second', 'third', 'fourth'].map((id) => part(id));
   const steps = [link('first', 'second'), link('second', 'third'), link('third', 'fourth')];
-  const insideNode = (point: { x: number; y: number }, box: PlacedEdge['start'] & object) =>
-    point.x > box.x && point.x < box.x + nodeWidth && point.y > box.y;
-
-  it('places every part in its own row of one column, in rank order, inside 300 units', () => {
-    // Two hubs fanning out to shared targets, the shape of the widest board footprint.
-    const nodes = ['hub', 'worker', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'].map(
-      part,
-    );
-    const edges = [
+  // Two hubs fanning out to shared targets, the shape of the widest board footprint.
+  const fan = {
+    nodes: ['hub', 'worker', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'].map((id) =>
+      part(id),
+    ),
+    edges: [
       link('hub', 'one'),
       link('hub', 'two'),
       link('hub', 'three'),
@@ -307,23 +393,80 @@ describe('layoutSystem as a rail', () => {
       link('worker', 'five', 'webhook'),
       link('two', 'six'),
       link('two', 'seven', 'webhook'),
-    ];
-    const layout = layoutSystem(nodes, edges, 'rail');
+    ],
+  };
+
+  it('places every part in its own row of one column, in rank order, inside 300 units', () => {
+    const layout = layoutSystem(fan.nodes, fan.edges, 'rail');
     expect(layout.orientation).toBe('rail');
     expect(new Set(layout.nodes.map((placed) => placed.x)).size).toBe(1);
-    expect(new Set(layout.nodes.map((placed) => placed.y)).size).toBe(nodes.length);
-    const byRow = [...layout.nodes].sort((first, second) => first.y - second.y);
-    byRow.forEach((placed, row) => {
+    expect(new Set(layout.nodes.map((placed) => placed.y)).size).toBe(fan.nodes.length);
+    layout.nodes.forEach((placed, row) => {
       expect(placed.y).toBe(16 + row * (placed.height + 28));
-      expect(placed.rank).toBeGreaterThanOrEqual(byRow[row - 1]?.rank ?? 0);
+      expect(placed.rank).toBeGreaterThanOrEqual(layout.nodes[row - 1]?.rank ?? 0);
     });
     expect(layout.width).toBeGreaterThan(nodeWidth + 32);
     expect(layout.width).toBeLessThanOrEqual(300);
     for (const placed of layout.edges) {
+      if (placed.tag === undefined) {
+        continue;
+      }
       const box = tagBox(placed.tag, 'WEBHOOK');
       expect(box.x + box.width).toBeLessThanOrEqual(layout.width);
       expect(box.x).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it('numbers callouts top to bottom, in the drawn order rather than the declared one', () => {
+    // A target declared before its hub is drawn below it.
+    const declared = [...fan.nodes.slice(2, 4), ...fan.nodes.slice(0, 2), ...fan.nodes.slice(4)];
+    const layout = layoutSystem(declared, fan.edges, 'rail');
+    expect(layout.nodes.map((placed) => placed.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const ids = layout.nodes.map((placed) => placed.node.id);
+    expect(ids.slice(0, 2)).toEqual(['hub', 'worker']);
+    expect(ids.indexOf('two')).toBeLessThan(ids.indexOf('six'));
+    layout.nodes.forEach((placed, row) => {
+      expect(placed.y).toBe(16 + row * (placed.height + 28));
+    });
+    // The wide drawing keeps the declared order, which is the parts list's order.
+    const wide = layoutSystem(declared, fan.edges, 'horizontal');
+    expect(wide.nodes.map((placed) => placed.node.id)).toEqual(declared.map((node) => node.id));
+    expect(wide.nodes.map((placed) => placed.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('tags only the wires off the majority protocol and names that protocol in a legend', () => {
+    const layout = layoutSystem(fan.nodes, fan.edges, 'rail');
+    expect(layout.legend).toBe('unlabelled wires: SQL');
+    const tagged = layout.edges.filter((placed) => placed.tag !== undefined);
+    expect(tagged.map((placed) => placed.edge.protocol)).toEqual(['webhook', 'webhook', 'webhook']);
+    const plain = layoutSystem(fan.nodes, fan.edges.slice(0, 3), 'rail');
+    expect(plain.legend).toBe('unlabelled wires: SQL');
+    expect(plain.edges.every((placed) => placed.tag === undefined)).toBe(true);
+    // The legend needs its own row under the last part.
+    expect(layout.height).toBe(32 + 8 * (nodeHeightOf(1) + 28) + nodeHeightOf(1) + legendRow);
+    // Without a clear majority every wire keeps its tag and there is nothing to explain.
+    const mixed = layoutSystem(
+      chain,
+      [link('first', 'second', 'http'), link('second', 'third')],
+      'rail',
+    );
+    expect(mixed.legend).toBeUndefined();
+    expect(mixed.edges.every((placed) => placed.tag !== undefined)).toBe(true);
+    expect(layoutSystem(system.nodes, system.edges, 'horizontal').legend).toBeUndefined();
+  });
+
+  it('keeps two tags that share the side of the column at least sixteen units apart', () => {
+    const edges = [
+      ...steps,
+      link('first', 'third', 'webhook'),
+      link('first', 'third', 'http', 'first-third-again'),
+    ];
+    const layout = layoutSystem(chain, edges, 'rail');
+    const first = tagBox(tagOf(placedEdge(layout.edges, 'first-third')), 'WEBHOOK');
+    const second = tagBox(tagOf(placedEdge(layout.edges, 'first-third-again')), 'HTTP');
+    const shareColumn = first.x < second.x + second.width && second.x < first.x + first.width;
+    expect(shareColumn).toBe(true);
+    expect(Math.abs(first.y - second.y)).toBeGreaterThanOrEqual(16);
   });
 
   it('wires neighbouring rows straight down the column and bows a skipping wire to the right', () => {
@@ -334,9 +477,8 @@ describe('layoutSystem as a rail', () => {
     expect(straight.control).toBeUndefined();
     expect(straight.start).toEqual({ x: first.x + nodeWidth / 2, y: first.y + first.height });
     expect(straight.end).toEqual({ x: first.x + nodeWidth / 2, y: second.y });
-    // The straight wire is too short for its tag, which stands beside it in the gap.
-    expect(straight.tag.y).toBe((straight.start.y + straight.end.y) / 2);
-    expect(straight.tag.x).toBeGreaterThan(straight.start.x);
+    // On the majority protocol the straight wire carries no tag; the legend names it.
+    expect(straight.tag).toBeUndefined();
     const skip = placedEdge(layout.edges, 'first-third');
     if (skip.control === undefined) {
       throw new Error('the skipping wire should bow');
@@ -346,16 +488,28 @@ describe('layoutSystem as a rail', () => {
     expect(skip.start.x).toBe(columnRight);
     expect(skip.end.x).toBe(columnRight);
     for (let step = 0; step <= 20; step += 1) {
-      expect(insideNode(pointAlong(skip, step / 20), second)).toBe(false);
+      expect(insideBox(pointAlong(skip, step / 20), second)).toBe(false);
     }
     // The tag sits on the bow, clear of the part the wire passes.
-    const tag = tagBox(skip.tag, 'WEBHOOK');
+    const tag = tagBox(tagOf(skip), 'WEBHOOK');
     expect(tag.x).toBeGreaterThan(columnRight);
     expect(tag.x + tag.width).toBeLessThanOrEqual(layout.width);
   });
 
+  it('stands the tag of a straight wire beside it when the wire is tagged', () => {
+    const layout = layoutSystem(
+      chain.slice(0, 3),
+      [link('first', 'second', 'http'), link('second', 'third')],
+      'rail',
+    );
+    const straight = placedEdge(layout.edges, 'first-second');
+    expect(straight.control).toBeUndefined();
+    expect(tagOf(straight).y).toBe((straight.start.y + straight.end.y) / 2);
+    expect(tagOf(straight).x).toBeGreaterThan(straight.start.x);
+  });
+
   it('bows a wire that runs upward to the left of the column', () => {
-    const layout = layoutSystem(chain, [...steps, link('fourth', 'first')], 'rail');
+    const layout = layoutSystem(chain, [...steps, link('fourth', 'first', 'webhook')], 'rail');
     const reply = placedEdge(layout.edges, 'fourth-first');
     const first = placedNodeIn(layout, 'first');
     if (reply.control === undefined) {
@@ -367,7 +521,7 @@ describe('layoutSystem as a rail', () => {
     expect(reply.start.y).toBeGreaterThan(reply.end.y);
     // The column moves right to make room for the bow and its tag.
     expect(first.x).toBeGreaterThan(16);
-    expect(tagBox(reply.tag, 'SQL').x).toBeGreaterThanOrEqual(0);
+    expect(tagBox(tagOf(reply), 'WEBHOOK').x).toBeGreaterThanOrEqual(0);
     const forward = layoutSystem(chain, steps, 'rail');
     expect(layout.width).toBeGreaterThan(forward.width);
     expect(placedEdge(forward.edges, 'first-second').control).toBeUndefined();
@@ -376,9 +530,9 @@ describe('layoutSystem as a rail', () => {
   it('gives parallel wires distinct control points', () => {
     const edges = [
       ...steps,
-      link('first', 'third'),
-      { ...link('first', 'second'), id: 'first-second-again' },
-      { ...link('first', 'third'), id: 'first-third-again' },
+      link('first', 'third', 'webhook'),
+      { ...link('first', 'second', 'webhook'), id: 'first-second-again' },
+      { ...link('first', 'third', 'webhook'), id: 'first-third-again' },
     ];
     const layout = layoutSystem(chain, edges, 'rail');
     const near = placedEdge(layout.edges, 'first-second');
@@ -398,7 +552,7 @@ describe('layoutSystem as a rail', () => {
     const three = chain.slice(0, 3);
     const natural = layoutSystem(three, steps.slice(0, 2), 'rail');
     const pitchOf = (layout: ReturnType<typeof layoutSystem>) => {
-      const [first, second] = [...layout.nodes].sort((one, other) => one.y - other.y);
+      const [first, second] = layout.nodes;
       return (second?.y ?? 0) - (first?.y ?? 0);
     };
     expect(pitchOf(natural)).toBe(nodeHeightOf(1) + 28);
@@ -406,23 +560,19 @@ describe('layoutSystem as a rail', () => {
     const five = layoutSystem(three, steps.slice(0, 2), 'rail', { rows: 5 });
     // Five rows at the natural pitch span 296 units; three parts share that span.
     expect(pitchOf(five)).toBe(148);
-    expect(five.height).toBe(32 + 2 * 148 + nodeHeightOf(1));
+    expect(five.height).toBe(32 + 2 * 148 + nodeHeightOf(1) + legendRow);
     expect(five.width).toBe(natural.width);
     const nine = layoutSystem(three, steps.slice(0, 2), 'rail', { rows: 9 });
     expect(pitchOf(nine)).toBe(nodeHeightOf(1) + 128);
     expect(layoutSystem(three, steps.slice(0, 2), 'rail', { rows: 40 })).toEqual(nine);
-    // The wire between spread rows stays straight and its tag stays in the gap beside it.
-    const wire = placedEdge(nine.edges, 'first-second');
-    expect(wire.control).toBeUndefined();
-    expect(wire.tag.y).toBe((wire.start.y + wire.end.y) / 2);
+    // The wire between spread rows stays straight.
+    expect(placedEdge(nine.edges, 'first-second').control).toBeUndefined();
   });
 
-  it('leaves the horizontal and vertical layouts untouched by the rows option', () => {
-    for (const orientation of ['horizontal', 'vertical'] as const) {
-      expect(layoutSystem(system.nodes, system.edges, orientation, { rows: 9 })).toEqual(
-        layoutSystem(system.nodes, system.edges, orientation),
-      );
-    }
+  it('leaves the horizontal layout untouched by the rows option', () => {
+    expect(layoutSystem(system.nodes, system.edges, 'horizontal', { rows: 9 })).toEqual(
+      layoutSystem(system.nodes, system.edges, 'horizontal'),
+    );
   });
 });
 

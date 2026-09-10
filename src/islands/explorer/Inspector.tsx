@@ -1,3 +1,4 @@
+import { Fragment } from 'preact';
 import { evidenceLabel, evidenceUrl } from '../../systems/evidence';
 import type { Evidence, Repository, SystemEdge, SystemNode } from '../../systems/schema';
 import { kindName, protocolName } from '../schematic/protocol';
@@ -12,6 +13,22 @@ interface InspectorProps {
   readonly technologyNames?: Readonly<Record<string, string>>;
 }
 
+// A path may break after any of its slashes, never inside a file name.
+const BreakablePath = ({ text }: { text: string }) => (
+  <>
+    {text.split('/').map((piece, index) => (
+      <Fragment key={`${String(index)}-${piece}`}>
+        {index > 0 && (
+          <>
+            /<wbr />
+          </>
+        )}
+        {piece}
+      </Fragment>
+    ))}
+  </>
+);
+
 const EvidenceList = ({
   repository,
   evidence,
@@ -23,7 +40,7 @@ const EvidenceList = ({
     {evidence.map((entry) => (
       <li key={`${evidenceLabel(entry)}${entry.note ?? ''}`} class="evidence">
         <a href={evidenceUrl(repository, entry)} rel="noopener">
-          {evidenceLabel(entry)}
+          <BreakablePath text={evidenceLabel(entry)} />
         </a>
         {entry.note !== undefined && <span> · {entry.note}</span>}
       </li>
@@ -43,6 +60,18 @@ const Field = ({ label, value }: { label: string; value: string | undefined }) =
   );
 };
 
+// The title line is the one live region of the inspector, so a selection announces its number,
+// kind and name and nothing more; the title takes focus when a button inside the inspector
+// replaced the view that held it.
+const Head = ({ kicker, title }: { kicker: string; title: string }) => (
+  <div class="inspector__head" aria-live="polite">
+    <p class="kicker">{kicker}</p>
+    <h3 class="inspector__title" tabIndex={-1}>
+      {title}
+    </h3>
+  </div>
+);
+
 export const Inspector = ({
   repository,
   nodes,
@@ -57,7 +86,7 @@ export const Inspector = ({
   if (selection === undefined) {
     return (
       <div class="inspector inspector--empty">
-        <h3 class="kicker">Inspector</h3>
+        <Head kicker="Inspector" title="Nothing selected" />
         <p class="muted">
           Select a node or an edge to see what it does, how it talks and where the code is.
         </p>
@@ -72,8 +101,7 @@ export const Inspector = ({
     }
     return (
       <div class="inspector" data-selection="edge">
-        <p class="kicker">Edge · {protocolName[edge.protocol]}</p>
-        <h3 class="inspector__title">{edge.label}</h3>
+        <Head kicker={`Edge · ${protocolName[edge.protocol]}`} title={edge.label} />
         <p class="inspector__route mono">
           <button
             type="button"
@@ -114,10 +142,10 @@ export const Inspector = ({
   const connections = edges.filter((edge) => edge.from === node.id || edge.to === node.id);
   return (
     <div class="inspector" data-selection="node">
-      <p class="kicker">
-        {String(nodes.indexOf(node) + 1)} · {kindName[node.kind]}
-      </p>
-      <h3 class="inspector__title">{node.label}</h3>
+      <Head
+        kicker={`${String(nodes.indexOf(node) + 1)} · ${kindName[node.kind]}`}
+        title={node.label}
+      />
       {node.stamp !== undefined && (
         <p>
           <span class="stamp">{node.stamp}</span>
