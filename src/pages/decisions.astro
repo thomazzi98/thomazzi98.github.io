@@ -89,8 +89,9 @@ const decisionHref = (entry: Entry) => `/systems/${entry.system.id}/#decision-${
         <div class="section__head">
           <h2 id={`${group.theme}-title`}>{themeNames[group.theme]}</h2>
           <p class="kicker">
-            {themeGlosses[group.theme]} · {group.entries.length}
+            {group.entries.length} {group.entries.length === 1 ? 'decision' : 'decisions'}
           </p>
+          <p class="section__note">{themeGlosses[group.theme]}.</p>
         </div>
         <ol class="entries">
           {group.entries.map((entry) => (

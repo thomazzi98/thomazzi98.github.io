@@ -3,12 +3,18 @@
     margin-top: var(--space-4);
   }
 
+  /* A wrapping row lets the last cells stretch, so a short row never leaves a painted empty cell. */
   .theme-index__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--hairline);
+    padding: var(--hairline);
     background: var(--rule);
-    border: var(--hairline) solid var(--rule);
+  }
+
+  .theme-index__list li {
+    flex: 1 1 9rem;
+    display: grid;
   }
 
   .theme-index__list a {
@@ -41,7 +47,7 @@
 
   .theme:target .section__head h2 {
     text-decoration: underline;
-    text-decoration-color: var(--wait);
+    text-decoration-color: var(--ink);
     text-underline-offset: 0.15em;
   }
 
@@ -62,7 +68,7 @@
   }
 
   .entry:target {
-    box-shadow: inset 3px 0 0 var(--wait);
+    box-shadow: inset 3px 0 0 var(--ink);
   }
 
   @media (max-width: 48rem) {

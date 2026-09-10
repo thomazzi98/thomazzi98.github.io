@@ -8,9 +8,11 @@ interface Props {
 }
 
 const { repository, evidence } = Astro.props;
+// A path may break after a slash or before a dot, never inside a name, so a wrapped label still reads as a path.
+const segments = (label: string): string[] => label.split(/(?<=\/)|(?=\.)/);
 const links = evidence.map((entry) => ({
   href: evidenceUrl(repository, entry),
-  label: evidenceLabel(entry),
+  segments: segments(evidenceLabel(entry)),
 }));
 ---
 
@@ -18,7 +20,14 @@ const links = evidence.map((entry) => ({
   links.map((link, index) => (
     <Fragment>
       {index > 0 && ' · '}
-      <a href={link.href}>{link.label}</a>
+      <a class="evidence-link" href={link.href}>
+        {link.segments.map((segment, position) => (
+          <Fragment>
+            {position > 0 && <wbr />}
+            {segment}
+          </Fragment>
+        ))}
+      </a>
     </Fragment>
   ))
 }

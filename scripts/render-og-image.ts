@@ -110,6 +110,14 @@ const styles = `
   .thesis.tagline {
     font-size: 40px;
   }
+  /* A system card anchors its name and tagline to the foot of the middle block, so the frame fills. */
+  .middle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 48px 0 44px;
+  }
   .systems {
     display: flex;
     flex-wrap: wrap;
@@ -168,7 +176,7 @@ const systemCard = (card: SystemCard) => {
       <span>${escapeHtml(identity.name)}</span>
       <span>${escapeHtml(`${card.repository.owner}/${card.repository.name}`)}</span>
     </p>
-    <div>
+    <div class="middle">
       <h1${nameClass}>${escapeHtml(card.name)}</h1>
       <p class="thesis tagline">${escapeHtml(card.tagline)}</p>
     </div>

@@ -292,22 +292,15 @@
     border-bottom-color: var(--ink);
   }
 
-  @media (max-width: 48rem) {
-    .site-header {
-      gap: var(--space-3) var(--space-4);
+  /* Forced colours paint every border in the link colour, so only the current page may carry one. */
+  @media (forced-colors: active) {
+    .site-nav a {
+      border-bottom: 0;
     }
 
-    .site-nav {
-      gap: var(--space-2) var(--space-3);
-      font-size: var(--size-micro);
-      letter-spacing: 0.05em;
-    }
-  }
-
-  @media (max-width: 24rem) {
-    .site-nav {
-      gap: var(--space-2);
-      letter-spacing: 0.02em;
+    .site-nav a[aria-current='page'] {
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
     }
   }
 
@@ -354,6 +347,12 @@
     color: var(--ink-muted);
   }
 
+  /* A path or a hash is an identifier: it keeps its case and its tracking inside a kicker. */
+  .kicker .mono {
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
   .lead {
     font-size: var(--size-lead);
     line-height: 1.45;
@@ -392,6 +391,13 @@
     padding-bottom: var(--space-3);
     margin-bottom: var(--space-5);
     border-bottom: var(--hairline) solid var(--rule);
+  }
+
+  .section__note {
+    flex-basis: 100%;
+    max-width: var(--measure);
+    font-size: var(--size-small);
+    color: var(--ink-muted);
   }
 
   .panel {
@@ -550,6 +556,17 @@
     min-width: 40rem;
   }
 
+  .facts-hint {
+    display: none;
+    margin-top: var(--space-2);
+  }
+
+  @media (max-width: 48rem) {
+    .facts-hint {
+      display: block;
+    }
+  }
+
   .facts-scroll td,
   .facts-scroll th {
     white-space: nowrap;
@@ -571,6 +588,12 @@
 
   .evidence a {
     color: var(--ink);
+  }
+
+  /* Evidence paths carry their own break points, after each slash and before each dot; a break
+     inside a name happens only when one name alone is wider than the line. */
+  .evidence-link {
+    overflow-wrap: break-word;
   }
 
   .prose > * + * {
@@ -603,6 +626,13 @@
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
     align-items: end;
     padding-block: var(--space-8) var(--space-7);
+  }
+
+  /* Below the widest screens the aside outgrows the name block, so the two columns share a top edge. */
+  @media (max-width: 72rem) {
+    .hero {
+      align-items: start;
+    }
   }
 
   @media (max-width: 60rem) {
@@ -646,6 +676,50 @@
     color: var(--ink-muted);
   }
 
+  /* Two rows on a phone: the wordmark with the search control, then the navigation, all from the
+     left. The block lives in the page layer because palette.css pushes the nav right beside the
+     trigger from that layer, and the same selector is repeated to outrank it. */
+  @media (max-width: 48rem) {
+    .site-header {
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      align-items: center;
+      justify-content: start;
+      gap: var(--space-3) var(--space-4);
+      padding-block: var(--space-3);
+    }
+
+    .site-header .wordmark {
+      grid-row: 1;
+      grid-column: 1;
+    }
+
+    .site-header .palette__trigger {
+      grid-row: 1;
+      grid-column: 2;
+      justify-self: start;
+    }
+
+    .site-header .site-nav,
+    .site-header:has(.palette__trigger) .site-nav {
+      grid-row: 2;
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+      margin-inline-start: 0;
+      gap: var(--space-2) var(--space-3);
+      font-size: var(--size-micro);
+      letter-spacing: 0.05em;
+    }
+  }
+
+  @media (max-width: 24rem) {
+    .site-header .site-nav,
+    .site-header:has(.palette__trigger) .site-nav {
+      gap: var(--space-2);
+      letter-spacing: 0.02em;
+    }
+  }
+
   .page-head {
     padding-block: var(--space-8) var(--space-5);
   }
@@ -672,10 +746,11 @@
     }
   }
 
-  /* The five rows of a panel share tracks across the row, so names, problems and stacks line up. */
+  /* The six rows of a panel share tracks across the row, so kickers, badges, names, problems and
+     stacks line up. */
   .entry-panel {
     display: grid;
-    grid-row: span 5;
+    grid-row: span 6;
     grid-template-rows: subgrid;
     gap: var(--space-4);
     min-width: 0;
@@ -684,11 +759,11 @@
   }
 
   .entry-panel__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2) var(--space-3);
+    display: grid;
+    grid-row: span 2;
+    grid-template-rows: subgrid;
+    row-gap: var(--space-2);
+    justify-items: start;
   }
 
   .entry-panel__name {
@@ -745,12 +820,18 @@
     font-size: var(--size-caption);
   }
 
+  /* A wrapping row lets the last cells stretch, so a short row never leaves a painted empty cell. */
   .lenses {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--hairline);
-    grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+    padding: var(--hairline);
     background: var(--rule);
-    border: var(--hairline) solid var(--rule);
+  }
+
+  .lenses li {
+    flex: 1 1 16rem;
+    display: grid;
   }
 
   .lenses a {

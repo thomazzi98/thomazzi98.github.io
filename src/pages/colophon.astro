@@ -75,7 +75,8 @@ const pipeline = [
   <section class="section" aria-labelledby="build-title">
     <div class="section__head">
       <h2 id="build-title">How it is built</h2>
-      <p class="kicker">Astro 7 · Preact islands · a virtual clock · evidence at a commit</p>
+      <p class="kicker">Astro 7 · Preact islands · a virtual clock</p>
+      <p class="section__note">Evidence at a pinned commit, checked by the build.</p>
     </div>
     <div class="prose">
       <p>
@@ -83,7 +84,8 @@ const pipeline = [
         The interactive parts, the schematic with its inspector, the flow player and the board on
         the home page, are Preact islands with signals for state. They hydrate when they scroll into
         view, and the schematic, the ledger and the transcript tables are already in the HTML before
-        any script runs, so the pages read the same with JavaScript disabled.
+        any script runs, so the system pages read the same with JavaScript disabled; the board on
+        the home page says so and points there.
       </p>
       <p>
         Each system is a typed model under <code>src/systems</code>: repository, maturity, stack,
@@ -97,7 +99,7 @@ const pipeline = [
         suite.
       </p>
       <p>
-        Flows are replayed by a deterministic kernel under <code>src/trace/kernel</code>: a seeded
+        Flows are replayed by a deterministic kernel under <code>src/trace/kernel</code>: a
         scheduler and a simulation on a virtual clock. A runner turns a flow and the lever values
         into scheduled steps; the same runner produces the transcript tables at build time and the <code
           >/systems/&lt;id&gt;.json</code
@@ -179,7 +181,8 @@ const pipeline = [
   <section class="section" aria-labelledby="records-title">
     <div class="section__head">
       <h2 id="records-title">Decision records</h2>
-      <p class="kicker">Newest first · superseded records kept as written</p>
+      <p class="kicker">Newest first</p>
+      <p class="section__note">Superseded records are kept as written.</p>
     </div>
     <div class="decisions colophon-records">
       {

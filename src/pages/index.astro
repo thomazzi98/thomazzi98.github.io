@@ -36,14 +36,10 @@ const stackFacts = (system: SystemModel): StackEntry[] => {
   return [...system.stack].sort((first, second) => rankOf(first) - rankOf(second)).slice(0, 3);
 };
 const firstSentence = (text: string): string => /^(.+?[.!?])(?:\s|$)/.exec(text)?.[1] ?? text;
-const lensIds = [
-  'postgres-only-store',
-  'table-driven-state-machine',
-  'unknown-outcome',
-  'idempotency-unique-index',
-  'tenant-isolation',
-];
-const lenses = lensIds.flatMap((id) => sharedPatterns.filter((pattern) => pattern.id === id));
+// Only a pattern every system carries in full belongs on the row that says what they share.
+const lenses = sharedPatterns.filter((pattern) =>
+  Object.values(pattern.systems).every((entry) => entry.presence === 'present'),
+);
 const panels: BoardPanel[] = systems.flatMap((system) => {
   const board = boardOf(system);
   if (board === undefined) {
@@ -130,10 +126,8 @@ const personSchema = {
   <section aria-labelledby="board-title">
     <div class="section__head">
       <h2 id="board-title">The board</h2>
-      <p class="kicker">
-        One flow per system replayed on one virtual clock · a simulation of the documented flows,
-        not live traffic
-      </p>
+      <p class="kicker">One flow per system, one virtual clock</p>
+      <p class="section__note">A simulation of the documented flows, not live traffic.</p>
     </div>
     <SystemBoard client:idle panels={panels} />
     <div
@@ -176,6 +170,7 @@ const personSchema = {
         </tbody>
       </table>
     </div>
+    <p class="facts-hint kicker" aria-hidden="true">Scrolls sideways</p>
     <p class="facts-note">
       State, in the words of each maturity statement: <em>validated</em>, the suites run against a
       real chain and one real payment was sent on a public network; <em>complete</em>, every public
@@ -187,7 +182,7 @@ const personSchema = {
   <section class="section" aria-labelledby="systems-title">
     <div class="section__head">
       <h2 id="systems-title">Systems</h2>
-      <p class="kicker">Three public repositories, each a case study</p>
+      <p class="kicker">Three repositories, each a case study</p>
     </div>
     <ol class="entry-panels">
       {
@@ -216,9 +211,11 @@ const personSchema = {
             </dl>
             <p class="entry-panel__links">
               <a class="control" href={`/systems/${system.id}/`}>
-                Open the system
+                Open the system <span class="sr-only">{system.name}</span>
               </a>
-              <a href={`/systems/${system.id}/#failure`}>Failure scenarios</a>
+              <a href={`/systems/${system.id}/#failure`}>
+                Failure scenarios <span class="sr-only">of {system.name}</span>
+              </a>
             </p>
           </li>
         ))
@@ -229,9 +226,10 @@ const personSchema = {
   <section class="section" aria-labelledby="share-title">
     <div class="section__head">
       <h2 id="share-title">What they share</h2>
-      <p class="kicker">
-        No runtime coupling, no shared code · an engineering approach, verified at the pinned
-        commits
+      <p class="kicker">No runtime coupling, no shared code</p>
+      <p class="section__note">
+        An engineering approach, verified at the pinned commits. Only patterns every system carries
+        in full appear here.
       </p>
     </div>
     <ul class="lenses">

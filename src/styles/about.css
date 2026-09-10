@@ -70,11 +70,7 @@
   }
 
   .role:target {
-    border-top-color: var(--focus);
-  }
-
-  .role:target .role__head h3 {
-    color: var(--focus);
+    border-top: 2px solid var(--ink);
   }
 
   .role__head h3 {

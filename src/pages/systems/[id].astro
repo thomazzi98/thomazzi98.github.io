@@ -78,10 +78,9 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <header class="system-head">
     <div>
       <p class="kicker">
-        System · <a href={repositoryUrl(repository)}>{repository.owner}/{repository.name}</a> · pinned{
-          ' '
-        }
-        <a href={commitUrl(repository)} class="mono">{shortCommit(repository)}</a>
+        System · <a href={repositoryUrl(repository)} class="mono"
+          >{repository.owner}/{repository.name}</a
+        > · pinned <a href={commitUrl(repository)} class="mono">{shortCommit(repository)}</a>
       </p>
       <h1>{system.name}</h1>
       <p class="hero__thesis">{system.thesis}</p>
@@ -127,9 +126,8 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <section class="section" id="architecture" aria-labelledby="architecture-title">
     <div class="section__head">
       <h2 id="architecture-title">Architecture</h2>
-      <p class="kicker">
-        {system.nodes.length} parts · {system.edges.length} connections · select any to inspect
-      </p>
+      <p class="kicker">{system.nodes.length} parts · {system.edges.length} connections</p>
+      <p class="section__note">Select any part or connection to inspect it.</p>
     </div>
     <SystemExplorer
       client:visible
@@ -164,7 +162,8 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <section class="section section--deferred" id="flows" aria-labelledby="flows-title">
     <div class="section__head">
       <h2 id="flows-title">How a request travels</h2>
-      <p class="kicker">Replays of the documented flows · simulation, not live traffic</p>
+      <p class="kicker">Replays of the documented flows</p>
+      <p class="section__note">A simulation, not live traffic.</p>
     </div>
     <FlowStage system={system} flows={pathFlows} autoplay />
   </section>
@@ -174,7 +173,8 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
       <section class="section section--deferred" id="state" aria-labelledby="state-title">
         <div class="section__head">
           <h2 id="state-title">Data and state</h2>
-          <p class="kicker">Lifecycles copied from the tables the code enforces</p>
+          <p class="kicker">Lifecycles the code enforces</p>
+          <p class="section__note">Copied from the transition tables at the pinned commit.</p>
         </div>
         <div class="machines">
           {system.stateMachines.map((machine) => (
@@ -210,7 +210,7 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
       <section class="section section--deferred" id="failure" aria-labelledby="failure-title">
         <div class="section__head">
           <h2 id="failure-title">Failure handling</h2>
-          <p class="kicker">Pull a lever and watch the design answer</p>
+          <p class="kicker">Pull a lever, watch the design answer</p>
         </div>
         <FlowStage system={system} flows={failureFlows} />
       </section>
@@ -220,7 +220,8 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <section class="section section--deferred" id="security" aria-labelledby="security-title">
     <div class="section__head">
       <h2 id="security-title">Security boundaries</h2>
-      <p class="kicker">Each concern names its control and the code that holds it</p>
+      <p class="kicker">Concern, control, code</p>
+      <p class="section__note">Each concern names its control and the code that holds it.</p>
     </div>
     <dl class="controls">
       {
@@ -243,7 +244,8 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <section class="section section--deferred" id="verification" aria-labelledby="verification-title">
     <div class="section__head">
       <h2 id="verification-title">How it is verified</h2>
-      <p class="kicker">Tests, checks and the pipeline that runs them</p>
+      <p class="kicker">Tests, checks, pipeline</p>
+      <p class="section__note">The tests, the checks and the pipeline that runs them.</p>
     </div>
     <div class="layers">
       {
@@ -320,7 +322,8 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <section class="section section--deferred" id="decisions" aria-labelledby="decisions-title">
     <div class="section__head">
       <h2 id="decisions-title">Decisions</h2>
-      <p class="kicker">What was chosen, what was refused, what it costs</p>
+      <p class="kicker">Chosen, refused, and the cost</p>
+      <p class="section__note">What was chosen, what was refused, what it costs.</p>
     </div>
     <div class="decisions">
       {
@@ -356,7 +359,8 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <section class="section section--deferred" id="code" aria-labelledby="code-title">
     <div class="section__head">
       <h2 id="code-title">Code as evidence</h2>
-      <p class="kicker">Copied from the pinned commit and compared byte for byte in CI</p>
+      <p class="kicker">Byte for byte from the pinned commit</p>
+      <p class="section__note">Copied from the pinned commit and compared byte for byte in CI.</p>
     </div>
     <div class="fragments">
       {
@@ -370,7 +374,7 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
   <section class="section section--deferred" id="source" aria-labelledby="source-title">
     <div class="section__head">
       <h2 id="source-title">Source</h2>
-      <p class="kicker">Read it at the commit this page describes</p>
+      <p class="kicker">At the commit this page describes</p>
     </div>
     <table class="facts">
       <caption class="sr-only">Repository facts checked against git by the test suite</caption>
@@ -438,9 +442,19 @@ const imageAlt = `${system.name}. ${system.tagline} Pinned at ${shortCommit(repo
       const section = document.getElementById(id);
       return section === null ? [] : [section];
     });
+    // The nav scrolls sideways on phones, so the marked link is brought into its own scroller.
+    const revealInNav = (link: HTMLAnchorElement) => {
+      if (nav === null || nav.scrollWidth <= nav.clientWidth) {
+        return;
+      }
+      nav.scrollTo({ left: link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2 });
+    };
     const markCurrent = (id: string | undefined) => {
       for (const [sectionId, link] of linkById) {
         if (sectionId === id) {
+          if (link.getAttribute('aria-current') !== 'true') {
+            revealInNav(link);
+          }
           link.setAttribute('aria-current', 'true');
           continue;
         }

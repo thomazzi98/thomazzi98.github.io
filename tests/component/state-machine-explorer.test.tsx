@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
+import { renderToString } from 'preact-render-to-string';
 import { afterEach, describe, expect, it } from 'vitest';
 import { StateMachineExplorer } from '../../src/islands/state/StateMachineExplorer';
 import { defineSystem } from '../../src/systems/validate';
@@ -106,5 +107,46 @@ describe('StateMachineExplorer', () => {
     render(<StateMachineExplorer machine={requireMachine()} />);
     const region = screen.getByRole('region', { name: /Transitions of Entry lifecycle/ });
     expect(region.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('labels every cell so a stacked row still says which value is which', () => {
+    render(<StateMachineExplorer machine={requireMachine()} />);
+    const table = screen.getByRole('table', { name: 'Transitions of Entry lifecycle' });
+    expect(table.getAttribute('role')).toBe('table');
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent.trim())).toEqual([
+      'From',
+      'To',
+      'Trigger',
+      'Guard',
+    ]);
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows.every((row) => row.getAttribute('role') === 'row')).toBe(true);
+    const labelsOfRow = (row: HTMLElement) =>
+      [...row.querySelectorAll('td')].map((cell) => [
+        cell.getAttribute('role'),
+        cell.getAttribute('data-label'),
+      ]);
+    for (const row of rows) {
+      expect(labelsOfRow(row)).toEqual([
+        ['cell', 'From'],
+        ['cell', 'To'],
+        ['cell', 'Trigger'],
+        ['cell', 'Guard'],
+      ]);
+    }
+    const guarded = rows[2];
+    expect(guarded?.querySelector('[data-label="Guard"]')?.textContent).toBe(
+      'the ledger refused it',
+    );
+    expect(guarded?.querySelector('[data-label="Trigger"]')?.textContent).toBe('REJECTED');
+  });
+
+  it('tells a reader without JavaScript that the table carries every transition', () => {
+    const markup = renderToString(<StateMachineExplorer machine={requireMachine()} />);
+    expect(markup).toMatch(
+      /<noscript><p class="machine__note muted">Selecting a status needs JavaScript\. The table below lists every transition\.<\/p><\/noscript>/,
+    );
+    expect(markup.match(/<noscript>/g)).toHaveLength(1);
+    expect(markup.indexOf('<noscript>')).toBeLessThan(markup.indexOf('<table'));
   });
 });

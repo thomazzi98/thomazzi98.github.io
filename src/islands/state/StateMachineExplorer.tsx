@@ -96,6 +96,12 @@ export const StateMachineExplorer = ({ machine }: StateMachineExplorerProps) => 
           <Reading current={current} outgoing={outgoing} incoming={incoming} />
         )}
       </p>
+      {/* The layout hides the statuses and the reading when scripts are off; this line stays. */}
+      <noscript>
+        <p class="machine__note muted">
+          Selecting a status needs JavaScript. The table below lists every transition.
+        </p>
+      </noscript>
       {current !== undefined && (
         <p class="machine__key kicker" data-tone={current.tone}>
           <span data-relation="out">From marked: leaves it</span>
@@ -108,27 +114,46 @@ export const StateMachineExplorer = ({ machine }: StateMachineExplorerProps) => 
         tabIndex={0}
         aria-label={`Transitions of ${machine.name}, scrolls sideways`}
       >
-        <table class="machine__table">
+        {/* Phones stack each row into a block with CSS; the explicit roles and the data labels keep
+            the table readable as a table when its cells no longer display as one. */}
+        <table class="machine__table" role="table">
           <caption class="sr-only">Transitions of {machine.name}</caption>
-          <thead>
-            <tr>
-              <th scope="col">From</th>
-              <th scope="col">To</th>
-              <th scope="col">Trigger</th>
-              <th scope="col">Guard</th>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th role="columnheader" scope="col">
+                From
+              </th>
+              <th role="columnheader" scope="col">
+                To
+              </th>
+              <th role="columnheader" scope="col">
+                Trigger
+              </th>
+              <th role="columnheader" scope="col">
+                Guard
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {machine.transitions.map((transition) => (
               <tr
                 key={`${transition.from}-${transition.to}-${transition.trigger}`}
+                role="row"
                 data-relation={relationOf(transition.from, transition.to)}
                 data-tone={current?.tone}
               >
-                <td class="mono">{transition.from}</td>
-                <td class="mono">{transition.to}</td>
-                <td class="mono">{transition.trigger}</td>
-                <td>{transition.guard ?? ''}</td>
+                <td role="cell" class="mono" data-label="From">
+                  {transition.from}
+                </td>
+                <td role="cell" class="mono" data-label="To">
+                  {transition.to}
+                </td>
+                <td role="cell" class="mono" data-label="Trigger">
+                  {transition.trigger}
+                </td>
+                <td role="cell" data-label="Guard">
+                  {transition.guard ?? ''}
+                </td>
               </tr>
             ))}
           </tbody>
