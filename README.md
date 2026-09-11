@@ -18,13 +18,12 @@ from three instruments:
   and every code fragment is copied verbatim and compared byte for byte in the test suite.
 
 The activity on the board and the system pages is a simulation of the documented flows, and it
-says so wherever it appears. One page is not: `/demo/` creates a real payment through the payment
-gateway, which issues it through CryptoPay, confirms it on an authenticated read once the chain has
-paid it, and hands the paid event to the WhatsApp Notification Platform. The page talks to the
-gateway and nothing else, and reads every step back from the gateway's own record. It needs the
-three stacks running where the browser can reach them — `node scripts/demo-stack.mjs up` in the
-gateway repository — and takes the gateway's address from `PUBLIC_DEMO_GATEWAY_URL` at build time
-(default `http://127.0.0.1:4010`), overridable on the page itself.
+says so wherever it appears. `/demo/` explains the one flow that runs for real and links to it: the
+payment gateway's own demo checkout, which creates a payment through the gateway, has CryptoPay
+issue it, and reads every step back as a local chain pays it and the paid event reaches the
+WhatsApp Notification Platform. The checkout lives in the gateway repository and runs on the
+visitor's machine (`npm run demo:up` there); this site links to it at `PUBLIC_DEMO_CHECKOUT_URL`
+(default `http://127.0.0.1:4020/`).
 
 ## Layout
 

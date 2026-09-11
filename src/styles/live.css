@@ -1,181 +1,23 @@
 @layer page {
-  /* One track that never grows to its content's minimum, so a drawing wider than the viewport
-     scrolls inside its wrapper rather than pushing the whole page sideways. */
-  .live {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
-    margin-top: var(--space-6);
-  }
-
-  .live__form {
+  .live-open {
     display: grid;
     gap: var(--space-4);
-    padding: var(--space-4);
-    border: var(--hairline) solid var(--rule);
-    background: var(--panel);
-  }
-
-  .live__connection summary {
-    cursor: pointer;
-  }
-
-  .live__connection[open] summary {
-    margin-bottom: var(--space-3);
-  }
-
-  .live__fields {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
-    gap: var(--space-3);
-    align-items: end;
-  }
-
-  .live__field {
-    display: grid;
-    gap: var(--space-1);
-    min-width: 0;
-  }
-
-  .live__field span {
-    font-family: var(--font-mono);
-    font-size: var(--size-caption);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-  }
-
-  .live__field input {
-    width: 100%;
-    min-width: 0;
-    min-height: 2rem;
-    padding: var(--space-1) var(--space-3);
-    border: var(--hairline) solid var(--rule-strong);
-    background: var(--raised);
-    font-family: var(--font-mono);
-    font-size: var(--size-mono);
-  }
-
-  .live__field input:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 1px;
-  }
-
-  .live__submit {
-    justify-self: start;
-  }
-
-  .live__hint {
-    font-size: var(--size-small);
-    color: var(--ink-muted);
-  }
-
-  .live__hint code {
-    font-family: var(--font-mono);
-    font-size: var(--size-mono);
-  }
-
-  .live__error {
-    padding: var(--space-2) var(--space-3);
-    border-left: 3px solid var(--fault);
-    font-size: var(--size-small);
-  }
-
-  .live__headline {
-    font-family: var(--font-display);
-    font-size: var(--size-pull);
-    line-height: var(--leading-snug);
     max-width: var(--measure);
-  }
-
-  .live__panels {
-    display: grid;
-    gap: var(--hairline);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    background: var(--rule);
+    padding: var(--space-5);
     border: var(--hairline) solid var(--rule);
-  }
-
-  @media (width < 64rem) {
-    .live__panels {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  .live__panel {
-    display: grid;
-    gap: var(--space-3);
-    min-width: 0;
-    padding: var(--space-4);
     background: var(--panel);
-    align-content: start;
   }
 
-  .live__facts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    gap: var(--space-3);
-  }
-
-  .live__facts dt {
+  .live-open code {
     font-family: var(--font-mono);
-    font-size: var(--size-caption);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-  }
-
-  .live__facts dd {
-    overflow-wrap: anywhere;
-  }
-
-  .live__instrument {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--space-4);
-    align-items: start;
-  }
-
-  @media (width < 40rem) {
-    .live__instrument {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  /* The code is rendered by CryptoPay and shown as sent; a white ground keeps it scannable in the
-     dark scheme. */
-  .live__qr {
-    width: 12rem;
-    height: 12rem;
-    padding: var(--space-2);
-    background: #ffffff;
-    image-rendering: pixelated;
-  }
-
-  .live__destination {
-    display: grid;
-    gap: var(--space-2);
-    min-width: 0;
-  }
-
-  .live__address,
-  .live__uri {
     font-size: var(--size-mono);
-    overflow-wrap: anywhere;
   }
 
-  .live__uri {
-    color: var(--ink-muted);
-  }
-
-  .live__actions {
+  .live-open__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .live__ledger .ledger__scroll {
-    height: 22rem;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
   }
 
   .live-stages {

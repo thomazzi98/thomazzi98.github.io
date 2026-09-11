@@ -1,10 +1,9 @@
 ---
-import { LiveDemo } from '../islands/live/LiveDemo';
 import Base from '../layouts/Base.astro';
 import { systems } from '../systems';
 import { repositoryUrl } from '../systems/evidence';
 
-const gatewayUrl = import.meta.env.PUBLIC_DEMO_GATEWAY_URL ?? 'http://127.0.0.1:4010';
+const checkoutUrl = import.meta.env.PUBLIC_DEMO_CHECKOUT_URL ?? 'http://127.0.0.1:4020/';
 const repositoryLink = (id: string): string => {
   const system = systems.find((candidate) => candidate.id === id);
   return system === undefined ? 'https://github.com/thomazzi98' : repositoryUrl(system.repository);
@@ -17,8 +16,8 @@ const links = {
 
 const stages = [
   {
-    station: 'This page',
-    text: 'creates a payment through the gateway and only the gateway. It holds an API key, an amount, and a phone number to notify.',
+    station: 'Checkout',
+    text: 'The gateway’s own demo checkout creates a payment through the gateway and only the gateway: an amount, a method, a currency, a network, and a phone number to notify.',
   },
   {
     station: 'Payment gateway',
@@ -57,30 +56,40 @@ const stages = [
 
 <Base
   title="Live demonstration · Rafael Thomazzi"
-  description="A real payment created from this page through the payment gateway, paid on a local chain, confirmed by CryptoPay and delivered as a WhatsApp notification, with every step read back from the gateway."
+  description="A real payment through the payment gateway's own demo checkout: issued by CryptoPay, paid on a local chain, confirmed on an authenticated read, and delivered as a WhatsApp notification."
 >
   <section class="page-head">
     <p class="kicker">Live</p>
     <h1>One payment across three systems</h1>
     <p class="lead">
-      The board on the home page replays documented flows on a virtual clock. This page runs the
-      real thing: a payment created here through the payment gateway, issued by CryptoPay, paid on a
-      chain, confirmed on an authenticated read, and handed to the WhatsApp Notification Platform.
-      Every light and every ledger line below is read back from the gateway's own record.
+      The board on the home page replays documented flows on a virtual clock. The payment gateway
+      runs the real thing: its demo checkout creates a payment, CryptoPay issues the destination, a
+      chain pays it, an authenticated read confirms it, and the paid event reaches the WhatsApp
+      Notification Platform. This site explains the flow; the gateway executes it.
     </p>
   </section>
 
-  <section class="section" aria-labelledby="live-title">
+  <section class="section" aria-labelledby="open-title">
     <div class="section__head">
-      <h2 id="live-title">The flow, live</h2>
+      <h2 id="open-title">Try it</h2>
       <p class="kicker">Real services · a local chain · nothing simulated</p>
-      <p class="section__note">
-        Needs the stack running where this page can reach it. From the gateway repository,
-        <code>node scripts/demo-stack.mjs up</code> starts all three services beside an Anvil chain and
-        prints the key; by default the page looks for the gateway at <code>{gatewayUrl}</code>.
+    </div>
+    <div class="live-open">
+      <p>
+        The checkout is part of the gateway and runs beside it. Start the three stacks from the
+        gateway repository — <code>npm run demo:up</code> brings up CryptoPay with an Anvil chain, the
+        notification platform with its provider stub, and the gateway with its checkout, and prints the
+        key the checkout asks for — then open it.
+      </p>
+      <p class="live-open__actions">
+        <a class="control" href={checkoutUrl}>Open the Payment Gateway checkout</a>
+        <a href={links.gateway}>the gateway repository</a>
+      </p>
+      <p class="muted">
+        The link points at the checkout on your own machine (<code>{checkoutUrl}</code>). Nothing
+        here is hosted for you: a payment platform's demo is the platform, running.
       </p>
     </div>
-    <LiveDemo client:visible defaultGatewayUrl={gatewayUrl} />
   </section>
 
   <section class="section" aria-labelledby="stages-title">
@@ -123,6 +132,14 @@ const stages = [
           </dd>
         </div>
         <div>
+          <dt>The checkout</dt>
+          <dd>
+            A page in the gateway repository that talks to the gateway's public API and to nothing
+            else. Every state it shows is read back from the gateway's record; no timer advances a
+            step.
+          </dd>
+        </div>
+        <div>
           <dt>The chain</dt>
           <dd>
             Anvil, a real EVM running locally and mining every two seconds, with a six-decimal USDC
@@ -143,7 +160,8 @@ const stages = [
           <dd>
             The gateway's Pix provider, Appmax, is implemented and tested against a controlled
             transport and has not been validated against the Appmax sandbox, because no credentials
-            exist for it. It is not part of this flow.
+            exist for it. The checkout shows it as a method that needs credentials, and executes
+            nothing for it.
           </dd>
         </div>
         <div>
