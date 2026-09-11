@@ -17,8 +17,14 @@ from three instruments:
 - **Evidence**: every claim links to a path and line range at a pinned commit of the repository,
   and every code fragment is copied verbatim and compared byte for byte in the test suite.
 
-The activity on the site is a simulation of the documented flows, never live traffic, and it says
-so wherever it appears.
+The activity on the board and the system pages is a simulation of the documented flows, and it
+says so wherever it appears. One page is not: `/demo/` creates a real payment through the payment
+gateway, which issues it through CryptoPay, confirms it on an authenticated read once the chain has
+paid it, and hands the paid event to the WhatsApp Notification Platform. The page talks to the
+gateway and nothing else, and reads every step back from the gateway's own record. It needs the
+three stacks running where the browser can reach them — `node scripts/demo-stack.mjs up` in the
+gateway repository — and takes the gateway's address from `PUBLIC_DEMO_GATEWAY_URL` at build time
+(default `http://127.0.0.1:4010`), overridable on the page itself.
 
 ## Layout
 

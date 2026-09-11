@@ -1,0 +1,159 @@
+---
+import { LiveDemo } from '../islands/live/LiveDemo';
+import Base from '../layouts/Base.astro';
+import { systems } from '../systems';
+import { repositoryUrl } from '../systems/evidence';
+
+const gatewayUrl = import.meta.env.PUBLIC_DEMO_GATEWAY_URL ?? 'http://127.0.0.1:4010';
+const repositoryLink = (id: string): string => {
+  const system = systems.find((candidate) => candidate.id === id);
+  return system === undefined ? 'https://github.com/thomazzi98' : repositoryUrl(system.repository);
+};
+const links = {
+  gateway: repositoryLink('mini-payment-gateway'),
+  cryptopay: repositoryLink('cryptopay'),
+  whatsapp: repositoryLink('whatsapp-notification-platform'),
+};
+
+const stages = [
+  {
+    station: 'This page',
+    text: 'creates a payment through the gateway and only the gateway. It holds an API key, an amount, and a phone number to notify.',
+  },
+  {
+    station: 'Payment gateway',
+    text: 'claims the idempotency key, opens an attempt, and asks CryptoPay for a crypto destination through CryptoPay’s gateway contract.',
+  },
+  {
+    station: 'CryptoPay',
+    text: 'derives a fresh address from its wallet seed, renders the EIP-681 URI and the QR code for the chain, and returns them. The gateway stores what the customer was shown.',
+  },
+  {
+    station: 'Local chain',
+    text: 'receives the transfer from the customer’s wallet. CryptoPay’s chain worker scans the blocks, matches the transfer to the address, and holds it to its confirmation count.',
+  },
+  {
+    station: 'CryptoPay',
+    text: 'marks the payment complete in the same transaction as it schedules a webhook, and delivers it signed as a Standard Webhook.',
+  },
+  {
+    station: 'Payment gateway',
+    text: 'verifies the signature against the raw bytes, records the notification, and schedules an authenticated read. The read decides: the database refuses to fund a payment on anything less.',
+  },
+  {
+    station: 'payment.paid',
+    text: 'is written in the same transaction as the money, so a paid payment nobody was told about is not a state the database can hold.',
+  },
+  {
+    station: 'WhatsApp Notification Platform',
+    text: 'accepts the notification with the event id as its idempotency key, so a retried hand-over cannot become a second message.',
+  },
+  {
+    station: 'WAHA',
+    text: 'sends it. In the demonstration that is the platform’s deterministic stand-in, which answers as WAHA’s engine does; a phone is the real one.',
+  },
+];
+---
+
+<Base
+  title="Live demonstration · Rafael Thomazzi"
+  description="A real payment created from this page through the payment gateway, paid on a local chain, confirmed by CryptoPay and delivered as a WhatsApp notification, with every step read back from the gateway."
+>
+  <section class="page-head">
+    <p class="kicker">Live</p>
+    <h1>One payment across three systems</h1>
+    <p class="lead">
+      The board on the home page replays documented flows on a virtual clock. This page runs the
+      real thing: a payment created here through the payment gateway, issued by CryptoPay, paid on a
+      chain, confirmed on an authenticated read, and handed to the WhatsApp Notification Platform.
+      Every light and every ledger line below is read back from the gateway's own record.
+    </p>
+  </section>
+
+  <section class="section" aria-labelledby="live-title">
+    <div class="section__head">
+      <h2 id="live-title">The flow, live</h2>
+      <p class="kicker">Real services · a local chain · nothing simulated</p>
+      <p class="section__note">
+        Needs the stack running where this page can reach it. From the gateway repository,
+        <code>node scripts/demo-stack.mjs up</code> starts all three services beside an Anvil chain and
+        prints the key; by default the page looks for the gateway at <code>{gatewayUrl}</code>.
+      </p>
+    </div>
+    <LiveDemo client:visible defaultGatewayUrl={gatewayUrl} />
+  </section>
+
+  <section class="section" aria-labelledby="stages-title">
+    <div class="section__head">
+      <h2 id="stages-title">What happens, in order</h2>
+      <p class="kicker">Nine stations, one payment</p>
+    </div>
+    <ol class="live-stages">
+      {
+        stages.map((stage, index) => (
+          <li class="live-stage">
+            <span class="live-stage__number mono">{String(index + 1).padStart(2, '0')}</span>
+            <div>
+              <p class="live-stage__station">{stage.station}</p>
+              <p class="live-stage__text">{stage.text}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="honesty-title">
+    <div class="section__head">
+      <h2 id="honesty-title">What is real, and what stands in</h2>
+      <p class="kicker">Stated rather than implied</p>
+    </div>
+    <div class="live-honesty">
+      <dl class="live-honesty__list">
+        <div>
+          <dt>The three services</dt>
+          <dd>
+            Built from their repositories and run on their own databases: the{' '}
+            <a href={links.gateway}>gateway</a>, <a href={links.cryptopay}>CryptoPay</a> and the{
+              ' '
+            }
+            <a href={links.whatsapp}>notification platform</a>. They share no code and no database;
+            the gateway holds an API key for each of the other two, and CryptoPay holds a callback
+            URL and the secret it signs with.
+          </dd>
+        </div>
+        <div>
+          <dt>The chain</dt>
+          <dd>
+            Anvil, a real EVM running locally and mining every two seconds, with a six-decimal USDC
+            deployed on it. CryptoPay scans it with the same code that scans Polygon; what a local
+            chain lacks is a finality tag and reorganisations to survive.
+          </dd>
+        </div>
+        <div>
+          <dt>WhatsApp</dt>
+          <dd>
+            The platform's deterministic WAHA stand-in, so no phone has to be paired to run the
+            demonstration. Pointing the platform at a real WAHA is a compose profile and a phone;
+            the gateway does not change.
+          </dd>
+        </div>
+        <div>
+          <dt>Pix</dt>
+          <dd>
+            The gateway's Pix provider, Appmax, is implemented and tested against a controlled
+            transport and has not been validated against the Appmax sandbox, because no credentials
+            exist for it. It is not part of this flow.
+          </dd>
+        </div>
+        <div>
+          <dt>The case studies</dt>
+          <dd>
+            Each system page cites code at a pinned commit and says so. Those commits predate this
+            integration; the demonstration runs the current heads.
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+</Base>

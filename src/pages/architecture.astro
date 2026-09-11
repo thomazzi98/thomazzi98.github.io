@@ -66,16 +66,18 @@ const readingFor = (patternId: string, systemId: string) => {
 
 <Base
   title="Architecture · Rafael Thomazzi"
-  description="Three independent systems with no runtime coupling and no shared code, drawn side by side, with a lens for each engineering pattern they share."
+  description="Three independent systems that share no code and cooperate through one explicit contract, drawn side by side, with a lens for each engineering pattern they share."
 >
   <section class="page-head">
     <p class="kicker">Architecture</p>
     <h1>Independent systems, one approach</h1>
     <p class="lead">
       CryptoPay, the WhatsApp Notification Platform and the Mini Payment Gateway are three
-      independent repositories. Nothing runs between them: no call from one to another, no shared
-      package, no shared code. What they share is an approach, and each lens below lights the parts
-      that carry it.
+      independent repositories: no shared package, no shared code, no shared database. Where they
+      meet is one explicit contract, and it runs in one direction — the gateway asks CryptoPay for a
+      crypto destination and hands the WhatsApp platform a paid event, over their public HTTP APIs
+      and a signed webhook. The <a href="/demo/">live page</a> drives that flow for real. What they share
+      otherwise is an approach, and each lens below lights the parts that carry it.
     </p>
   </section>
 

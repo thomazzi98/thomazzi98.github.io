@@ -44,6 +44,13 @@ const staticPages: readonly PaletteEntry[] = [
   },
   {
     kind: 'page',
+    title: 'Live demonstration',
+    subtitle: 'One real payment across the three systems',
+    href: '/demo/',
+    keywords: ['live', 'demo', 'payment', 'cryptopay', 'whatsapp', 'gateway', 'qr'],
+  },
+  {
+    kind: 'page',
     title: 'Decisions',
     subtitle: 'Every decision with what it refused and what it costs',
     href: '/decisions/',

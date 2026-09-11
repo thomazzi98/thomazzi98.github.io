@@ -15,10 +15,11 @@ const ofKind = (kind: PaletteEntry['kind']) => index.filter((entry) => entry.kin
 
 describe('buildPaletteIndex', () => {
   it('lists the static pages first, in navigation order', () => {
-    expect(index.slice(0, 6).map((entry) => [entry.kind, entry.href])).toEqual([
+    expect(index.slice(0, 7).map((entry) => [entry.kind, entry.href])).toEqual([
       ['page', '/'],
       ['page', '/systems/'],
       ['page', '/architecture/'],
+      ['page', '/demo/'],
       ['page', '/decisions/'],
       ['page', '/about/'],
       ['page', '/colophon/'],
@@ -31,7 +32,7 @@ describe('buildPaletteIndex', () => {
     expect(ofKind('flow')).toHaveLength(system.flows.length);
     expect(ofKind('decision')).toHaveLength(system.decisions.length);
     expect(index).toHaveLength(
-      6 + 1 + system.nodes.length + system.flows.length + system.decisions.length,
+      7 + 1 + system.nodes.length + system.flows.length + system.decisions.length,
     );
   });
 

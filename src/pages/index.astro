@@ -179,6 +179,21 @@ const personSchema = {
     </p>
   </section>
 
+  <section class="section" aria-labelledby="live-title">
+    <div class="section__head">
+      <h2 id="live-title">Live</h2>
+      <p class="kicker">One real payment across all three</p>
+      <p class="section__note">
+        The board above is a simulation. The <a href="/demo/">live page</a> creates a payment through
+        the gateway, shows the destination CryptoPay issues, and reads the gateway back as the chain pays
+        it, an authenticated read confirms it, and the paid event reaches the WhatsApp platform.
+      </p>
+    </div>
+    <p class="live-strip mono">
+      this page → gateway → CryptoPay → chain → CryptoPay → gateway → payment.paid → WhatsApp → WAHA
+    </p>
+  </section>
+
   <section class="section" aria-labelledby="systems-title">
     <div class="section__head">
       <h2 id="systems-title">Systems</h2>
@@ -226,7 +241,7 @@ const personSchema = {
   <section class="section" aria-labelledby="share-title">
     <div class="section__head">
       <h2 id="share-title">What they share</h2>
-      <p class="kicker">No runtime coupling, no shared code</p>
+      <p class="kicker">No shared code, one explicit contract between them</p>
       <p class="section__note">
         An engineering approach, verified at the pinned commits. Only patterns every system carries
         in full appear here.
