@@ -3,8 +3,6 @@ import { SystemBoard, type BoardPanel } from '../islands/board/SystemBoard';
 import Base from '../layouts/Base.astro';
 import { loadContent } from '../lib/content';
 import { identity } from '../lib/identity';
-import { compareByStartDescending, formatPeriod } from '../lib/period';
-import { createTechnologyNameLookup } from '../lib/technologies';
 import { selectGroup } from '../lib/technology-groups';
 import { systems } from '../systems';
 import { boardOf } from '../systems/board';
@@ -15,31 +13,19 @@ import {
   toSchematicEdges,
   toSchematicNodes,
 } from '../systems/presentation';
-import type { StackEntry, SystemModel } from '../systems/schema';
 import { sharedPatterns } from '../systems/shared-patterns';
 
 const description =
   'Three public systems built to determine what actually happened and to refuse to guess, every claim linked to code at a pinned commit.';
-const { roles, technologies, education } = await loadContent();
-const latestRole = [...roles].sort(compareByStartDescending)[0];
-const technologyName = createTechnologyNameLookup(technologies);
-const categoryOf = new Map(
-  technologies.map((technology) => [technology.id, technology.data.category]),
-);
-// The runtime and the language open every stack; the panel leads with what makes each system itself.
-const featuredCategories = ['database', 'framework', 'messaging', 'blockchain', 'testing'];
-const stackFacts = (system: SystemModel): StackEntry[] => {
-  const rankOf = (entry: StackEntry) => {
-    const rank = featuredCategories.indexOf(categoryOf.get(entry.technology) ?? '');
-    return rank === -1 ? featuredCategories.length : rank;
-  };
-  return [...system.stack].sort((first, second) => rankOf(first) - rankOf(second)).slice(0, 3);
-};
-const firstSentence = (text: string): string => /^(.+?[.!?])(?:\s|$)/.exec(text)?.[1] ?? text;
+const { technologies, education } = await loadContent();
+
 // Only a pattern every system carries in full belongs on the row that says what they share.
 const lenses = sharedPatterns.filter((pattern) =>
   Object.values(pattern.systems).every((entry) => entry.presence === 'present'),
 );
+// The home page opens light; the rest of the patterns live one click away on the architecture map.
+const featuredLenses = lenses.slice(0, 4);
+
 const panels: BoardPanel[] = systems.flatMap((system) => {
   const board = boardOf(system);
   if (board === undefined) {
@@ -96,105 +82,110 @@ const personSchema = {
   </Fragment>
 
   <section class="hero" aria-labelledby="hero-name">
-    <div>
-      <p class="kicker">{identity.strapline}</p>
-      <h1 id="hero-name" class="hero__name">{identity.name}</h1>
-      <p class="hero__thesis">Systems that can say what happened, and prove it.</p>
+    <div class="hero__field" aria-hidden="true">
+      <span class="hero__orb hero__orb--a"></span>
+      <span class="hero__orb hero__orb--b"></span>
+      <span class="hero__orb hero__orb--c"></span>
     </div>
-    <div class="hero__aside">
-      <p>
-        Three self-hosted systems, each built to <strong
-          >determine what actually happened under uncertainty and to refuse to guess</strong
-        >: finality gates and reorg-checked windows, outcomes classified by whether anything was
-        created, acknowledgements merged by maximum, idempotency claims the database serialises.
+    <div class="hero__content">
+      <h1 id="hero-name" class="hero__name">{identity.name}</h1>
+      <p class="hero__role">
+        <span>Full Stack Engineer</span>
+        <span class="hero__role-divider" aria-hidden="true"></span>
+        <span>Backend focused</span>
       </p>
-      <p class="hero__meta">
-        <span>{identity.location}</span>
-        <span>{identity.timezone}</span>
-        {
-          latestRole !== undefined && (
-            <span>
-              last role {latestRole.data.company} · {formatPeriod(latestRole.data.period)}
-            </span>
-          )
-        }
-        <a href="/resume.txt">resume.txt</a>
+    </div>
+    <a class="hero__scroll" href="#thesis">
+      Scroll <span class="hero__scroll-mark" aria-hidden="true">↓</span>
+    </a>
+  </section>
+
+  <section class="thesis" id="thesis" aria-label="Positioning">
+    <p class="pull">Systems that can say what happened, and prove it.</p>
+  </section>
+
+  <section class="featured section" id="featured" aria-labelledby="featured-title" data-reveal>
+    <div>
+      <p class="featured__eyebrow kicker">Featured · Live demo</p>
+      <h2 id="featured-title" class="featured__title">One payment, three systems, watched live.</h2>
+      <p class="featured__copy">
+        A payment created right here moves through the gateway, gets paid on a real chain, and lands
+        as a WhatsApp message — every step read back from the record, not simulated.
       </p>
+      <div class="featured__actions">
+        <a class="control featured__cta" href="/demo/">Watch it happen →</a>
+        <a class="evidence" href="/systems/mini-payment-gateway/">About the gateway</a>
+      </div>
+    </div>
+    <div class="featured__flow" aria-hidden="true">
+      <span class="featured__flow-station">Gateway</span>
+      <span class="featured__flow-line"></span>
+      <span class="featured__flow-station">CryptoPay</span>
+      <span class="featured__flow-line featured__flow-line--b"></span>
+      <span class="featured__flow-station">WhatsApp</span>
     </div>
   </section>
 
-  <section aria-labelledby="board-title">
+  <section class="section section--accent" aria-labelledby="board-title" data-reveal>
     <div class="section__head">
-      <h2 id="board-title">The board</h2>
+      <h2 id="board-title">Watch it think</h2>
       <p class="kicker">One flow per system, one virtual clock</p>
       <p class="section__note">A simulation of the documented flows, not live traffic.</p>
     </div>
     <SystemBoard client:idle panels={panels} />
-    <div
-      class="facts-scroll board__facts"
-      role="region"
-      tabindex="0"
-      aria-label="Repository facts, scrolls sideways"
-    >
-      <table class="facts">
-        <caption class="kicker">Repository facts checked against git by the test suite</caption>
-        <thead>
-          <tr>
-            <th scope="col">Repository</th>
-            <th scope="col">Pinned</th>
-            <th scope="col">Commits</th>
-            <th scope="col">Written</th>
-            <th scope="col">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            systems.map((system) => (
-              <tr>
-                <td>
-                  <a href={repositoryUrl(system.repository)}>
-                    {system.repository.owner}/{system.repository.name}
-                  </a>
-                </td>
-                <td>
-                  <a href={commitUrl(system.repository)}>{shortCommit(system.repository)}</a>
-                </td>
-                <td>{system.repository.commitCount}</td>
-                <td>
-                  {system.repository.firstCommitOn} → {system.repository.pinnedOn}
-                </td>
-                <td>{maturityText(system.maturity.label)}</td>
-              </tr>
-            ))
-          }
-        </tbody>
-      </table>
-    </div>
-    <p class="facts-hint kicker" aria-hidden="true">Scrolls sideways</p>
-    <p class="facts-note">
-      State, in the words of each maturity statement: <em>validated</em>, the suites run against a
-      real chain and one real payment was sent on a public network; <em>complete</em>, every public
-      route is served and exercised by four test layers; <em>in progress</em>, the pieces are built
-      and tested and no route, use case or job joins them yet.
-    </p>
-  </section>
-
-  <section class="section" aria-labelledby="live-title">
-    <div class="section__head">
-      <h2 id="live-title">Live</h2>
-      <p class="kicker">One real payment across all three</p>
-      <p class="section__note">
-        The board above is a simulation. The <a href="/demo/">live page</a> creates a payment through
-        the gateway, shows the destination CryptoPay issues, and reads the gateway back as the chain pays
-        it, an authenticated read confirms it, and the paid event reaches the WhatsApp platform.
+    <details class="board__facts-details">
+      <summary class="mono">Repository facts</summary>
+      <div
+        class="facts-scroll board__facts"
+        role="region"
+        tabindex="0"
+        aria-label="Repository facts, scrolls sideways"
+      >
+        <table class="facts">
+          <caption class="kicker">Repository facts checked against git by the test suite</caption>
+          <thead>
+            <tr>
+              <th scope="col">Repository</th>
+              <th scope="col">Pinned</th>
+              <th scope="col">Commits</th>
+              <th scope="col">Written</th>
+              <th scope="col">State</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              systems.map((system) => (
+                <tr>
+                  <td>
+                    <a href={repositoryUrl(system.repository)}>
+                      {system.repository.owner}/{system.repository.name}
+                    </a>
+                  </td>
+                  <td>
+                    <a href={commitUrl(system.repository)}>{shortCommit(system.repository)}</a>
+                  </td>
+                  <td>{system.repository.commitCount}</td>
+                  <td>
+                    {system.repository.firstCommitOn} → {system.repository.pinnedOn}
+                  </td>
+                  <td>{maturityText(system.maturity.label)}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="facts-hint kicker" aria-hidden="true">Scrolls sideways</p>
+      <p class="facts-note">
+        State, in the words of each maturity statement: <em>validated</em>, the suites run against a
+        real chain and one real payment was sent on a public network; <em>complete</em>, every
+        public route is served and exercised by four test layers; <em>in progress</em>, the pieces
+        are built and tested and no route, use case or job joins them yet.
       </p>
-    </div>
-    <p class="live-strip mono">
-      this page → gateway → CryptoPay → chain → CryptoPay → gateway → payment.paid → WhatsApp → WAHA
-    </p>
+    </details>
   </section>
 
-  <section class="section" aria-labelledby="systems-title">
+  <section class="section" aria-labelledby="systems-title" data-reveal>
     <div class="section__head">
       <h2 id="systems-title">Systems</h2>
       <p class="kicker">Three repositories, each a case study</p>
@@ -203,10 +194,12 @@ const personSchema = {
       {
         systems.map((system, index) => (
           <li class="entry-panel">
+            <span class="entry-panel__index mono" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
             <div class="entry-panel__head">
               <span class="kicker">
-                {String(index + 1).padStart(2, '0')} · {system.repository.owner}/
-                {system.repository.name}
+                {system.repository.owner}/{system.repository.name}
               </span>
               <span class="badge" data-tone={maturityTone[system.maturity.label]}>
                 {maturityText(system.maturity.label)}
@@ -216,20 +209,9 @@ const personSchema = {
               <a href={`/systems/${system.id}/`}>{system.name}</a>
             </h3>
             <p class="entry-panel__problem">{system.problem[0]}</p>
-            <dl class="entry-panel__stack">
-              {stackFacts(system).map((entry) => (
-                <div>
-                  <dt>{technologyName({ id: entry.technology })}</dt>
-                  <dd>{firstSentence(entry.role)}</dd>
-                </div>
-              ))}
-            </dl>
             <p class="entry-panel__links">
               <a class="control" href={`/systems/${system.id}/`}>
                 Open the system <span class="sr-only">{system.name}</span>
-              </a>
-              <a href={`/systems/${system.id}/#failure`}>
-                Failure scenarios <span class="sr-only">of {system.name}</span>
               </a>
             </p>
           </li>
@@ -238,18 +220,14 @@ const personSchema = {
     </ol>
   </section>
 
-  <section class="section" aria-labelledby="share-title">
+  <section class="section" aria-labelledby="share-title" data-reveal>
     <div class="section__head">
       <h2 id="share-title">What they share</h2>
       <p class="kicker">No shared code, one explicit contract between them</p>
-      <p class="section__note">
-        An engineering approach, verified at the pinned commits. Only patterns every system carries
-        in full appear here.
-      </p>
     </div>
     <ul class="lenses">
       {
-        lenses.map((pattern, index) => (
+        featuredLenses.map((pattern, index) => (
           <li>
             <a href={`/architecture/#pattern-${pattern.id}`}>
               <span class="lenses__number">{String(index + 1).padStart(2, '0')}</span>
@@ -266,4 +244,55 @@ const personSchema = {
       <a href="/decisions/">every decision with its price</a> · <a href="/about/">about me</a>
     </p>
   </section>
+
+  <script>
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const supportsFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    const heroField = document.querySelector('.hero__field');
+    if (heroField instanceof HTMLElement && !prefersReducedMotion && supportsFinePointer) {
+      let pending = false;
+      window.addEventListener(
+        'pointermove',
+        (pointerEvent) => {
+          if (pending) {
+            return;
+          }
+          pending = true;
+          requestAnimationFrame(() => {
+            const ratioX = (pointerEvent.clientX / window.innerWidth - 0.5) * 2;
+            const ratioY = (pointerEvent.clientY / window.innerHeight - 0.5) * 2;
+            heroField.style.setProperty('--pointer-x', ratioX.toFixed(3));
+            heroField.style.setProperty('--pointer-y', ratioY.toFixed(3));
+            pending = false;
+          });
+        },
+        { passive: true },
+      );
+    }
+
+    if (!prefersReducedMotion && 'IntersectionObserver' in window) {
+      const revealTargets = document.querySelectorAll('[data-reveal]');
+      for (const target of revealTargets) {
+        target.classList.add('is-revealing');
+      }
+      const revealObserver = new IntersectionObserver(
+        (entries, observer) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) {
+              continue;
+            }
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        },
+        // A positive bottom margin starts the reveal before the section is actually on screen, so
+        // it has settled by the time a scrolling reader — or a scripted one — reaches it.
+        { threshold: 0, rootMargin: '0px 0px 25% 0px' },
+      );
+      for (const target of revealTargets) {
+        revealObserver.observe(target);
+      }
+    }
+  </script>
 </Base>

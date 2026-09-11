@@ -1,0 +1,496 @@
+@layer page {
+  /* ---------------------------------------------------------------------
+     Hero — the only section allowed a second, more vivid palette. Every
+     colour here is decorative and sits behind the text, never inside it,
+     so page contrast never depends on it.
+     --------------------------------------------------------------------- */
+  .hero {
+    position: relative;
+    display: grid;
+    gap: var(--space-6);
+    min-height: min(78vh, 44rem);
+    padding-block: var(--space-8) var(--space-7);
+    overflow: clip;
+  }
+
+  @media (max-width: 48rem) {
+    .hero {
+      min-height: auto;
+      padding-block: var(--space-7) var(--space-6);
+    }
+  }
+
+  .hero__field {
+    position: absolute;
+    inset: -10% -10%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .hero__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(min(9vw, 90px));
+    opacity: 0.55;
+    will-change: transform;
+    animation: hero-drift 26s ease-in-out infinite;
+    transform: translate3d(
+      calc(var(--pointer-x, 0) * var(--drift, 12px)),
+      calc(var(--pointer-y, 0) * var(--drift, 12px)),
+      0
+    );
+    transition: transform 900ms ease-out;
+  }
+
+  .hero__orb--a {
+    top: 6%;
+    right: 8%;
+    width: min(34vw, 26rem);
+    height: min(34vw, 26rem);
+    background: var(--glow-a);
+    --drift: 22px;
+    animation-duration: 24s;
+  }
+
+  .hero__orb--b {
+    bottom: -6%;
+    right: 26%;
+    width: min(24vw, 19rem);
+    height: min(24vw, 19rem);
+    background: var(--glow-b);
+    --drift: -18px;
+    animation-duration: 31s;
+    animation-delay: -8s;
+  }
+
+  .hero__orb--c {
+    top: 32%;
+    left: -4%;
+    width: min(20vw, 16rem);
+    height: min(20vw, 16rem);
+    background: var(--glow-c);
+    --drift: 16px;
+    animation-duration: 22s;
+    animation-delay: -4s;
+  }
+
+  @keyframes hero-drift {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 2% -4%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__orb {
+      animation: none;
+      transition: none;
+      transform: none;
+    }
+  }
+
+  .hero__content {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: var(--space-4);
+    align-content: center;
+    min-height: min(64vh, 36rem);
+  }
+
+  .hero__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .hero__eyebrow::before {
+    content: '';
+    width: 1.5rem;
+    height: var(--hairline);
+    background: var(--glow-a);
+  }
+
+  .hero__name {
+    margin: 0;
+    font-size: clamp(3.4rem, 1.6rem + 9vw, 9rem);
+    line-height: 0.94;
+    letter-spacing: -0.02em;
+  }
+
+  .hero__role {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--size-lead);
+    letter-spacing: 0.01em;
+    color: var(--ink-muted);
+  }
+
+  .hero__role-divider {
+    width: 0.4em;
+    height: 0.4em;
+    border-radius: 50%;
+    background: var(--glow-a);
+  }
+
+  .hero__scroll {
+    position: relative;
+    z-index: 1;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--size-caption);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-muted);
+  }
+
+  .hero__scroll:hover {
+    color: var(--ink);
+  }
+
+  .hero__scroll-mark {
+    display: inline-block;
+    animation: hero-bob 1.8s ease-in-out infinite;
+  }
+
+  @keyframes hero-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(0.3em);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__scroll-mark {
+      animation: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     Thesis — one line, the whole positioning statement.
+     --------------------------------------------------------------------- */
+  .thesis {
+    padding-block: var(--space-7);
+    text-align: center;
+  }
+
+  .thesis .pull {
+    max-width: 34ch;
+    margin-inline: auto;
+    font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.5rem);
+  }
+
+  /* ---------------------------------------------------------------------
+     Featured — the payment gateway demo, spotlighted rather than
+     re-implemented: a single vivid card pointing at /demo/.
+     --------------------------------------------------------------------- */
+  .featured {
+    position: relative;
+    display: grid;
+    gap: var(--space-5);
+    padding: var(--space-7) var(--space-6);
+    border: var(--hairline) solid var(--rule);
+    background:
+      radial-gradient(ellipse 120% 140% at 100% 0%, var(--glow-a-soft), transparent 60%),
+      var(--panel);
+    overflow: clip;
+  }
+
+  @media (min-width: 60rem) {
+    .featured {
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+      align-items: center;
+    }
+  }
+
+  .featured__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .featured__eyebrow::before {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--glow-b);
+  }
+
+  .featured__title {
+    margin-top: var(--space-3);
+    max-width: 20ch;
+  }
+
+  .featured__copy {
+    margin-top: var(--space-4);
+    max-width: 46ch;
+    color: var(--ink-muted);
+  }
+
+  .featured__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-5);
+  }
+
+  .featured__cta {
+    min-height: 2.75rem;
+    padding-inline: var(--space-5);
+    border-color: var(--glow-a);
+    font-size: var(--size-small);
+  }
+
+  .featured__cta:hover {
+    background: var(--glow-a);
+    color: var(--ground);
+  }
+
+  .featured__flow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border: var(--hairline) solid var(--rule);
+    background: var(--raised);
+    font-family: var(--font-mono);
+    font-size: var(--size-caption);
+    letter-spacing: 0.04em;
+  }
+
+  .featured__flow-station {
+    text-align: center;
+    color: var(--ink-muted);
+  }
+
+  .featured__flow-line {
+    position: relative;
+    flex: 1 1 auto;
+    height: var(--hairline);
+    background: var(--rule-strong);
+  }
+
+  .featured__flow-line::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--glow-a);
+    translate: 0 -50%;
+    animation: featured-pulse 3.6s linear infinite;
+  }
+
+  .featured__flow-line--b::after {
+    background: var(--glow-b);
+    animation-delay: -1.8s;
+  }
+
+  @keyframes featured-pulse {
+    0% {
+      left: 0;
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      left: 100%;
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .featured__flow-line::after {
+      animation: none;
+      left: 50%;
+      opacity: 1;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     Section accents — a thin gradient rule marks the sections that carry
+     the new visual language, without touching .section__head elsewhere.
+     --------------------------------------------------------------------- */
+  .section--accent .section__head {
+    border-bottom: none;
+    padding-top: var(--space-3);
+    position: relative;
+  }
+
+  .section--accent .section__head::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5rem;
+    height: 2px;
+    background: linear-gradient(90deg, var(--glow-a), var(--glow-b));
+  }
+
+  /* ---------------------------------------------------------------------
+     Systems — three cards, not a spec table. Detail lives one click away.
+     --------------------------------------------------------------------- */
+  .entry-panel {
+    position: relative;
+    transition:
+      transform 220ms ease,
+      background 220ms ease;
+  }
+
+  .entry-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--tone, var(--glow-a));
+    opacity: 0;
+    transition: opacity 220ms ease;
+    pointer-events: none;
+  }
+
+  .entry-panel:hover,
+  .entry-panel:focus-within {
+    transform: translateY(-0.25rem);
+    background: var(--raised);
+  }
+
+  .entry-panel:hover::before,
+  .entry-panel:focus-within::before {
+    opacity: 0.05;
+  }
+
+  .entry-panel:nth-child(3n + 1) {
+    --tone: var(--glow-a);
+  }
+
+  .entry-panel:nth-child(3n + 2) {
+    --tone: var(--glow-b);
+  }
+
+  .entry-panel:nth-child(3n + 3) {
+    --tone: var(--glow-c);
+  }
+
+  .entry-panel__index {
+    font-family: var(--font-mono);
+    font-size: var(--size-title);
+    color: var(--tone, var(--glow-a));
+  }
+
+  .entry-panel__name {
+    font-size: clamp(1.75rem, 1.5rem + 1vw, 2.25rem);
+  }
+
+  /* ---------------------------------------------------------------------
+     Patterns — a loose row of pills instead of a bordered grid, three at
+     a time; the rest is one click away on the architecture map.
+     --------------------------------------------------------------------- */
+  .lenses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: 0;
+    background: none;
+  }
+
+  .lenses li {
+    flex: 0 1 auto;
+  }
+
+  .lenses a {
+    display: inline-flex;
+    align-items: center;
+    height: auto;
+    padding: var(--space-2) var(--space-4);
+    border: var(--hairline) solid var(--rule-strong);
+    border-radius: 999px;
+    background: var(--panel);
+    transition:
+      background 220ms ease,
+      border-color 220ms ease,
+      transform 220ms ease;
+  }
+
+  .lenses a:hover {
+    border-color: var(--glow-a);
+    background: var(--raised);
+    transform: translateY(-2px);
+  }
+
+  .lenses__number {
+    color: var(--glow-a);
+  }
+
+  /* ---------------------------------------------------------------------
+     Repository facts — kept in full for the record and for the no-script
+     projection, tucked behind a disclosure so the home page opens light.
+     --------------------------------------------------------------------- */
+  .board__facts-details summary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .board__facts-details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .board__facts-details summary::after {
+    content: '';
+    width: 0.5em;
+    height: 0.5em;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 160ms ease;
+  }
+
+  .board__facts-details[open] summary::after {
+    transform: rotate(-135deg);
+  }
+
+  .board__facts-details .facts-scroll {
+    margin-top: var(--space-4);
+  }
+
+  /* ---------------------------------------------------------------------
+     Reveal — progressive enhancement only. Everything is visible without
+     the class the script adds, so no-script and reduced-motion readers
+     see the full page immediately.
+     --------------------------------------------------------------------- */
+  [data-reveal].is-revealing {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition:
+      opacity 350ms ease,
+      transform 350ms ease;
+  }
+
+  [data-reveal].is-revealing.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}

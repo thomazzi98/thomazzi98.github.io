@@ -12,9 +12,12 @@ import {
 const ledgerLinesOn = (page: Page) => page.locator('.board__ledger .ledger__line');
 
 // The board mounts when the browser is idle, so readiness is the only wait that means anything.
+// It now sits below the opening beats, so it starts off-screen: usePlayback holds the clock while
+// its root is out of view, the same way it would for a visitor who hasn't scrolled to it yet.
 const openBoard = async (page: Page) => {
   await page.goto('/');
   const board = page.locator('.board');
+  await board.scrollIntoViewIfNeeded();
   await expect(board).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
   return board;
 };

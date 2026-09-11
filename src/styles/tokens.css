@@ -22,6 +22,17 @@
   --flight: #f6f2e8;
   --focus: var(--wait);
 
+  /* Editorial accent, used only on the home page's opening beats: decorative fields, hover washes,
+     and a handful of small labels, never prose. Each of the three still clears 4.5:1 on --panel,
+     the same bar the state tones below hold. Kept apart from them so their meaning stays intact
+     everywhere else. */
+  --glow-a: #ff6a45;
+  --glow-b: #ffb42e;
+  --glow-c: #ff6f8f;
+  --glow-a-soft: rgb(255 106 69 / 32%);
+  --glow-b-soft: rgb(255 180 46 / 28%);
+  --glow-c-soft: rgb(255 111 143 / 26%);
+
   --font-display: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   --font-sans: var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
@@ -78,6 +89,15 @@
     --fault: #a8231b;
     --unknown: #5537b0;
     --flight: #1c1b18;
+
+    /* The vivid dark-mode glow reads as near-white on this ground, so light mode gets its own,
+       deeper set — each still clears 4.5:1 on --panel, the same bar every other token here holds. */
+    --glow-a: #b3401a;
+    --glow-b: #8a5a00;
+    --glow-c: #8a1f3d;
+    --glow-a-soft: rgb(179 64 26 / 20%);
+    --glow-b-soft: rgb(138 90 0 / 16%);
+    --glow-c-soft: rgb(138 31 61 / 16%);
   }
 }
 

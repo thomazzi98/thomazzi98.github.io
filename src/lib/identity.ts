@@ -1,6 +1,6 @@
 export const identity = {
   name: 'Rafael Thomazzi',
-  headline: 'Senior Software Engineer · Backend',
+  headline: 'Full Stack Engineer · Backend focused',
   strapline: 'Backend engineer · payments, messaging and chain infrastructure',
   positioning:
     'I build the backend between products, payment providers and chains, and make it able to say what happened.',
